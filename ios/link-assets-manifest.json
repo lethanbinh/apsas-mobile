@@ -1,0 +1,17 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/assets/fonts/headings/Lora-SemiBold.ttf",
+      "sha1": "7850da50ade64e68ce01cd318716b0b2927a8b9b"
+    },
+    {
+      "path": "src/assets/fonts/texts/Inter_18pt-Bold.ttf",
+      "sha1": "001ec1ea9a5f752d3248769c174b6fc030ab7dab"
+    },
+    {
+      "path": "src/assets/fonts/texts/Inter_18pt-Regular.ttf",
+      "sha1": "bd1976c1f019853ab6143ef1246e25aa66fd990e"
+    }
+  ]
+}
