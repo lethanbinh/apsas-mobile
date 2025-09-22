@@ -42,7 +42,7 @@ const RegisterForm = () => {
   });
 
   const handleLoginWithGoogle = () => {};
-  const handleRegister = () => {};
+  const handleRegister = (formData: FormData) => {};
   return (
     <View style={styles.container}>
       <AppTextInputController
@@ -91,7 +91,7 @@ const RegisterForm = () => {
       <View>
         <AppButton
           leftIcon={<RegisterIcon />}
-          onPress={handleRegister}
+          onPress={handleSubmit(handleRegister)}
           title="Register"
           style={{ width: s(230), marginTop: vs(20) }}
           size="small"

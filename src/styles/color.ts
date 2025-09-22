@@ -3,7 +3,7 @@ export const AppColors = {
   white: '#fff',
 
   //   primary
-  pr500: '#2196F3',
+  pr500: '#0961F5',
   pr300: '#90CAF9',
   pr100: '#E3F2FD',
 

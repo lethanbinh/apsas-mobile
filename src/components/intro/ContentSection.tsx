@@ -5,9 +5,18 @@ import AppText from '../texts/AppText';
 import AppButton from '../buttons/AppButton';
 import { ArrowRightIcon } from '../../assets/icons/icon';
 import { AppColors } from '../../styles/color';
+import { useNavigation } from '@react-navigation/native';
 
 const ContentSection = () => {
-  const handleGetStarted = () => {};
+  const navigation = useNavigation();
+
+  const handleGetStarted = () => {
+    navigation.navigate('AuthStack' as never);
+  };
+
+  const handleNavigateToLogin = () => {
+    navigation.navigate('AuthStack' as never);
+  }
 
   return (
     <View style={styles.textContainer}>
@@ -29,7 +38,7 @@ const ContentSection = () => {
         }}
       >
         <AppText>Already have an account? </AppText>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleNavigateToLogin}>
           <AppText
             style={{
               textDecorationLine: 'underline',

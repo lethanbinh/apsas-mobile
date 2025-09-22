@@ -1,14 +1,17 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { s } from 'react-native-size-matters';
+import AuthenticationFooter from '../components/authentication/AuthenticationFooter';
 import AuthenticationHeader from '../components/authentication/AuthenticationHeader';
 import LoginForm from '../components/authentication/LoginForm';
-import AuthenticationFooter from '../components/authentication/AuthenticationFooter';
-import { s } from 'react-native-size-matters';
 import { AppColors } from '../styles/color';
+import { globalStyles } from '../styles/shareStyles';
 
 const LoginScreen = () => {
-  const handleNavigateToRegister = () => {
-    // Navigation logic to go to the Register screen
+  const navigation = useNavigation();
+  const handleNavigateToResetPasswordScreen = () => {
+    navigation.navigate('ResetPasswordScreen' as never);
   };
 
   return (
@@ -19,9 +22,9 @@ const LoginScreen = () => {
       />
       <LoginForm />
       <AuthenticationFooter
-        text="You don’t have an account?"
-        onPress={handleNavigateToRegister}
-        buttonText="Register"
+        text="Forgot password?"
+        onPress={handleNavigateToResetPasswordScreen}
+        buttonText="Reset password!"
       />
     </View>
   );
@@ -30,11 +33,5 @@ const LoginScreen = () => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: s(35),
-    backgroundColor: AppColors.white
-  },
+  container: globalStyles.authenticationContainer,
 });

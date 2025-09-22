@@ -19,21 +19,18 @@ const LoginForm = () => {
   type FormData = yup.InferType<typeof schema>;
 
   const schema = yup.object({
-    email: yup
-      .string()
-      .required('email_required_error')
-      .email('email_invalid_error'),
+    email: yup.string().required('Email is required').email('Email is invalid'),
     password: yup
       .string()
-      .required('password_required_error')
-      .min(6, 'password_min_length_error'),
+      .required('Password is required')
+      .min(6, 'Password must be at least 6 characters'),
   });
   const { control, handleSubmit } = useForm({
     resolver: yupResolver(schema),
   });
 
   const handleLoginWithGoogle = () => {};
-  const handleLogin = () => {};
+  const handleLogin = (formData: FormData) => {};
   return (
     <View style={styles.container}>
       <AppTextInputController
@@ -56,7 +53,7 @@ const LoginForm = () => {
       <View>
         <AppButton
           leftIcon={<LoginIcon />}
-          onPress={handleLogin}
+          onPress={handleSubmit(handleLogin)}
           title="Login"
           style={{ width: s(230), marginTop: vs(20) }}
           size="small"

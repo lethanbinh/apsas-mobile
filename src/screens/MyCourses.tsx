@@ -1,14 +1,14 @@
 import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
 
-const MyClassScreen = () => {
+const MyCourses = () => {
   return (
     <View>
-      <Text>MyClassScreen</Text>
+      <Text>MyCourses</Text>
     </View>
   )
 }
 
-export default MyClassScreen
+export default MyCourses
 
 const styles = StyleSheet.create({})

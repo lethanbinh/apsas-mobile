@@ -1,5 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { AppFonts } from './font';
+import { s } from 'react-native-size-matters';
+import { AppColors } from './color';
 
 export const textStyles = StyleSheet.create({
   h1: AppFonts.h1,
@@ -23,4 +25,14 @@ export const textStyles = StyleSheet.create({
   label14pxBold: AppFonts.label14pxBold,
   label12pxRegular: AppFonts.label12pxRegular,
   label12pxBold: AppFonts.label12pxBold,
+});
+
+export const globalStyles = StyleSheet.create({
+  authenticationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: s(35),
+    backgroundColor: AppColors.white,
+  },
 });

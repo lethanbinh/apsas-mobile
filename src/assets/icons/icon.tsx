@@ -1,5 +1,6 @@
 import * as React from 'react';
 import Svg, { Mask, Path, G, SvgProps } from 'react-native-svg';
+import { AppColors } from '../../styles/color';
 export const AppIcon = (props: SvgProps) => (
   <Svg width={248} height={166} viewBox="0 0 248 166" fill="none" {...props}>
     <Mask
@@ -69,7 +70,7 @@ export const AppIcon = (props: SvgProps) => (
           <G mask="url(#mask3_210_4849)">
             <Path
               d="M26.6823 -70.0996L-58.3073 150.234L217.354 256.567L302.344 36.2285L26.6823 -70.0996Z"
-              fill="#2196F3"
+              fill={AppColors.pr500}
             />
           </G>
         </G>
@@ -142,7 +143,7 @@ export const AppIcon = (props: SvgProps) => (
           <G mask="url(#mask7_210_4849)">
             <Path
               d="M78.0884 -4.61523L67.6093 22.5514L94.7759 33.0306L105.255 5.86393L78.0884 -4.61523Z"
-              fill="#2196F3"
+              fill={AppColors.pr500}
             />
           </G>
         </G>
@@ -218,7 +219,7 @@ export const AppIcon = (props: SvgProps) => (
           <G mask="url(#mask11_210_4849)">
             <Path
               d="M149.635 -3.34375L143.38 12.8698L159.594 19.1198L165.844 2.91146L149.635 -3.34375Z"
-              fill="#2196F3"
+              fill={AppColors.pr500}
             />
           </G>
         </G>
@@ -291,7 +292,7 @@ export const AppIcon = (props: SvgProps) => (
           <G mask="url(#mask15_210_4849)">
             <Path
               d="M210.682 112.276L200.823 137.849L226.39 147.714L236.255 122.141L210.682 112.276Z"
-              fill="#2196F3"
+              fill={AppColors.pr500}
             />
           </G>
         </G>
@@ -389,7 +390,7 @@ export const SmallAppIcon = (props: SvgProps) => (
           <G mask="url(#mask3_117_9841)">
             <Path
               d="M12.6954 -33.6543L-27.7432 71.626L103.418 122.434L143.857 17.1517L12.6954 -33.6543Z"
-              fill="#2196F3"
+              fill={AppColors.pr500}
             />
           </G>
         </G>
@@ -465,7 +466,7 @@ export const SmallAppIcon = (props: SvgProps) => (
           <G mask="url(#mask7_117_9841)">
             <Path
               d="M37.155 -2.36426L32.1689 10.6166L45.095 15.6238L50.0811 2.64293L37.155 -2.36426Z"
-              fill="#2196F3"
+              fill={AppColors.pr500}
             />
           </G>
         </G>
@@ -538,7 +539,7 @@ export const SmallAppIcon = (props: SvgProps) => (
           <G mask="url(#mask11_117_9841)">
             <Path
               d="M71.1975 -1.75781L68.2212 5.98939L75.9357 8.97578L78.9095 1.23107L71.1975 -1.75781Z"
-              fill="#2196F3"
+              fill={AppColors.pr500}
             />
           </G>
         </G>
@@ -614,7 +615,7 @@ export const SmallAppIcon = (props: SvgProps) => (
           <G mask="url(#mask15_117_9841)">
             <Path
               d="M100.244 53.4893L95.5527 65.7086L107.718 70.4221L112.412 58.2028L100.244 53.4893Z"
-              fill="#2196F3"
+              fill={AppColors.pr500}
             />
           </G>
         </G>
@@ -648,6 +649,15 @@ export const ArrowRightIcon = (props: SvgProps) => (
     <Path
       d="M9.91066 3.57709C10.2361 3.25165 10.7637 3.25165 11.0892 3.57709L16.9225 9.41042C17.2479 9.73586 17.2479 10.2635 16.9225 10.5889L11.0892 16.4223C10.7637 16.7477 10.2361 16.7477 9.91066 16.4223C9.58523 16.0968 9.58523 15.5692 9.91066 15.2438L14.3214 10.833H4.66659C4.20635 10.833 3.83325 10.4599 3.83325 9.99967C3.83325 9.53944 4.20635 9.16634 4.66659 9.16634H14.3214L9.91066 4.7556C9.58523 4.43016 9.58523 3.90252 9.91066 3.57709Z"
       fill="white"
+    />
+  </Svg>
+);
+
+export const CheckIcon = (props: SvgProps) => (
+  <Svg width={110} height={110} viewBox="0 0 110 110" fill="none" {...props}>
+    <Path
+      d="M55 0C24.64 0 0 24.64 0 55C0 85.36 24.64 110 55 110C85.36 110 110 85.36 110 55C110 24.64 85.36 0 55 0ZM44 82.5L16.5 55L24.255 47.245L44 66.935L85.745 25.19L93.5 33L44 82.5Z"
+      fill={AppColors.pr500}
     />
   </Svg>
 );
