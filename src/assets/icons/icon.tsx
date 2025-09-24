@@ -653,6 +653,15 @@ export const ArrowRightIcon = (props: SvgProps) => (
   </Svg>
 );
 
+export const ArrowLeftIcon = (props: SvgProps) => (
+  <Svg width={20} height={21} viewBox="0 0 20 21" fill="none" {...props}>
+    <Path
+      d="M6.52075 11.333L11.1874 15.9997L9.99992 17.1663L3.33325 10.4997L9.99992 3.83301L11.1874 4.99967L6.52075 9.66634H16.6666V11.333H6.52075Z"
+      fill="#0961F5"
+    />
+  </Svg>
+);
+
 export const CheckIcon = (props: SvgProps) => (
   <Svg width={110} height={110} viewBox="0 0 110 110" fill="none" {...props}>
     <Path

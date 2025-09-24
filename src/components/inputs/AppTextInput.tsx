@@ -14,6 +14,7 @@ interface AppTextInputProps {
   securityTextEntry?: boolean;
   label?: string;
   icon?: React.ReactNode;
+  editable?: boolean;
 }
 
 const AppTextInput = ({
@@ -25,6 +26,7 @@ const AppTextInput = ({
   style,
   label,
   icon,
+  editable = true,
 }: AppTextInputProps) => {
   return (
     <View style={styles.container}>
@@ -45,7 +47,8 @@ const AppTextInput = ({
         placeholder={placeholder}
         keyboardType={keyboardType}
         secureTextEntry={securityTextEntry}
-        style={[styles.input, style]}
+        style={[styles.input, style, !editable && styles.disabled]}
+        editable={editable}
       />
       {icon && <View style={styles.icon}>{icon}</View>}
     </View>
@@ -73,7 +76,11 @@ const styles = StyleSheet.create({
   icon: {
     position: 'absolute',
     right: s(15),
-    top: "50%",
+    top: '50%',
     transform: [{ translateY: -5 }],
+  },
+
+  disabled: {
+    backgroundColor: AppColors.n200
   }
 });

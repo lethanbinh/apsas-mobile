@@ -1,16 +1,16 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native';
 import React from 'react';
-import ClassItem from './ClassItem';
-import { allClasses } from '../../data/class';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { allCourses } from '../../data/coursesData';
+import CourseItem from './CourseItem';
 
-const ClassList = () => {
+const CourseList = () => {
   return (
     <FlatList
       style={{ paddingLeft: 25 }}
-      data={allClasses}
+      data={allCourses}
       keyExtractor={item => item.id}
       renderItem={({ item }) => {
-        return <ClassItem isMyClass={false} item={item} onPress={() => {}} />;
+        return <CourseItem isMyCourse={false} item={item} onPress={() => {}} />;
       }}
       horizontal
       showsHorizontalScrollIndicator={false}
@@ -19,6 +19,6 @@ const ClassList = () => {
   );
 };
 
-export default ClassList;
+export default CourseList;
 
 const styles = StyleSheet.create({});

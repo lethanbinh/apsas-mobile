@@ -15,6 +15,7 @@ interface AppTextInputControllerProps<T extends FieldValues> {
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
   label?: string;
   icon?: React.ReactNode;
+  editable?: boolean;
 }
 
 const AppTextInputController = <T extends FieldValues>({
@@ -26,6 +27,7 @@ const AppTextInputController = <T extends FieldValues>({
   keyboardType,
   label,
   icon,
+  editable,
 }: AppTextInputControllerProps<T>) => {
   return (
     <Controller
@@ -43,6 +45,7 @@ const AppTextInputController = <T extends FieldValues>({
             keyboardType={keyboardType}
             style={error && styles.errorInput}
             icon={icon}
+            editable={editable}
           />
           {error && <AppText style={styles.textError}>{error.message}</AppText>}
         </>

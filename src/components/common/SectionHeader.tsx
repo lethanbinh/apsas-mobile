@@ -1,20 +1,41 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from 'react-native';
 import React from 'react';
 import AppText from '../texts/AppText';
 import { s } from 'react-native-size-matters';
-
+import { textStyles } from '../../styles/shareStyles';
+type Variant = keyof typeof textStyles;
 interface SectionHeaderProps {
   title: string;
-  buttonText: string;
+  buttonText?: string;
   onPress?: () => void;
+  textVariant?: Variant;
+  variant?: Variant;
+  hasButton?: boolean;
+  style?: ViewStyle;
 }
-const SectionHeader = ({ title, buttonText, onPress }: SectionHeaderProps) => {
+const SectionHeader = ({
+  title,
+  buttonText,
+  onPress,
+  textVariant = 'h4',
+  variant = 'label14pxRegular',
+  hasButton = true,
+  style,
+}: SectionHeaderProps) => {
   return (
-    <View style={styles.container}>
-      <AppText variant="h4">{title}</AppText>
-      <TouchableOpacity onPress={onPress}>
-        <AppText variant="label14pxRegular">{buttonText}</AppText>
-      </TouchableOpacity>
+    <View style={[styles.container, style]}>
+      <AppText variant={textVariant}>{title}</AppText>
+      {hasButton && (
+        <TouchableOpacity onPress={onPress}>
+          <AppText variant={variant}>{buttonText}</AppText>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -26,6 +47,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: s(25),
   },
 });

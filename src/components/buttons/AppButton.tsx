@@ -16,7 +16,7 @@ interface AppButtonProps {
   styleTitle?: TextStyle | TextStyle[];
   disabled?: boolean;
   textVariant?: TextVariant;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'danger';
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   size?: 'large' | 'medium' | 'small';
@@ -95,6 +95,11 @@ const styles = StyleSheet.create({
   textTitle: {},
   primary: {},
   secondary: {},
+  danger: {
+    backgroundColor: AppColors.white,
+    borderWidth: 1,
+    borderColor: AppColors.errorColor,
+  },
   large: {
     paddingVertical: vs(14),
     paddingHorizontal: s(24),

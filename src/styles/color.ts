@@ -44,6 +44,6 @@ export const AppColors = {
   pur100: '#EDEDFF',
 
   // input color
-  errorColor: "#FF5A5A",
+  errorColor: "#F41F52",
   successColor: "#4BB543",
 };

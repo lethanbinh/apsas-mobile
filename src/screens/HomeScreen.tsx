@@ -5,22 +5,23 @@ import AppHeader from '../components/common/AppHeader';
 import { s, vs } from 'react-native-size-matters';
 import SectionHeader from '../components/common/SectionHeader';
 import { AppColors } from '../styles/color';
-import ClassList from '../components/classes/ClassList';
+import CourseList from '../components/courses/CourseList';
 
 const HomeScreen = () => {
-  const handleViewAllClass = () => {};
+  const handleViewAllCourses = () => {};
   return (
     <AppSafeView style={styles.container}>
       <AppHeader />
       <View style={{ marginTop: vs(25) }}>
         <SectionHeader
-          title="Classes"
+          title="Courses"
           buttonText="View all"
-          onPress={handleViewAllClass}
+          onPress={handleViewAllCourses}
+          style={{ paddingHorizontal: s(25) }}
         />
       </View>
       <View style={{ marginTop: vs(15) }}>
-        <ClassList />
+        <CourseList />
       </View>
     </AppSafeView>
   );

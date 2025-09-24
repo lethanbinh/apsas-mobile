@@ -4,7 +4,7 @@ import { s, vs } from 'react-native-size-matters';
 import AppButton from '../buttons/AppButton';
 import AppText from '../texts/AppText';
 
-interface ClassItemProps {
+interface CourseItemProps {
   item: {
     id: string;
     title: string;
@@ -12,15 +12,15 @@ interface ClassItemProps {
     image: any;
     color: string;
   };
-  isMyClass?: boolean;
+  isMyCourse?: boolean;
   onPress: () => void;
 }
 
-const ClassItem = ({
+const CourseItem = ({
   item: { id, title, description, image, color },
-  isMyClass = false,
+  isMyCourse = false,
   onPress,
-}: ClassItemProps) => {
+}: CourseItemProps) => {
   return (
     <View style={[styles.container, { backgroundColor: color }]}>
       <Image style={styles.image} source={image} />
@@ -43,7 +43,7 @@ const ClassItem = ({
         </AppText>
         <AppButton
           size="small"
-          title={isMyClass ? 'View' : 'Join'}
+          title={isMyCourse ? 'View' : 'Join'}
           textVariant="label12pxBold"
           onPress={onPress}
           style={{
@@ -56,7 +56,7 @@ const ClassItem = ({
   );
 };
 
-export default ClassItem;
+export default CourseItem;
 
 const styles = StyleSheet.create({
   container: {
