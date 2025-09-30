@@ -1,9 +1,10 @@
 export const AppColors = {
   black: '#000',
+  secondaryBlack: '#6E6E6E',
   white: '#fff',
 
   //   primary
-  pr500: '#0961F5',
+  pr500: '#3787FF',
   pr300: '#90CAF9',
   pr100: '#E3F2FD',
 
@@ -44,6 +45,7 @@ export const AppColors = {
   pur100: '#EDEDFF',
 
   // input color
-  errorColor: "#F41F52",
-  successColor: "#4BB543",
+  errorColor: '#F41F52',
+  successColor: '#4BB543',
+  tagColor: '#FF6B00',
 };

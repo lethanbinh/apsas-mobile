@@ -1,13 +1,15 @@
-import { StyleSheet, Text, View } from 'react-native';
 import React from 'react';
-import AppSafeView from '../components/views/AppSafeView';
+import { StyleSheet } from 'react-native';
 import ScreenHeader from '../components/common/ScreenHeader';
-import { s } from 'react-native-size-matters';
+import NotificationContent from '../components/notifications/NotificationContent';
+import AppSafeView from '../components/views/AppSafeView';
 
 const NotificationScreen = () => {
   return (
     <AppSafeView style={styles.container}>
       <ScreenHeader title="Notifications" />
+      {/* <NotificationEmpty /> */}
+      <NotificationContent />
     </AppSafeView>
   );
 };
@@ -15,7 +17,5 @@ const NotificationScreen = () => {
 export default NotificationScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: s(25),
-  },
+  container: {},
 });

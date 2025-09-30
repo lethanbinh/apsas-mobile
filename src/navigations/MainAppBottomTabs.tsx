@@ -2,14 +2,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
-import Feather from 'react-native-vector-icons/Feather'; // 👈 sửa lại đúng bộ icon
+import Feather from 'react-native-vector-icons/Feather';
 import { IS_ANDROID } from '../constants/constants';
-import HomeScreen from '../screens/HomeScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import RequestScreen from '../screens/RequestScreen';
 import { AppColors } from '../styles/color';
-import MyCourses from '../screens/MyCourses';
+import HomeStackNavigator from './HomeStack';
+import MyCourseStackNavigator from './MyCourseStack';
+import SubmissionHistoryScreen from '../screens/SubmissionHistoryScreen';
 
 const Tab = createBottomTabNavigator();
 const MainAppBottomTabs = () => {
@@ -25,15 +25,15 @@ const MainAppBottomTabs = () => {
           paddingBottom: vs(40),
           paddingHorizontal: s(20),
           backgroundColor: AppColors.white,
-          borderTopWidth: 0, // 👈 ẩn border top
-          elevation: 0, // 👈 Android: bỏ shadow
-          shadowOpacity: 0, // 👈 iOS: bỏ shadow
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
         },
       }}
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
@@ -42,13 +42,23 @@ const MainAppBottomTabs = () => {
         }}
       />
       <Tab.Screen
-        name="MyCourses"
-        component={MyCourses}
+        name="Courses"
+        component={MyCourseStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Feather name="book" size={size} color={color} />
           ),
-          tabBarLabel: 'My Courses',
+          tabBarLabel: 'Courses',
+        }}
+      />
+      <Tab.Screen
+        name="Submission"
+        component={SubmissionHistoryScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="file-text" size={size} color={color} />
+          ),
+          tabBarLabel: 'Submission',
         }}
       />
       <Tab.Screen

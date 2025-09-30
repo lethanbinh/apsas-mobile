@@ -1,16 +1,25 @@
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { allCourses } from '../../data/coursesData';
-import CourseItem from './CourseItem';
+import CourseItem, { CourseItemProps } from './CourseItem';
 
-const CourseList = () => {
+export interface CourseListProps {
+  items: CourseItemProps[];
+}
+const CourseList = ({ items }: CourseListProps) => {
   return (
     <FlatList
       style={{ paddingLeft: 25 }}
-      data={allCourses}
-      keyExtractor={item => item.id}
+      contentContainerStyle={{ paddingRight: 40 }}
+      data={items}
+      keyExtractor={item => item.item.id}
       renderItem={({ item }) => {
-        return <CourseItem isMyCourse={false} item={item} onPress={() => {}} />;
+        return (
+          <CourseItem
+            isMyCourse={item.isMyCourse}
+            item={item.item}
+            onPress={(item.onPress)}
+          />
+        );
       }}
       horizontal
       showsHorizontalScrollIndicator={false}

@@ -94,7 +94,11 @@ const styles = StyleSheet.create({
 
   textTitle: {},
   primary: {},
-  secondary: {},
+  secondary: {
+    backgroundColor: AppColors.white,
+    borderWidth: 1,
+    borderColor: AppColors.n800,
+  },
   danger: {
     backgroundColor: AppColors.white,
     borderWidth: 1,
