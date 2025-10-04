@@ -8,6 +8,9 @@ import ParticipantsScreen from '../screens/ParticipantsScreen';
 import GradesScreen from '../screens/GradesScreen';
 import AssignmentDetailScreen from '../screens/AssignmentDetailScreen';
 import ScoreDetailScreen from '../screens/ScoreDetailScreen';
+import FeedbackScreen from '../screens/FeedbackScreen';
+import SubmissionScreen from '../screens/SubmissionScreen';
+import SubmissionHistoryScreen from '../screens/SubmissionHistoryScreen';
 const MyCourseStack = createStackNavigator();
 
 const MyCourseStackNavigator = () => {
@@ -37,6 +40,15 @@ const MyCourseStackNavigator = () => {
       <MyCourseStack.Screen
         name="ScoreDetailScreen"
         component={ScoreDetailScreen}
+      />
+      <MyCourseStack.Screen name="FeedbackScreen" component={FeedbackScreen} />
+      <MyCourseStack.Screen
+        name="SubmissionScreen"
+        component={SubmissionScreen}
+      />
+      <MyCourseStack.Screen
+        name="SubmissionHistoryScreen"
+        component={SubmissionHistoryScreen}
       />
     </MyCourseStack.Navigator>
   );

@@ -347,6 +347,27 @@ export const AssignmentList = [
   },
 ];
 
+export const submissionsAssignmentList = [
+  {
+    id: 1,
+    number: '01',
+    title: 'Assignment 1',
+    linkFile: 'asm1.pdf',
+    rightIcon: DownloadIcon,
+    detailNavigation: 'ScoreDetailScreen',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'Assignment 2',
+    linkFile: 'asm2.pdf',
+    rightIcon: DownloadIcon,
+    detailNavigation: 'ScoreDetailScreen',
+    onAction: () => {},
+  },
+];
+
 export const participantList = [
   {
     id: 1,
@@ -452,6 +473,27 @@ export const gradeAssignmentList = [
     linkFile: '7 / 10',
     rightIcon: ViewIcon,
     detailNavigation: 'AssignmentDetailScreen',
+    onAction: () => {},
+  },
+];
+
+export const submissionList = [
+  {
+    id: 1,
+    number: '01',
+    title: 'Zipfile 1',
+    linkFile: 'asm1.pdf',
+    rightIcon: DownloadIcon,
+    detailNavigation: 'ScoreDetailScreen',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'Zipfile 2',
+    linkFile: 'asm1.pdf',
+    rightIcon: DownloadIcon,
+    detailNavigation: 'ScoreDetailScreen',
     onAction: () => {},
   },
 ];

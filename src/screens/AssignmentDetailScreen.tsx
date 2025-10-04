@@ -1,3 +1,4 @@
+import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
@@ -5,7 +6,10 @@ import SectionHeader from '../components/common/SectionHeader';
 import AssignmentCardInfo from '../components/courses/AssignmentCardInfo';
 import CurriculumList from '../components/courses/CurriculumList';
 import AppText from '../components/texts/AppText';
-import { AssignmentList, SyllabusList } from '../data/coursesData';
+import {
+  submissionsAssignmentList,
+  SyllabusList
+} from '../data/coursesData';
 import { AppColors } from '../styles/color';
 
 const data = [
@@ -17,12 +21,12 @@ const data = [
 
 const sections = [
   { title: 'Documents', data: SyllabusList },
-  { title: 'Submissions', data: AssignmentList },
+  { title: 'Submissions', data: submissionsAssignmentList },
 ];
 
 const AssignmentDetailScreen = () => {
   const [listHeight, setListHeight] = useState(0);
-
+  const navigation = useNavigation<any>();
   return (
     <ScrollView
       style={styles.container}
@@ -33,7 +37,17 @@ const AssignmentDetailScreen = () => {
         style={styles.image}
         source={require('../assets/images/assignment.png')}
       />
-      <AssignmentCardInfo />
+      <AssignmentCardInfo
+        assignmentType="Basic Assignment"
+        assignmentTitle="Assignment 1"
+        dueDate="18/10/2025"
+        lecturerName="NguyenNT"
+        description="Graphic Design now a popular profession graphic design by off your carrer about tantas regiones barbarorum pedibus obiit Graphic Design now a popular profession graphic design by off your carrer about tantas regiones barbarorum pedibus obiit"
+        isSubmitted={false}
+        onSubmitPress={() => {
+          navigation.navigate('SubmissionScreen');
+        }}
+      />
       <View
         style={{
           position: 'absolute',
@@ -52,10 +66,16 @@ const AssignmentDetailScreen = () => {
                 { backgroundColor: item.backgroundColor },
               ]}
             >
-              <AppText variant="label16pxRegular" style={{ color: AppColors.white }}>
+              <AppText
+                variant="label16pxRegular"
+                style={{ color: AppColors.white }}
+              >
                 {item.title}
               </AppText>
-              <AppText variant="label16pxRegular" style={{ color: AppColors.white }}>
+              <AppText
+                variant="label16pxRegular"
+                style={{ color: AppColors.white }}
+              >
                 {item.score}
               </AppText>
             </View>

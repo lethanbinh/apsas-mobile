@@ -18,14 +18,16 @@ interface CurriculumSection {
     detailNavigation: string;
     onAction: () => void;
   }[];
+  sectionButton?: string;
 }
 
 interface CurriculumListProps {
   sections: CurriculumSection[];
   isGraded?: boolean;
+  isDownloadable?: boolean;
 }
 
-const CurriculumList = ({ sections, isGraded }: CurriculumListProps) => {
+const CurriculumList = ({ sections, isGraded, isDownloadable = true }: CurriculumListProps) => {
   return (
     <SectionList
       style={styles.curriculumContainer}
@@ -34,13 +36,16 @@ const CurriculumList = ({ sections, isGraded }: CurriculumListProps) => {
         item.id ? String(item.id) : String(index)
       }
       scrollEnabled={false}
-      renderSectionHeader={({ section: { title } }) => (
-        <AppText
-          style={{ color: '#202244', marginBottom: vs(15) }}
-          variant="label16pxBold"
-        >
-          {title}
-        </AppText>
+      renderSectionHeader={({ section: { title, sectionButton } }) => (
+        <View>
+          <AppText
+            style={{ color: '#202244', marginBottom: vs(15) }}
+            variant="label16pxBold"
+          >
+            {title}
+          </AppText>
+          {sectionButton && <AppText>{sectionButton}</AppText>}
+        </View>
       )}
       renderItem={({ item }) => (
         <CurriculumItem
@@ -75,6 +80,11 @@ const CurriculumList = ({ sections, isGraded }: CurriculumListProps) => {
             </View>
           );
         }
+
+        if (!isDownloadable) {
+          return null;
+        }
+
         return (
           <AppButton
             textVariant="label14pxBold"

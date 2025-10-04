@@ -12,7 +12,7 @@ import MyCourseStackNavigator from './MyCourseStack';
 import SubmissionHistoryScreen from '../screens/SubmissionHistoryScreen';
 
 const Tab = createBottomTabNavigator();
-const MainAppBottomTabs = () => {
+const StudentBottomTabs = () => {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -85,6 +85,6 @@ const MainAppBottomTabs = () => {
   );
 };
 
-export default MainAppBottomTabs;
+export default StudentBottomTabs;
 
 const styles = StyleSheet.create({});
