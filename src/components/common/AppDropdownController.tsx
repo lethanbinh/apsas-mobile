@@ -4,35 +4,30 @@ import { StyleSheet } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { AppColors } from '../../styles/color';
 import AppText from '../texts/AppText';
-import AppTextInput from './AppTextInput';
+import AppDropdown from './AppDropdown';
 
-interface AppTextInputControllerProps<T extends FieldValues> {
+interface DropdownOption {
+  label: string;
+  value: string;
+}
+
+interface AppDropdownControllerProps<T extends FieldValues> {
   control: Control<T>;
   name: Path<T>;
   rules?: object;
-  placeholder?: string;
-  securityTextEntry?: boolean;
-  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
   label?: string;
-  icon?: React.ReactNode;
+  options: DropdownOption[];
   editable?: boolean;
-  multiline?: boolean; // ✅ thêm mới
-  numberOfLines?: number; // ✅ thêm mới
 }
 
-const AppTextInputController = <T extends FieldValues>({
+const AppDropdownController = <T extends FieldValues>({
   control,
   name,
   rules,
-  placeholder,
-  securityTextEntry,
-  keyboardType,
   label,
-  icon,
+  options,
   editable,
-  multiline,
-  numberOfLines,
-}: AppTextInputControllerProps<T>) => {
+}: AppDropdownControllerProps<T>) => {
   return (
     <Controller
       control={control}
@@ -40,18 +35,13 @@ const AppTextInputController = <T extends FieldValues>({
       rules={rules}
       render={({ field: { onChange, value }, fieldState: { error } }) => (
         <>
-          <AppTextInput
-            label={label}
+          <AppDropdown
             value={value}
-            onChangeText={onChange}
-            placeholder={placeholder}
-            securityTextEntry={securityTextEntry}
-            keyboardType={keyboardType}
-            style={error && styles.errorInput}
-            icon={icon}
+            onValueChange={onChange}
+            options={options}
+            label={label}
             editable={editable}
-            multiline={multiline} // ✅ truyền xuống
-            numberOfLines={numberOfLines}
+            style={error && styles.errorInput}
           />
           {error && <AppText style={styles.textError}>{error.message}</AppText>}
         </>
@@ -60,7 +50,7 @@ const AppTextInputController = <T extends FieldValues>({
   );
 };
 
-export default AppTextInputController;
+export default AppDropdownController;
 
 const styles = StyleSheet.create({
   errorInput: {

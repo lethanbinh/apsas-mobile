@@ -3,12 +3,12 @@ import React from 'react';
 import { s, vs } from 'react-native-size-matters';
 import Feather from 'react-native-vector-icons/Feather';
 import { IS_ANDROID } from '../constants/constants';
-import HomeScreen from '../screens/HomeScreen';
-import LecturerHomeScreen from '../screens/LecturerHomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { AppColors } from '../styles/color';
+import TaskStackNavigator from './TaskStack';
 import TeacherCourseStackNavigator from './TeacherCourseStack';
 import TeacherHomeStackNavigator from './TeacherHomeStack';
+import TeacherPracticalExamStackNavigator from './TeacherPracticalExamStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -51,7 +51,7 @@ const LecturerBottomTabs = () => {
       />
       <Tab.Screen
         name="Tasks"
-        component={HomeScreen}
+        component={TaskStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Feather name="check-square" size={size} color={color} />
@@ -60,7 +60,7 @@ const LecturerBottomTabs = () => {
       />
       <Tab.Screen
         name="Exams"
-        component={HomeScreen}
+        component={TeacherPracticalExamStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Feather name="file-text" size={size} color={color} />

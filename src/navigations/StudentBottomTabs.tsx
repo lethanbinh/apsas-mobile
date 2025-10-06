@@ -7,9 +7,9 @@ import { IS_ANDROID } from '../constants/constants';
 import NotificationScreen from '../screens/NotificationScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { AppColors } from '../styles/color';
+import HistoryStackNavigator from './HistoryStack';
 import HomeStackNavigator from './HomeStack';
 import MyCourseStackNavigator from './MyCourseStack';
-import SubmissionHistoryScreen from '../screens/SubmissionHistoryScreen';
 
 const Tab = createBottomTabNavigator();
 const StudentBottomTabs = () => {
@@ -53,7 +53,7 @@ const StudentBottomTabs = () => {
       />
       <Tab.Screen
         name="Submission"
-        component={SubmissionHistoryScreen}
+        component={HistoryStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Feather name="file-text" size={size} color={color} />

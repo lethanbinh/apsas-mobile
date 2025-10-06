@@ -5,7 +5,7 @@ import CurriculumList from '../components/courses/CurriculumList';
 import AppSafeView from '../components/views/AppSafeView';
 import { AssignmentList, PEList, SyllabusList } from '../data/coursesData';
 
-const CurriculumScreen = () => {
+const CurriculumTeacherScreen = () => {
   const sections = [
     { title: 'Slides', data: SyllabusList },
     { title: 'Assignments', data: AssignmentList },
@@ -14,11 +14,16 @@ const CurriculumScreen = () => {
   return (
     <AppSafeView>
       <ScreenHeader title="Curriculum" />
-      <CurriculumList sections={sections} scrollEnabled={true} />
+      <CurriculumList
+        sections={sections}
+        isDownloadable={false}
+        isSaved={true}
+        scrollEnabled={true}
+      />
     </AppSafeView>
   );
 };
 
-export default CurriculumScreen;
+export default CurriculumTeacherScreen;
 
 const styles = StyleSheet.create({});

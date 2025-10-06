@@ -6,47 +6,9 @@ import SubmissionHistoryItem from '../components/gradeHistory/SubmissionHistoryI
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
 import { useNavigation } from '@react-navigation/native';
+import { FilterIcon } from '../assets/icons/icon';
 
-const data = [
-  {
-    id: 1,
-    backgroundColor: AppColors.pr100,
-    submissionTime: '12/09/2025 – 14:32',
-    courseCode: 'CS101',
-    courseName: 'Introduction to Computer Science',
-    assignmentTitle: 'Homework 1',
-    teacherName: 'NguyenNT',
-    fileName: 'homework1.zip',
-    status: 'Late' as 'Late',
-    timeSubmit: 'Submission 3',
-  },
-  {
-    id: 2,
-    backgroundColor: AppColors.g100,
-    submissionTime: '12/09/2025 – 14:32',
-    courseCode: 'MA101',
-    courseName: 'Calculus I',
-    assignmentTitle: 'Assignment 1',
-    teacherName: 'TranTV',
-    fileName: 'assignment1.pdf',
-    status: 'On time' as 'On time',
-    timeSubmit: 'Submission 2',
-  },
-  {
-    id: 3,
-    backgroundColor: AppColors.pur100,
-    submissionTime: '12/09/2025 – 14:32',
-    courseCode: 'PH101',
-    courseName: 'Physics I',
-    assignmentTitle: 'Lab Report 1',
-    teacherName: 'LeHQ',
-    fileName: 'labreport1.docx',
-    status: 'Missing' as 'Missing',
-    timeSubmit: 'Submission 1',
-  },
-];
-
-const SubmissionHistoryScreen = () => {
+const GradingHistoryScreen = () => {
   const navigation = useNavigation();
   const data = [
     {
@@ -91,7 +53,13 @@ const SubmissionHistoryScreen = () => {
   ];
   return (
     <AppSafeView>
-      <ScreenHeader title="Submission History" />
+      <ScreenHeader
+        onRightIconPress={() => {
+          navigation.navigate('GradingHistoryFilterScreen' as never);
+        }}
+        title="Grading History"
+        rightIcon={<FilterIcon />}
+      />
       <View style={styles.container}>
         <FlatList
           data={data}
@@ -105,7 +73,7 @@ const SubmissionHistoryScreen = () => {
   );
 };
 
-export default SubmissionHistoryScreen;
+export default GradingHistoryScreen;
 
 const styles = StyleSheet.create({
   container: {

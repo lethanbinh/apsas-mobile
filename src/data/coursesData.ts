@@ -9,7 +9,7 @@ import {
   ParticipantsIcon,
   ViewIcon,
 } from '../assets/icons/courses';
-import { CurriculumItemProps } from '../components/courses/CurriculumItem';
+import { GradingHistoryIcon, UploadIcon } from '../assets/icons/icon';
 import { AppColors } from '../styles/color';
 
 export const allCourses = {
@@ -284,6 +284,69 @@ export const navigationList = [
   },
 ];
 
+export const teacherNavigation = [
+  {
+    id: 1,
+    title: 'Curriculum',
+    leftIcon: CurriculumIcon,
+    backGroundColor: AppColors.b100,
+    rightIconColor: AppColors.b500,
+    linkTo: 'CurriculumTeacherScreen',
+  },
+  {
+    id: 2,
+    title: 'Participants',
+    leftIcon: ParticipantsIcon,
+    backGroundColor: AppColors.pur100,
+    rightIconColor: AppColors.pur500,
+    linkTo: 'ParticipantsScreen',
+  },
+  {
+    id: 3,
+    title: 'Grading History',
+    leftIcon: GradingHistoryIcon,
+    backGroundColor: AppColors.g100,
+    rightIconColor: AppColors.g500,
+    linkTo: 'GradingHistoryScreen',
+  },
+];
+
+export const DocumentList = [
+  {
+    id: 1,
+    number: '01',
+    title: 'Requirement',
+    linkFile: 'requirement.pdf',
+    rightIcon: DownloadIcon,
+    linkTo: 'AssessmentDetailScreen',
+    detailNavigation: 'AssessmentDetailScreen',
+    onAction: () => {},
+  },
+];
+
+export const SubmissionList = [
+  {
+    id: 1,
+    number: '01',
+    title: 'Lethanhbinh',
+    linkFile: 'Score: 5/10',
+    rightIcon: ViewIcon,
+    linkTo: 'AssessmentDetailScreen',
+    detailNavigation: 'AssessmentDetailScreen',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'lexuanphuongnam',
+    linkFile: 'Score: 5/10',
+    rightIcon: ViewIcon,
+    linkTo: 'AssessmentDetailScreen',
+    detailNavigation: 'AssessmentDetailScreen',
+    onAction: () => {},
+  },
+];
+
 export const SyllabusList = [
   {
     id: 1,
@@ -347,6 +410,69 @@ export const AssignmentList = [
   },
 ];
 
+export const SyllabusListUpload = [
+  {
+    id: 1,
+    number: '01',
+    title: 'Why using Java',
+    linkFile: 'tutorial.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: '',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'Setup Your Java env...',
+    linkFile: 'setup.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: '',
+    onAction: () => {},
+  },
+];
+
+export const PEListUpload = [
+  {
+    id: 1,
+    number: '01',
+    title: 'PE1',
+    linkFile: 'pe1.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: 'CreateAssessmentScreen',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'PE2',
+    linkFile: 'pe2.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: 'CreateAssessmentScreen',
+    onAction: () => {},
+  },
+];
+
+export const AssignmentListUpload = [
+  {
+    id: 1,
+    number: '01',
+    title: 'Assignment 1',
+    linkFile: 'asm1.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: 'CreateAssessmentScreen',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'Assignment 2',
+    linkFile: 'asm2.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: 'CreateAssessmentScreen',
+    onAction: () => {},
+  },
+];
+
 export const submissionsAssignmentList = [
   {
     id: 1,
@@ -364,6 +490,36 @@ export const submissionsAssignmentList = [
     linkFile: 'asm2.pdf',
     rightIcon: DownloadIcon,
     detailNavigation: 'ScoreDetailScreen',
+    onAction: () => {},
+  },
+];
+
+export const DocumentListUpload = [
+  {
+    id: 1,
+    number: '01',
+    title: 'Requirement',
+    linkFile: 'requirement.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: '',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'Criteria',
+    linkFile: 'criteria.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: '',
+    onAction: () => {},
+  },
+  {
+    id: 3,
+    number: '03',
+    title: 'Database',
+    linkFile: 'database.pdf',
+    rightIcon: UploadIcon,
+    detailNavigation: '',
     onAction: () => {},
   },
 ];

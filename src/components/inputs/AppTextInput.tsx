@@ -3,7 +3,6 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { AppColors } from '../../styles/color';
 import AppText from '../texts/AppText';
-import { EmailInputIcon } from '../../assets/icons/input-icon';
 
 interface AppTextInputProps {
   value?: string;
@@ -15,6 +14,8 @@ interface AppTextInputProps {
   label?: string;
   icon?: React.ReactNode;
   editable?: boolean;
+  multiline?: boolean;   // ✅ thêm mới
+  numberOfLines?: number; // ✅ số dòng khi multiline
 }
 
 const AppTextInput = ({
@@ -27,6 +28,8 @@ const AppTextInput = ({
   label,
   icon,
   editable = true,
+  multiline = false,
+  numberOfLines = 4, // mặc định textarea cao 4 dòng
 }: AppTextInputProps) => {
   return (
     <View style={styles.container}>
@@ -47,8 +50,15 @@ const AppTextInput = ({
         placeholder={placeholder}
         keyboardType={keyboardType}
         secureTextEntry={securityTextEntry}
-        style={[styles.input, style, !editable && styles.disabled]}
+        style={[
+          styles.input,
+          style,
+          !editable && styles.disabled,
+          multiline && { height: vs(100), textAlignVertical: 'top' }, // ✅ style riêng textarea
+        ]}
         editable={editable}
+        multiline={multiline}
+        numberOfLines={multiline ? numberOfLines : 1}
       />
       {icon && <View style={styles.icon}>{icon}</View>}
     </View>
@@ -56,6 +66,7 @@ const AppTextInput = ({
 };
 
 export default AppTextInput;
+
 const styles = StyleSheet.create({
   container: {
     width: '100%',
@@ -72,15 +83,13 @@ const styles = StyleSheet.create({
     marginBottom: vs(10),
     position: 'relative',
   },
-
   icon: {
     position: 'absolute',
     right: s(15),
     top: '50%',
     transform: [{ translateY: -5 }],
   },
-
   disabled: {
-    backgroundColor: AppColors.n200
-  }
+    backgroundColor: AppColors.n200,
+  },
 });

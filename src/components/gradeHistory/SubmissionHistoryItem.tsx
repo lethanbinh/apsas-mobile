@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React from 'react';
 import AppText from '../texts/AppText';
 import { ClockTimeIcon, SmallDownloadIcon } from '../../assets/icons/courses';
 import { AppColors } from '../../styles/color';
 import { s, vs } from 'react-native-size-matters';
+import { DetailHistoryIcon } from '../../assets/icons/icon';
 
 interface SubmissionHistoryItemProps {
   backgroundColor?: string;
@@ -15,6 +16,7 @@ interface SubmissionHistoryItemProps {
   fileName: string;
   status: 'On time' | 'Late' | 'Missing';
   timeSubmit?: string;
+  onNavigate?: () => void;
 }
 
 const SubmissionHistoryItem = ({
@@ -27,6 +29,7 @@ const SubmissionHistoryItem = ({
   fileName,
   status,
   timeSubmit,
+  onNavigate = () => {},
 }: SubmissionHistoryItemProps) => {
   return (
     <View
@@ -75,18 +78,24 @@ const SubmissionHistoryItem = ({
           </View>
         </View>
       </View>
-      <View>
-        <AppText
-          style={{ color: AppColors.black, marginTop: vs(5) }}
-          variant="body16pxBold"
-        >
-          {assignmentTitle}
-        </AppText>
-        <AppText style={{ color: AppColors.black }}>
-          By:{' '}
-          <AppText style={{ color: AppColors.pr500 }}>{teacherName}</AppText>
-        </AppText>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <View>
+          <AppText
+            style={{ color: AppColors.black, marginTop: vs(5) }}
+            variant="body16pxBold"
+          >
+            {assignmentTitle}
+          </AppText>
+          <AppText style={{ color: AppColors.black }}>
+            By:{' '}
+            <AppText style={{ color: AppColors.pr500 }}>{teacherName}</AppText>
+          </AppText>
+        </View>
+        <TouchableOpacity onPress={onNavigate}>
+          <DetailHistoryIcon />
+        </TouchableOpacity>
       </View>
+
       <View
         style={{
           flexDirection: 'row',

@@ -6,7 +6,7 @@ import SemesterDropdown from '../components/common/SemesterDropdown';
 import AppSafeView from '../components/views/AppSafeView';
 import SubmissionItem from '../components/score/SubmissionItem';
 import { useNavigation } from '@react-navigation/native';
-const students = [
+const classLecturers = [
   {
     id: 1,
     classCode: 'SE1720',
@@ -62,7 +62,7 @@ const TeachingClassScreen = () => {
         />
 
         <FlatList
-          data={students}
+          data={classLecturers}
           keyExtractor={item => item.id.toString()}
           renderItem={({ item }) => (
             <SubmissionItem

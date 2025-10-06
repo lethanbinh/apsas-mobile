@@ -1,8 +1,11 @@
-import React, { ReactNode } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { ReactNode, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { s } from 'react-native-size-matters';
 import AppText from '../texts/AppText';
 import { useNavigation } from '@react-navigation/native';
+import BottomSheet from '../common/BottomSheet';
+import SectionHeader from '../common/SectionHeader';
+import TestCaseForm from './TestCaseForm';
 
 interface CourseCardItemProps {
   title: string;
@@ -10,6 +13,7 @@ interface CourseCardItemProps {
   backGroundColor: string;
   rightIcon: ReactNode;
   linkTo: string;
+  hasTestCase?: boolean;
 }
 
 const CourseCardItem = ({
@@ -18,11 +22,22 @@ const CourseCardItem = ({
   backGroundColor = '',
   rightIcon,
   linkTo,
+  hasTestCase = false,
 }: CourseCardItemProps) => {
   const navigation = useNavigation();
+  const [open, setOpen] = useState(false);
+
   return (
     <TouchableOpacity
-      onPress={() => navigation.navigate(linkTo as never)}
+      onPress={() => {
+        if (linkTo && !hasTestCase) {
+          navigation.navigate(linkTo as never);
+        }
+
+        if (hasTestCase) {
+          setOpen(true);
+        }
+      }}
       style={[
         styles.container,
         {
@@ -40,6 +55,13 @@ const CourseCardItem = ({
         <AppText style={{ marginLeft: s(15) }}>{title}</AppText>
       </View>
       <View>{rightIcon}</View>
+
+      <BottomSheet visible={open} onClose={() => setOpen(false)}>
+        <SectionHeader title="Test Case" textVariant='h2' hasButton style={{
+        }}/>
+
+        <TestCaseForm />
+      </BottomSheet>
     </TouchableOpacity>
   );
 };

@@ -2,12 +2,15 @@ import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
 import AssignmentDetailScreen from '../screens/AssignmentDetailScreen';
 import CourseDetailTeacherScreen from '../screens/CourseDetailTeacherScreen';
-import CurriculumScreen from '../screens/CurriculumScreen';
+import CreateAssessmentScreen from '../screens/CreateAssessmentScreen';
+import CurriculumTeacherScreen from '../screens/CurriculumTeacherScreen';
+import EditMaterialScreen from '../screens/EditMaterialScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
 import GradesScreen from '../screens/GradesScreen';
+import GradingHistoryFilterScreen from '../screens/GradingHistoryFilterScreen';
+import GradingHistoryScreen from '../screens/GradingHistoryScreen';
 import ParticipantsScreen from '../screens/ParticipantsScreen';
 import ScoreDetailScreen from '../screens/ScoreDetailScreen';
-import SubmissionHistoryScreen from '../screens/SubmissionHistoryScreen';
 import SubmissionScreen from '../screens/SubmissionScreen';
 import TeachingClassScreen from '../screens/TeachingClassScreen';
 const TeacherCourseStack = createStackNavigator();
@@ -24,8 +27,8 @@ const TeacherCourseStackNavigator = () => {
         component={CourseDetailTeacherScreen}
       />
       <TeacherCourseStack.Screen
-        name="CurriculumScreen"
-        component={CurriculumScreen}
+        name="CurriculumTeacherScreen"
+        component={CurriculumTeacherScreen}
       />
       <TeacherCourseStack.Screen
         name="ParticipantsScreen"
@@ -49,8 +52,20 @@ const TeacherCourseStackNavigator = () => {
         component={SubmissionScreen}
       />
       <TeacherCourseStack.Screen
-        name="SubmissionHistoryScreen"
-        component={SubmissionHistoryScreen}
+        name="GradingHistoryScreen"
+        component={GradingHistoryScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="EditMaterialScreen"
+        component={EditMaterialScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="CreateAssessmentScreen"
+        component={CreateAssessmentScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="GradingHistoryFilterScreen"
+        component={GradingHistoryFilterScreen}
       />
     </TeacherCourseStack.Navigator>
   );

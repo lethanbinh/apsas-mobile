@@ -1,27 +1,20 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { useState } from 'react';
-import { AppColors } from '../styles/color';
+import { useNavigation } from '@react-navigation/native';
+import React from 'react';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import {
-  CourseUnEnrollIcon,
   LecturerIcon,
   NavigationIcon,
   SemesterIcon,
 } from '../assets/icons/courses';
-import AppText from '../components/texts/AppText';
+import { EditAssessmentIcon } from '../assets/icons/icon';
 import CourseCardItem from '../components/courses/CourseCardItem';
-import { navigationList } from '../data/coursesData';
-import CustomModal from '../components/modals/CustomModal';
-import { QuestionMarkIcon } from '../assets/icons/input-icon';
-import AppButton from '../components/buttons/AppButton';
+import AppText from '../components/texts/AppText';
+import { teacherNavigation } from '../data/coursesData';
+import { AppColors } from '../styles/color';
 
 const CourseDetailTeacherScreen = () => {
-  const [unEnrollModalVisible, setUnEnrollModalVisible] =
-    useState<boolean>(false);
-
-  const handleUnEnrollCourse = () => {
-    setUnEnrollModalVisible(false);
-  };
+  const navigation = useNavigation();
   return (
     <View style={styles.container}>
       <Image
@@ -30,10 +23,10 @@ const CourseDetailTeacherScreen = () => {
       />
       <View style={styles.classInfoContainer}>
         <TouchableOpacity
-          onPress={() => setUnEnrollModalVisible(true)}
+          onPress={() => navigation.navigate('EditMaterialScreen' as never)}
           style={styles.courseUnEnrollIcon}
         >
-          <CourseUnEnrollIcon />
+          <EditAssessmentIcon />
         </TouchableOpacity>
         <View
           style={{
@@ -117,7 +110,7 @@ const CourseDetailTeacherScreen = () => {
           alignSelf: 'center',
         }}
       >
-        {navigationList.map(item => (
+        {teacherNavigation.map(item => (
           <View
             key={item.id}
             style={{
@@ -134,41 +127,6 @@ const CourseDetailTeacherScreen = () => {
           </View>
         ))}
       </View>
-
-      <CustomModal
-        visible={unEnrollModalVisible}
-        onClose={() => setUnEnrollModalVisible(false)}
-        title="Are You Sure?"
-        description="Do you want to leave Capstone project by NguyenNT"
-        icon={<QuestionMarkIcon />}
-      >
-        <View
-          style={{
-            flexDirection: 'row',
-            gap: s(10),
-            justifyContent: 'center',
-          }}
-        >
-          <AppButton
-            size="small"
-            title="Yes"
-            onPress={handleUnEnrollCourse}
-            style={{ minWidth: 'none', width: s(80) }}
-          />
-          <AppButton
-            size="small"
-            title="Cancel"
-            variant="secondary"
-            onPress={() => setUnEnrollModalVisible(false)}
-            textColor={AppColors.pr500}
-            style={{
-              minWidth: 'none',
-              width: s(90),
-              borderColor: AppColors.pr500,
-            }}
-          />
-        </View>
-      </CustomModal>
     </View>
   );
 };

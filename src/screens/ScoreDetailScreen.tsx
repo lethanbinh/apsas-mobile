@@ -1,16 +1,15 @@
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
+import { CriteriaGradeIcon } from '../assets/icons/icon';
 import AppButton from '../components/buttons/AppButton';
 import ScreenHeader from '../components/common/ScreenHeader';
 import CurriculumList from '../components/courses/CurriculumList';
 import CriteriaResult from '../components/score/CriteriaResult';
+import AppText from '../components/texts/AppText';
 import AppSafeView from '../components/views/AppSafeView';
 import { submissionList } from '../data/coursesData';
-import { CriteriaGradeIcon } from '../assets/icons/icon';
-import AppText from '../components/texts/AppText';
 import { AppColors } from '../styles/color';
 const sections = [{ title: 'File Submit', data: submissionList }];
 const ScoreDetailScreen = () => {
@@ -44,7 +43,10 @@ const ScoreDetailScreen = () => {
             <AppText style={{ marginLeft: s(5) }}>Total Grade</AppText>
           </View>
 
-          <AppText style={{ color: AppColors.pur500 }} variant="label16pxRegular">
+          <AppText
+            style={{ color: AppColors.pur500 }}
+            variant="label16pxRegular"
+          >
             10 / 10
           </AppText>
         </View>

@@ -49,13 +49,13 @@ const styles = StyleSheet.create({
     height: s(10),
     width: s(10),
     borderRadius: '50%',
-    backgroundColor: AppColors.black,
+    backgroundColor: AppColors.pr500,
   },
 
   title: {
     marginStart: s(7),
   },
   selected: {
-    color: AppColors.black,
+    color: AppColors.pr500,
   },
 });

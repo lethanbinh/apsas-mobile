@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Svg, {
   Circle,
+  ClipPath,
   Defs,
   Ellipse,
   G,
@@ -924,6 +925,198 @@ export const DemoIcon = (props: SvgProps) => (
     <Path
       d="M24.6395 22.7427L21.7735 20.0316L20.208 21.5741L24.6395 25.9446L31.9851 18.9098L30.3413 17.249L24.6395 22.7427Z"
       fill="#3787FF"
+    />
+  </Svg>
+);
+
+export const EditAssessmentIcon = (props: SvgProps) => (
+  <Svg width={89} height={89} viewBox="0 0 89 89" fill="none" {...props}>
+    <G filter="url(#filter0_d_655_6747)">
+      <Circle cx={43.5} cy={40.5} r={31.5} fill="#3787FF" />
+    </G>
+    <G clipPath="url(#clip0_655_6747)">
+      <Path
+        d="M36.6824 46.8179V38.5428L44.7945 30.4316H34.3412C33.0535 30.4316 32 31.485 32 32.7725V49.1588C32 50.4463 33.0535 51.4997 34.3412 51.4997H50.7294C52.0171 51.4997 53.0706 50.4463 53.0706 49.1588V38.7067L44.9584 46.8179H36.6824Z"
+        fill="white"
+      />
+      <Path
+        d="M39.0234 44.4778H43.9867L52.415 36.0506L47.4517 31.0879L39.0234 39.5151V44.4778Z"
+        fill="white"
+      />
+      <Path
+        d="M55.3067 29.835L53.6561 28.1847C52.7431 27.2718 51.2564 27.2718 50.3434 28.1847L49.1025 29.4254L54.0658 34.3881L55.3067 33.1474C56.2314 32.2345 56.2314 30.748 55.3067 29.835Z"
+        fill="white"
+      />
+    </G>
+    <Defs>
+      <ClipPath id="clip0_655_6747">
+        <Rect
+          width={41}
+          height={41}
+          fill="white"
+          transform="translate(23 18.5)"
+        />
+      </ClipPath>
+    </Defs>
+  </Svg>
+);
+
+export const GradingHistoryIcon = (props: SvgProps) => (
+  <Svg width={24} height={25} viewBox="0 0 24 25" fill="none" {...props}>
+    <G clipPath="url(#clip0_655_6732)">
+      <Path
+        d="M13 3.5C8.03 3.5 4 7.53 4 12.5H1L4.89 16.39L4.96 16.53L9 12.5H6C6 8.63 9.13 5.5 13 5.5C16.87 5.5 20 8.63 20 12.5C20 16.37 16.87 19.5 13 19.5C11.07 19.5 9.32 18.71 8.06 17.44L6.64 18.86C8.27 20.49 10.51 21.5 13 21.5C17.97 21.5 22 17.47 22 12.5C22 7.53 17.97 3.5 13 3.5ZM12 8.5V13.5L16.28 16.04L17 14.83L13.5 12.75V8.5H12Z"
+        fill="#B4D479"
+      />
+    </G>
+    <Defs>
+      <ClipPath id="clip0_655_6732">
+        <Rect
+          width={24}
+          height={24}
+          fill="white"
+          transform="translate(0 0.5)"
+        />
+      </ClipPath>
+    </Defs>
+  </Svg>
+);
+
+export const DetailHistoryIcon = (props: SvgProps) => (
+  <Svg width={60} height={60} viewBox="0 0 60 60" fill="none" {...props}>
+    <Rect
+      x={38.0273}
+      y={0.00976562}
+      width={43.909}
+      height={43.909}
+      rx={21.9545}
+      transform="rotate(60 38.0273 0.00976562)"
+      fill="#3787FF"
+    />
+    <Path
+      d="M23.0167 33.8279L34.4416 27.2317L26.7183 25.1623L26.93 24.1074L36.4922 26.6696L33.93 36.2318L32.9106 35.8877L34.9801 28.1644L23.5552 34.7605L23.0167 33.8279Z"
+      fill="white"
+    />
+  </Svg>
+);
+
+export const UploadIcon = (props: SvgProps) => (
+  <Svg width={14} height={24} viewBox="0 0 14 24" fill="none" {...props}>
+    <Path
+      d="M4 16.5H10V10.5H14L7 3.5L0 10.5H4V16.5ZM0 18.5H14V20.5H0V18.5Z"
+      fill="#3787FF"
+    />
+  </Svg>
+);
+
+export const TestCaseIcon = (props: SvgProps) => (
+  <Svg width={25} height={25} viewBox="0 0 25 25" fill="none" {...props}>
+    <Rect
+      x={0.5}
+      y={0.5}
+      width={24}
+      height={24}
+      fill="url(#pattern0_441_17333)"
+    />
+    <Defs>
+      <Pattern
+        id="pattern0_441_17333"
+        patternContentUnits="objectBoundingBox"
+        width={1}
+        height={1}
+      >
+        <Use xlinkHref="#image0_441_17333" transform="scale(0.0416667)" />
+      </Pattern>
+      <Image
+        id="image0_441_17333"
+        width={24}
+        height={24}
+        preserveAspectRatio="none"
+        xlinkHref="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAiElEQVR4nGNgGAWkAKWpH70Vp356ojjt839ysMK0T4/lp33xxGkBSAG5hisiLHmE0wJKDVeE4hFgAQOZQHFIWaAy8ZOowtRPe5Umf9Yl2wJcYYsq/mkf7SyY+vm6/JQvEmRbQCoYjYP/wysOyNJP8+JaftoXT0osUZj26ZH8lC8eOC0YBQxYAAB+hx7p17ANwgAAAABJRU5ErkJggg=="
+      />
+    </Defs>
+  </Svg>
+);
+
+export const CheckTickIcon = (props: SvgProps) => (
+  <Svg width={16} height={16} viewBox="0 0 16 16" fill="none" {...props}>
+    <Path
+      d="M6.36641 12.0001L2.56641 8.20007L3.51641 7.25006L6.36641 10.1001L12.4831 3.9834L13.4331 4.9334L6.36641 12.0001Z"
+      fill="white"
+    />
+  </Svg>
+);
+
+export const EditIcon = (props: SvgProps) => (
+  <Svg width={29} height={30} viewBox="0 0 29 30" fill="none" {...props}>
+    <G clipPath="url(#clip0_401_7078)">
+      <Path
+        d="M4.8125 24.7126H9.55548L22.0058 12.255C22.6348 11.6257 22.9881 10.7721 22.9881 9.88213C22.9881 8.99213 22.6348 8.13857 22.0058 7.50925C21.3769 6.87992 20.5238 6.52637 19.6343 6.52637C18.7448 6.52637 17.8918 6.87992 17.2628 7.50925L4.8125 19.9669V24.7126Z"
+        stroke="white"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M16.0771 8.69531L20.8201 13.4411"
+        stroke="white"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </G>
+    <Defs>
+      <ClipPath id="clip0_401_7078">
+        <Rect
+          width={28.4579}
+          height={28.4746}
+          fill="white"
+          transform="translate(0.0693359 0.983398)"
+        />
+      </ClipPath>
+    </Defs>
+  </Svg>
+);
+
+export const PassIcon = (props: SvgProps) => (
+  <Svg width={29} height={30} viewBox="0 0 29 30" fill="none" {...props}>
+    <G clipPath="url(#clip0_401_7081)">
+      <Path
+        d="M19.0465 5.72949V12.8481M14.3035 5.72949V9.28881V5.72949ZM9.56055 5.72949V12.8481V5.72949Z"
+        stroke="white"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M14.3036 22.9325L10.7464 24.7121L11.3393 20.5596L8.96777 18.1867L12.525 17.5935L14.3036 14.0342L16.0823 17.5935L19.6395 18.1867L17.268 20.5596L17.8609 24.7121L14.3036 22.9325Z"
+        stroke="white"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </G>
+    <Defs>
+      <ClipPath id="clip0_401_7081">
+        <Rect
+          width={28.4579}
+          height={28.4746}
+          fill="white"
+          transform="translate(0.0742188 0.983398)"
+        />
+      </ClipPath>
+    </Defs>
+  </Svg>
+);
+
+export const FilterIcon = (props: SvgProps) => (
+  <Svg width={20} height={21} viewBox="0 0 20 21" fill="none" {...props}>
+    <Path
+      d="M18.3337 3H1.66699L8.33366 10.8833V16.3333L11.667 18V10.8833L18.3337 3Z"
+      stroke="#3787FF"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
     />
   </Svg>
 );
