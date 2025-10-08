@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { AppFonts } from './font';
-import { s } from 'react-native-size-matters';
+import { s, vs } from 'react-native-size-matters';
 import { AppColors } from './color';
 
 export const textStyles = StyleSheet.create({
@@ -34,5 +34,26 @@ export const globalStyles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: s(35),
     backgroundColor: AppColors.white,
+  },
+  containerStyle: {
+    paddingVertical: vs(20),
+    paddingHorizontal: s(25),
+  },
+
+  flexRowStyle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  roundButton: {
+    borderRadius: s(25),
+  },
+
+  minWidth0: {
+    minWidth: 0,
+  },
+
+  minWidthAuto: {
+    minWidth: 'auto',
   },
 });

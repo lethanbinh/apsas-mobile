@@ -238,11 +238,14 @@ export const GradeIcon = (props: SvgProps) => (
   </Svg>
 );
 
-export const DownloadIcon = (props: SvgProps) => (
+export const DownloadIcon = ({
+  color = AppColors.pr500,
+  ...props
+}: SvgProps) => (
   <Svg width={15} height={24} viewBox="0 0 15 24" fill="none" {...props}>
     <Path
       d="M0.5 20.5H14.5V18.5H0.5V20.5ZM14.5 9.5H10.5V3.5H4.5V9.5H0.5L7.5 16.5L14.5 9.5Z"
-      fill="#0961F5"
+      fill={color}
     />
   </Svg>
 );
@@ -272,12 +275,12 @@ export const ClockTimeIcon = (props: SvgProps) => (
   </Svg>
 );
 
-export const ViewIcon = (props: SvgProps) => (
+export const ViewIcon = ({ color = "#0961F5", ...props }: SvgProps & { color?: string }) => (
   <Svg width={25} height={24} viewBox="0 0 25 24" fill="none" {...props}>
     <G clipPath="url(#clip0_441_6278)">
       <Path
         d="M12.5 4.5C7.5 4.5 3.23 7.61 1.5 12C3.23 16.39 7.5 19.5 12.5 19.5C17.5 19.5 21.77 16.39 23.5 12C21.77 7.61 17.5 4.5 12.5 4.5ZM12.5 17C9.74 17 7.5 14.76 7.5 12C7.5 9.24 9.74 7 12.5 7C15.26 7 17.5 9.24 17.5 12C17.5 14.76 15.26 17 12.5 17ZM12.5 9C10.84 9 9.5 10.34 9.5 12C9.5 13.66 10.84 15 12.5 15C14.16 15 15.5 13.66 15.5 12C15.5 10.34 14.16 9 12.5 9Z"
-        fill="#0961F5"
+        fill={color}
       />
     </G>
     <Defs>

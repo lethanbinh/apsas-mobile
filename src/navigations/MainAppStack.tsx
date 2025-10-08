@@ -14,7 +14,7 @@ const Stack = createStackNavigator();
 const MainAppStack = () => {
   const [userData, setUserData] = useState<{ id: number; role: string } | null>({
     id: 1,
-    role: 'lecturer', // "student" | "lecturer" | "head"
+    role: 'head', // "student" | "lecturer" | "head"
   });
   const [isFirstUseApp, setIsFirstUseApp] = useState<boolean | null>(false);
 

@@ -84,7 +84,7 @@ const TaskListScreen = () => {
 
   return (
     <AppSafeView style={{ flex: 1 }}>
-      <ScreenHeader title="Exams" />
+      <ScreenHeader title="Tasks" />
       <View
         style={{ flex: 1, paddingVertical: vs(20), paddingHorizontal: s(25) }}
       >

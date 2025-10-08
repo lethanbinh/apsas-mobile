@@ -1120,3 +1120,90 @@ export const FilterIcon = (props: SvgProps) => (
     />
   </Svg>
 );
+
+export const CloseIcon = (props: SvgProps) => (
+  <Svg width={20} height={21} viewBox="0 0 20 21" fill="none" {...props}>
+    <Path
+      d="M15 5.5L5 15.5"
+      stroke="#3787FF"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M5 5.5L15 15.5"
+      stroke="#3787FF"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const SearchIcon = (props: SvgProps) => (
+  <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" {...props}>
+    <Path
+      d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+      stroke="#D2D3D3"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M17.5 17.5L13.875 13.875"
+      stroke="#D2D3D3"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const PlusIcon = (props: SvgProps) => (
+  <Svg
+    width={16}
+    height={16}
+    viewBox="0 0 16 16"
+    fill="none"
+    {...props}
+  >
+    <Path
+      d="M7.33301 8.66634H3.33301V7.33301H7.33301V3.33301H8.66634V7.33301H12.6663V8.66634H8.66634V12.6663H7.33301V8.66634Z"
+      fill="#1F2223"
+    />
+  </Svg>
+);
+
+export const CloneIcon = (props: SvgProps) => (
+  <Svg
+    width={25}
+    height={24}
+    viewBox="0 0 25 24"
+    fill="none"
+    {...props}
+  >
+    <Path
+      d="M20.1568 5.41992H8.74461C7.12634 5.41992 5.81445 6.73181 5.81445 8.35003V19.7623C5.81445 21.3805 7.12634 22.6924 8.74461 22.6924H20.1568C21.7751 22.6924 23.087 21.3805 23.087 19.7623V8.35003C23.087 6.73181 21.7751 5.41992 20.1568 5.41992Z"
+      stroke="black"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M18.949 5.42012L18.9746 4.18637C18.9725 3.42355 18.6685 2.6926 18.1291 2.15318C17.5897 1.6138 16.8588 1.30982 16.0959 1.30762H4.99215C4.1204 1.31021 3.28507 1.65767 2.66863 2.2741C2.0522 2.89054 1.70474 3.72587 1.70215 4.59762V15.7014C1.7043 16.4642 2.00833 17.1951 2.54771 17.7346C3.08713 18.274 3.81808 18.578 4.5809 18.5802H5.81465"
+      stroke="black"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M14.4512 9.94336V18.1684"
+      stroke="black"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M18.5629 14.0566H10.3379"
+      stroke="black"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);

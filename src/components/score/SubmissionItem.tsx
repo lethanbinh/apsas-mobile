@@ -3,12 +3,14 @@ import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { s } from 'react-native-size-matters';
 import AppText from '../texts/AppText';
 import { AppColors } from '../../styles/color';
+import { CloneIcon } from '../../assets/icons/icon';
 
 type SubmissionItemProps = {
   fileName: string;
   title?: string;
   onRemove?: () => void;
   onNavigate?: () => void;
+  onClone?: () => void;
 };
 
 const SubmissionItem: React.FC<SubmissionItemProps> = ({
@@ -16,6 +18,7 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
   title,
   onRemove,
   onNavigate,
+  onClone,
 }) => {
   return (
     <View style={styles.container}>
@@ -54,6 +57,12 @@ const SubmissionItem: React.FC<SubmissionItemProps> = ({
           <AppText variant="body12pxBold" style={{ color: AppColors.white }}>
             x
           </AppText>
+        </TouchableOpacity>
+      )}
+
+      {onClone && (
+        <TouchableOpacity onPress={onClone} style={{}}>
+          <CloneIcon />
         </TouchableOpacity>
       )}
     </View>

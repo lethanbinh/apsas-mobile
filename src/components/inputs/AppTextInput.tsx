@@ -3,6 +3,7 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { AppColors } from '../../styles/color';
 import AppText from '../texts/AppText';
+import { SearchIcon } from '../../assets/icons/icon';
 
 interface AppTextInputProps {
   value?: string;
@@ -14,8 +15,9 @@ interface AppTextInputProps {
   label?: string;
   icon?: React.ReactNode;
   editable?: boolean;
-  multiline?: boolean;   // ✅ thêm mới
+  multiline?: boolean; // ✅ thêm mới
   numberOfLines?: number; // ✅ số dòng khi multiline
+  searchType?: boolean;
 }
 
 const AppTextInput = ({
@@ -30,6 +32,7 @@ const AppTextInput = ({
   editable = true,
   multiline = false,
   numberOfLines = 4, // mặc định textarea cao 4 dòng
+  searchType = false,
 }: AppTextInputProps) => {
   return (
     <View style={styles.container}>
@@ -43,6 +46,11 @@ const AppTextInput = ({
         >
           {label}
         </AppText>
+      )}
+      {searchType && (
+        <View style={styles.leftIcon}>
+          <SearchIcon />
+        </View>
       )}
       <TextInput
         value={value}
@@ -88,6 +96,13 @@ const styles = StyleSheet.create({
     right: s(15),
     top: '50%',
     transform: [{ translateY: -5 }],
+  },
+  leftIcon: {
+    position: 'absolute',
+    left: s(0),
+    top: '50%',
+    transform: [{ translateY: s(-14) }],
+    zIndex: 100
   },
   disabled: {
     backgroundColor: AppColors.n200,

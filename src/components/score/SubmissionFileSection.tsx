@@ -6,18 +6,33 @@ import { SubmissionIcon } from '../../assets/icons/icon';
 import { pick } from '@react-native-documents/picker';
 
 type SubmissionFileSectionProps = {
+  title?: string;
   onFilePicked: (file: { name: string; uri: string; type: string }) => void;
+  fileType?: 'zip' | 'excel'; // ✅ thêm loại file
 };
 
 const SubmissionFileSection: React.FC<SubmissionFileSectionProps> = ({
+  title = 'Add Zip File',
   onFilePicked,
+  fileType = 'zip', // ✅ mặc định zip
 }) => {
   const [fileName, setFileName] = useState<string | null>(null);
 
   const pickFile = async () => {
     try {
+      let allowedTypes: string[] = [];
+
+      if (fileType === 'zip') {
+        allowedTypes = ['application/zip'];
+      } else if (fileType === 'excel') {
+        allowedTypes = [
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/vnd.ms-excel', // .xls
+        ];
+      }
+
       const result = await pick({
-        type: ['application/zip'],
+        type: allowedTypes,
       });
 
       if (result && result.length > 0) {
@@ -27,8 +42,8 @@ const SubmissionFileSection: React.FC<SubmissionFileSectionProps> = ({
         onFilePicked({
           name: file.name ?? 'Unknown file',
           uri: file.uri,
-          type: file.type ?? 'application/zip',
-        }); // gửi file ra ngoài
+          type: file.type ?? allowedTypes[0],
+        });
       }
     } catch (err: any) {
       if (err?.message?.includes('User cancelled')) {
@@ -42,7 +57,7 @@ const SubmissionFileSection: React.FC<SubmissionFileSectionProps> = ({
   return (
     <View>
       <AppText variant="h4" style={{ marginBottom: 10 }}>
-        Add Zip File
+        {title}
       </AppText>
 
       <TouchableOpacity
@@ -51,7 +66,9 @@ const SubmissionFileSection: React.FC<SubmissionFileSectionProps> = ({
         activeOpacity={0.7}
       >
         <SubmissionIcon />
-        <AppText style={{ marginTop: 10 }}>Click here to Upload</AppText>
+        <AppText style={{ marginTop: 10 }}>
+          Click here to Upload {fileType === 'zip' ? 'ZIP' : 'Excel'} File
+        </AppText>
       </TouchableOpacity>
     </View>
   );

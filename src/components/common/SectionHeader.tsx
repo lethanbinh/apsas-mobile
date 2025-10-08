@@ -1,14 +1,12 @@
+import React from 'react';
 import {
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
-  ViewStyle,
+  ViewStyle
 } from 'react-native';
-import React from 'react';
-import AppText from '../texts/AppText';
-import { s } from 'react-native-size-matters';
 import { textStyles } from '../../styles/shareStyles';
+import AppText from '../texts/AppText';
 type Variant = keyof typeof textStyles;
 interface SectionHeaderProps {
   title: string;

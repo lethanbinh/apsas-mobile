@@ -36,9 +36,11 @@ const PracticalExamDetailScreen = () => {
           navigation.navigate('SubmissionScreen');
         }}
         isAssessment={true}
+        onDashboardPress={() =>
+          navigation.navigate('DashboardTeacherScreen' as never)
+        }
       />
-      <View
-      />
+      <View />
       <View
         style={{ position: 'absolute', top: s(430), width: '100%' }}
         onLayout={e => setListHeight(e.nativeEvent.layout.height + s(100))} // 👈 đo chiều cao

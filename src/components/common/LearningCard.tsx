@@ -33,7 +33,7 @@ const LearningCard = ({
       <View style={styles.leftSection}>
         {title && <AppText style={styles.title}>{title}</AppText>}
         {reverse && (
-          <View style={{ alignSelf: "flex-end" }}>
+          <View style={{ alignSelf: 'flex-end' }}>
             <DemoIcon />
           </View>
         )}
@@ -42,11 +42,12 @@ const LearningCard = ({
           title={buttonLabel}
           onPress={onPress}
           style={{
-            marginVertical: vs(35),
             minWidth: s(100),
+            alignSelf: 'flex-start', // hoặc flex-end nếu muốn nút nằm bên phải
           }}
         />
       </View>
+
       <Image source={imageSource} style={styles.image} resizeMode="contain" />
     </View>
   );
@@ -67,7 +68,11 @@ const styles = StyleSheet.create({
   leftSection: {
     flex: 1,
     marginHorizontal: s(10),
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    height: s(130)
   },
+
   title: {
     fontSize: s(14),
     color: AppColors.black,

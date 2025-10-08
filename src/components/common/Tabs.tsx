@@ -3,39 +3,45 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { AppColors } from '../../styles/color';
 
-export type TabType = 'ongoing' | 'ended' | 'upcoming';
+export type TabType = string; // cho phép linh hoạt
+
+interface TabItem {
+  key: TabType;
+  label: string;
+}
 
 interface TabsProps {
   activeTab: TabType;
   onChange: (tab: TabType) => void;
+  tabs?: TabItem[]; // danh sách tab có thể truyền từ ngoài vào
 }
 
-const Tabs: React.FC<TabsProps> = ({ activeTab, onChange }) => {
-  const renderTab = (tab: TabType, label: string) => (
+const defaultTabs: TabItem[] = [
+  { key: 'ongoing', label: 'Ongoing' },
+  { key: 'ended', label: 'Ended' },
+  { key: 'upcoming', label: 'Upcoming' },
+];
+
+const Tabs: React.FC<TabsProps> = ({ activeTab, onChange, tabs = defaultTabs }) => {
+  const renderTab = (tab: TabItem) => (
     <TouchableOpacity
-      key={tab}
+      key={tab.key}
       style={styles.tab}
-      onPress={() => onChange(tab)}
+      onPress={() => onChange(tab.key)}
     >
       <Text
         style={[
           styles.tabText,
-          activeTab === tab ? styles.activeText : styles.inactiveText,
+          activeTab === tab.key ? styles.activeText : styles.inactiveText,
         ]}
       >
-        {label}
+        {tab.label}
       </Text>
-      {activeTab === tab && <View style={styles.underline} />}
+      {activeTab === tab.key && <View style={styles.underline} />}
     </TouchableOpacity>
   );
 
-  return (
-    <View style={styles.container}>
-      {renderTab('ongoing', 'Ongoing')}
-      {renderTab('ended', 'Ended')}
-      {renderTab('upcoming', 'Upcoming')}
-    </View>
-  );
+  return <View style={styles.container}>{tabs.map(renderTab)}</View>;
 };
 
 export default Tabs;

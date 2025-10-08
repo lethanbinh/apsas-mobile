@@ -6,6 +6,10 @@ import { IS_ANDROID } from '../constants/constants';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { AppColors } from '../styles/color';
+import HeadDeptHomeStackNavigator from './HeadDeptHomeStack';
+import NotificationScreen from '../screens/NotificationScreen';
+import PlanStackNavigator from './PlanStack';
+import ApprovalScreen from '../screens/ApprovalScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -29,30 +33,38 @@ const HeadDeptBottomTabs = () => {
       }}
     >
       <Tab.Screen
-        name="Dashboard"
-        component={HomeScreen}
+        name="Home"
+        component={HeadDeptHomeStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Feather name="bar-chart" size={size} color={color} />
+            <Feather name="home" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="ManageLecturers"
-        component={HomeScreen}
+        name="Plans"
+        component={PlanStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Feather name="users" size={size} color={color} />
+            <Feather name="map" size={size} color={color} />
           ),
-          tabBarLabel: 'Lecturers',
         }}
       />
       <Tab.Screen
-        name="Reports"
-        component={HomeScreen}
+        name="Approval"
+        component={ApprovalScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Feather name="file" size={size} color={color} />
+            <Feather name="clipboard" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="bell" size={size} color={color} />
           ),
         }}
       />
