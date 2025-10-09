@@ -17,7 +17,7 @@ const HeadDeptHomeScreen = () => {
         <SemesterCard
           title="Current Semester"
           actionLabel="My Plans"
-          onPressAction={() => navigation.navigate('TeachingClassScreen')}
+          onPressAction={() => navigation.navigate('PlatListScreen')}
           semesterName="Fall 2025"
         />
       </View>
@@ -31,7 +31,7 @@ const HeadDeptHomeScreen = () => {
         />
         <LearningCard
           buttonLabel="Your plans"
-          onPress={() => navigation.navigate('TaskListScreen')}
+          onPress={() => navigation.navigate('PlatListScreen')}
           backgroundColor={'#BFE4C6'}
           imageSource={require('../assets/images/illu2.png')}
           reverse

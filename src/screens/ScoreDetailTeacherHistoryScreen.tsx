@@ -32,7 +32,7 @@ const schema = yup.object({
 
 type FormData = yup.InferType<typeof schema>;
 
-const ScoreDetailTeacherScreen: React.FC = () => {
+const ScoreDetailTeacherHistoryScreen: React.FC = () => {
   const navigation = useNavigation();
   const { control, handleSubmit } = useForm<FormData>({
     resolver: yupResolver(schema),
@@ -135,19 +135,12 @@ const ScoreDetailTeacherScreen: React.FC = () => {
           rightIcon={<NavigationIcon color={AppColors.b500} />}
           linkTo={'FeedbackTeacherScreen'}
         />
-
-        {/* Save button */}
-        <AppButton
-          title="Save Grade"
-          onPress={handleSubmit(handleSaveGrade)}
-          style={{ marginTop: vs(25), width: '100%' }}
-        />
       </ScrollView>
     </AppSafeView>
   );
 };
 
-export default ScoreDetailTeacherScreen;
+export default ScoreDetailTeacherHistoryScreen;
 
 const styles = StyleSheet.create({
   picker: {

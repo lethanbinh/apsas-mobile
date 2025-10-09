@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { AppColors } from '../../styles/color';
 import AppText from '../texts/AppText';
@@ -7,9 +7,10 @@ import AppText from '../texts/AppText';
 interface ParticipantItemProps {
   avatar?: ReactNode;
   title: string;
-  className: string;
+  className?: string;
   joinDate: string;
   role: string;
+  containerStyle?: ViewStyle;
 }
 const ParticipantItem = ({
   avatar,
@@ -17,9 +18,10 @@ const ParticipantItem = ({
   className,
   joinDate,
   role,
+  containerStyle,
 }: ParticipantItemProps) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       <View style={styles.contentContainer}>
         <View
           style={[
@@ -40,9 +42,12 @@ const ParticipantItem = ({
           >
             {title}
           </AppText>
-          <AppText style={{ marginBottom: vs(3) }} variant="label14pxBold">
-            {className}
-          </AppText>
+          {className && (
+            <AppText style={{ marginBottom: vs(3) }} variant="label14pxBold">
+              {className}
+            </AppText>
+          )}
+
           <AppText style={{ color: '#000' }} variant="body12pxBold">
             {joinDate}
           </AppText>

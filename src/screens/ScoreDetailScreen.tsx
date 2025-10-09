@@ -11,6 +11,7 @@ import AppText from '../components/texts/AppText';
 import AppSafeView from '../components/views/AppSafeView';
 import { submissionList } from '../data/coursesData';
 import { AppColors } from '../styles/color';
+import GradeBySection from '../components/common/GradeBySection';
 const sections = [{ title: 'File Submit', data: submissionList }];
 const ScoreDetailScreen = () => {
   const navigation = useNavigation();
@@ -21,6 +22,7 @@ const ScoreDetailScreen = () => {
         <View style={{ marginBottom: vs(-50) }}>
           <CurriculumList sections={sections} isDownloadable={false} />
         </View>
+        <GradeBySection />
 
         <CriteriaResult />
         <View

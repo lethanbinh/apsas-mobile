@@ -10,6 +10,7 @@ import HeadDeptHomeStackNavigator from './HeadDeptHomeStack';
 import NotificationScreen from '../screens/NotificationScreen';
 import PlanStackNavigator from './PlanStack';
 import ApprovalScreen from '../screens/ApprovalScreen';
+import ApprovalStackNavigator from './ApprovalStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -52,7 +53,7 @@ const HeadDeptBottomTabs = () => {
       />
       <Tab.Screen
         name="Approval"
-        component={ApprovalScreen}
+        component={ApprovalStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Feather name="clipboard" size={size} color={color} />

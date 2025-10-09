@@ -12,10 +12,12 @@ import StudentBottomTabs from './StudentBottomTabs';
 const Stack = createStackNavigator();
 
 const MainAppStack = () => {
-  const [userData, setUserData] = useState<{ id: number; role: string } | null>({
-    id: 1,
-    role: 'head', // "student" | "lecturer" | "head"
-  });
+  const [userData, setUserData] = useState<{ id: number; role: string } | null>(
+    {
+      id: 1,
+      role: 'student', // "student" | "lecturer" | "head"
+    },
+  );
   const [isFirstUseApp, setIsFirstUseApp] = useState<boolean | null>(false);
 
   useEffect(() => {
@@ -42,12 +44,15 @@ const MainAppStack = () => {
       case 'head':
         return HeadDeptBottomTabs;
       case 'student':
+        return StudentBottomTabs;
       default:
         return StudentBottomTabs;
     }
   };
 
-  const BottomTabsComponent = userData ? getBottomTabsByRole(userData.role) : StudentBottomTabs;
+  const BottomTabsComponent = userData
+    ? getBottomTabsByRole(userData.role)
+    : StudentBottomTabs;
 
   return (
     <Stack.Navigator

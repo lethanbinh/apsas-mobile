@@ -1,10 +1,14 @@
 import { createStackNavigator } from '@react-navigation/stack';
+import AssessmentDetailScreen from '../screens/AssessmentDetailScreen';
 import DashboardTeacherScreen from '../screens/DashboardTeacherScreen';
 import FeedbackTeacherScreen from '../screens/FeedbackTeacherScreen';
+import GradingHistoryFilterScreen from '../screens/GradingHistoryFilterScreen';
+import GradingHistoryScreen from '../screens/GradingHistoryScreen';
+import HistoryDetailScreen from '../screens/HistoryDetailScreen';
 import PracticalExamDetailScreen from '../screens/PracticalExamDetailScreen';
 import PracticalExamListScreen from '../screens/PracticalExamListScreen';
+import ScoreDetailTeacherHistoryScreen from '../screens/ScoreDetailTeacherHistoryScreen';
 import ScoreDetailTeacherScreen from '../screens/ScoreDetailTeacherScreen';
-import AssessmentDetailScreen from '../screens/AssessmentDetailScreen';
 
 const TeacherPracticalExamStack = createStackNavigator();
 
@@ -34,6 +38,22 @@ export default function TeacherPracticalExamStackNavigator() {
       <TeacherPracticalExamStack.Screen
         name="DashboardTeacherScreen"
         component={DashboardTeacherScreen}
+      />
+      <TeacherPracticalExamStack.Screen
+        name="GradingHistoryScreen"
+        component={GradingHistoryScreen}
+      />
+      <TeacherPracticalExamStack.Screen
+        name="GradingHistoryFilterScreen"
+        component={GradingHistoryFilterScreen}
+      />
+      <TeacherPracticalExamStack.Screen
+        name="HistoryDetailScreen"
+        component={HistoryDetailScreen}
+      />
+      <TeacherPracticalExamStack.Screen
+        name="ScoreDetailTeacherHistoryScreen"
+        component={ScoreDetailTeacherHistoryScreen}
       />
     </TeacherPracticalExamStack.Navigator>
   );

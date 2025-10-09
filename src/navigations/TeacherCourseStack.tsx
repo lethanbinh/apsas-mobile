@@ -1,18 +1,25 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
+import AssessmentDetailScreen from '../screens/AssessmentDetailScreen';
 import AssignmentDetailScreen from '../screens/AssignmentDetailScreen';
+import AssignmentDetailTeacherScreen from '../screens/AssignmentDetailTeacherScreen';
 import CourseDetailTeacherScreen from '../screens/CourseDetailTeacherScreen';
 import CreateAssessmentScreen from '../screens/CreateAssessmentScreen';
 import CurriculumTeacherScreen from '../screens/CurriculumTeacherScreen';
-import EditMaterialScreen from '../screens/EditMaterialScreen';
+import DashboardTeacherScreen from '../screens/DashboardTeacherScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
+import FeedbackTeacherScreen from '../screens/FeedbackTeacherScreen';
 import GradesScreen from '../screens/GradesScreen';
 import GradingHistoryFilterScreen from '../screens/GradingHistoryFilterScreen';
 import GradingHistoryScreen from '../screens/GradingHistoryScreen';
 import ParticipantsScreen from '../screens/ParticipantsScreen';
+import PracticalExamDetailScreen from '../screens/PracticalExamDetailScreen';
 import ScoreDetailScreen from '../screens/ScoreDetailScreen';
+import ScoreDetailTeacherScreen from '../screens/ScoreDetailTeacherScreen';
 import SubmissionScreen from '../screens/SubmissionScreen';
 import TeachingClassScreen from '../screens/TeachingClassScreen';
+import HistoryDetailScreen from '../screens/HistoryDetailScreen';
+import ScoreDetailTeacherHistoryScreen from '../screens/ScoreDetailTeacherHistoryScreen';
 const TeacherCourseStack = createStackNavigator();
 
 const TeacherCourseStackNavigator = () => {
@@ -56,16 +63,44 @@ const TeacherCourseStackNavigator = () => {
         component={GradingHistoryScreen}
       />
       <TeacherCourseStack.Screen
-        name="EditMaterialScreen"
-        component={EditMaterialScreen}
-      />
-      <TeacherCourseStack.Screen
         name="CreateAssessmentScreen"
         component={CreateAssessmentScreen}
       />
       <TeacherCourseStack.Screen
         name="GradingHistoryFilterScreen"
         component={GradingHistoryFilterScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="PracticalExamDetailScreen"
+        component={PracticalExamDetailScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="AssignmentDetailTeacherScreen"
+        component={AssignmentDetailTeacherScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="AssessmentDetailScreen"
+        component={AssessmentDetailScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="ScoreDetailTeacherScreen"
+        component={ScoreDetailTeacherScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="FeedbackTeacherScreen"
+        component={FeedbackTeacherScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="DashboardTeacherScreen"
+        component={DashboardTeacherScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="HistoryDetailScreen"
+        component={HistoryDetailScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="ScoreDetailTeacherHistoryScreen"
+        component={ScoreDetailTeacherHistoryScreen}
       />
     </TeacherCourseStack.Navigator>
   );

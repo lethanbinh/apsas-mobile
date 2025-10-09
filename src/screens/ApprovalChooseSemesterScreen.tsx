@@ -17,7 +17,7 @@ import { s, vs } from 'react-native-size-matters';
 import { Modal, Portal } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 
-const TaskListScreen = () => {
+const ApprovalChooseSemesterScreen = () => {
   const [semesters, setSemesters] = useState([
     'Fall2025',
     'Summer2025',
@@ -40,7 +40,7 @@ const TaskListScreen = () => {
 
   return (
     <AppSafeView>
-      <ScreenHeader title="Create plan" />
+      <ScreenHeader title="Approval" />
       <View style={globalStyles.containerStyle}>
         <AppButton
           variant="secondary"
@@ -67,7 +67,7 @@ const TaskListScreen = () => {
           }}
           title="Continue"
           onPress={() => {
-            navigation.navigate('CreateAssessmentScreen' as never);
+            navigation.navigate('ApprovalScreen' as never);
           }}
           size="large"
         />
@@ -100,7 +100,7 @@ const TaskListScreen = () => {
   );
 };
 
-export default TaskListScreen;
+export default ApprovalChooseSemesterScreen;
 
 const styles = StyleSheet.create({
   modalContainer: {

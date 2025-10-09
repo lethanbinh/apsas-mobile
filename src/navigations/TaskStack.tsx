@@ -5,6 +5,7 @@ import AssessmentDetailScreen from '../screens/AssessmentDetailScreen';
 import ScoreDetailTeacherScreen from '../screens/ScoreDetailTeacherScreen';
 import FeedbackTeacherScreen from '../screens/FeedbackTeacherScreen';
 import DashboardTeacherScreen from '../screens/DashboardTeacherScreen';
+import CreateAssessmentScreen from '../screens/CreateAssessmentScreen';
 
 const TaskStack = createStackNavigator();
 
@@ -12,6 +13,10 @@ export default function TaskStackNavigator() {
   return (
     <TaskStack.Navigator screenOptions={{ headerShown: false }}>
       <TaskStack.Screen name="TaskListScreen" component={TaskListScreen} />
+      <TaskStack.Screen
+        name="CreateAssessmentScreen"
+        component={CreateAssessmentScreen}
+      />
       <TaskStack.Screen
         name="AssignmentDetailTeacherScreen"
         component={AssignmentDetailTeacherScreen}

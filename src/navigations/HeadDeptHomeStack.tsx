@@ -1,8 +1,10 @@
 import { createStackNavigator } from '@react-navigation/stack';
-import HeadDeptHomeScreen from '../screens/HeadDeptHomeScreen';
 import ChooseSemesterScreen from '../screens/ChooseSemesterScreen';
+import HeadDeptHomeScreen from '../screens/HeadDeptHomeScreen';
 import ImportExcelScreen from '../screens/ImportExcelScreen';
+import PlatListScreen from '../screens/PlanListScreen';
 import PreviewDataScreen from '../screens/PreviewDataScreen';
+import PublishPlansScreen from '../screens/PublishPlansScreen';
 
 const HeadDeptHomeStack = createStackNavigator();
 
@@ -24,6 +26,14 @@ export default function HeadDeptHomeStackNavigator() {
       <HeadDeptHomeStack.Screen
         name="PreviewDataScreen"
         component={PreviewDataScreen}
+      />
+      <HeadDeptHomeStack.Screen
+        name="PlatListScreen"
+        component={PlatListScreen}
+      />
+      <HeadDeptHomeStack.Screen
+        name="PublishPlansScreen"
+        component={PublishPlansScreen}
       />
     </HeadDeptHomeStack.Navigator>
   );

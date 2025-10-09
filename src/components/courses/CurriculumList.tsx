@@ -1,5 +1,5 @@
 import React from 'react';
-import { SectionList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SectionList, StyleSheet, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { SvgProps } from 'react-native-svg';
 import AppButton from '../buttons/AppButton';
@@ -32,6 +32,7 @@ interface CurriculumListProps {
   scrollEnabled?: boolean;
   hasTestCase?: boolean;
   buttonText?: string;
+  containerStyle?: ViewStyle
 }
 
 const CurriculumList = ({
@@ -42,12 +43,13 @@ const CurriculumList = ({
   scrollEnabled = false,
   hasTestCase = false,
   buttonText,
+  containerStyle
 }: CurriculumListProps) => {
   const handleSave = () => {};
 
   return (
     <SectionList
-      style={styles.curriculumContainer}
+      style={[styles.curriculumContainer, containerStyle]}
       sections={sections}
       keyExtractor={(item, index) =>
         item.id ? String(item.id) : String(index)

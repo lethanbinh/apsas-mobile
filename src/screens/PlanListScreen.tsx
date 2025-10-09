@@ -199,7 +199,13 @@ const PlatListScreen = () => {
         <SubmissionItem
           fileName={item.classCode + ' ' + item.semester}
           title={item.lecturerName}
-          onNavigate={() => navigation.navigate('PreviewDataScreen')}
+          onNavigate={() =>
+            navigation.navigate(
+              activeTab === 'drafts'
+                ? 'PreviewDataScreen'
+                : 'PublishPlansScreen',
+            )
+          }
           onClone={() => handleClone(item)}
         />
       )}

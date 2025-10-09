@@ -1,33 +1,42 @@
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import {
+  EnterIcon,
   LecturerIcon,
   NavigationIcon,
   SemesterIcon,
 } from '../assets/icons/courses';
-import { EditAssessmentIcon } from '../assets/icons/icon';
+import { EditAssessmentIcon, SmallAppIcon } from '../assets/icons/icon';
+import AppButton from '../components/buttons/AppButton';
 import CourseCardItem from '../components/courses/CourseCardItem';
+import AppTextInput from '../components/inputs/AppTextInput';
+import CustomModal from '../components/modals/CustomModal';
 import AppText from '../components/texts/AppText';
 import { teacherNavigation } from '../data/coursesData';
 import { AppColors } from '../styles/color';
 
 const CourseDetailTeacherScreen = () => {
   const navigation = useNavigation();
+  const [enterCode, setEnterCode] = useState('');
+  const [enterCodeModal, setEnterCodeModal] = useState<boolean>(false);
+  const handleSetEnterCode = () => {
+    setEnterCodeModal(false);
+  };
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Image
         style={styles.image}
         source={require('../assets/images/classimage.png')}
       />
       <View style={styles.classInfoContainer}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('EditMaterialScreen' as never)}
-          style={styles.courseUnEnrollIcon}
-        >
-          <EditAssessmentIcon />
-        </TouchableOpacity>
         <View
           style={{
             padding: s(20),
@@ -100,12 +109,24 @@ const CourseDetailTeacherScreen = () => {
               Read More
             </AppText>
           </AppText>
+          <AppButton
+            leftIcon={<EnterIcon />}
+            textVariant="body12pxRegular"
+            style={{
+              width: s(130),
+              alignSelf: 'flex-start',
+              borderRadius: s(8),
+            }}
+            size="small"
+            onPress={() => setEnterCodeModal(true)}
+            title="Set Enter code"
+          />
         </View>
       </View>
       <View
         style={{
           position: 'absolute',
-          top: s(430),
+          top: s(480),
           width: s(300),
           alignSelf: 'center',
         }}
@@ -121,13 +142,53 @@ const CourseDetailTeacherScreen = () => {
               title={item.title}
               leftIcon={<item.leftIcon />}
               backGroundColor={item.backGroundColor}
-              rightIcon={<NavigationIcon color={item.rightIconColor} />}
+              rightIcon={
+                item.rightIcon ? (
+                  item.rightIcon({ color: item.rightIconColor })
+                ) : (
+                  <NavigationIcon color={item.rightIconColor} />
+                )
+              }
               linkTo={item.linkTo}
+              onDownload={item?.onDownload}
             />
           </View>
         ))}
       </View>
-    </View>
+
+      <CustomModal
+        visible={enterCodeModal}
+        onClose={() => setEnterCodeModal(false)}
+        title="Set Enter code"
+        description="Enter 6-digits code for this class"
+        icon={<SmallAppIcon />}
+      >
+        <AppTextInput
+          placeholder="Enter class code"
+          securityTextEntry
+          label="Class code"
+          value={enterCode}
+          onChangeText={setEnterCode}
+        />
+
+        <View style={styles.buttonContainer}>
+          <AppButton
+            onPress={handleSetEnterCode}
+            style={{ width: s(100), marginTop: vs(20) }}
+            title="Save"
+            size="small"
+          />
+          <AppButton
+            onPress={() => setEnterCodeModal(false)}
+            style={{ width: s(100), marginTop: vs(20) }}
+            title="Cancel"
+            size="small"
+            variant="secondary"
+            textColor={AppColors.black}
+          />
+        </View>
+      </CustomModal>
+    </ScrollView>
   );
 };
 
@@ -145,7 +206,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: vs(100),
     width: s(300),
-    height: s(300),
+    height: s(350),
     borderRadius: s(30),
     backgroundColor: AppColors.white,
     alignSelf: 'center',
@@ -183,5 +244,10 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     padding: s(20),
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: s(10),
   },
 });

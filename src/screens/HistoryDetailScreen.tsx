@@ -6,12 +6,11 @@ import { StyleSheet, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import * as yup from 'yup';
 import {
-  AutoGradeIcon,
   CurriculumIcon,
   DownloadIcon,
-  NavigationIcon,
+  NavigationIcon
 } from '../assets/icons/courses';
-import AppButton from '../components/buttons/AppButton';
+import { HistoryIcon } from '../assets/icons/icon';
 import AppDropdownController from '../components/common/AppDropdownController';
 import ScreenHeader from '../components/common/ScreenHeader';
 import SectionHeader from '../components/common/SectionHeader';
@@ -20,8 +19,6 @@ import CurriculumItem from '../components/courses/CurriculumItem';
 import AppTextInputController from '../components/inputs/AppTextInputController';
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
-import { CheckTickIcon, HistoryIcon } from '../assets/icons/icon';
-import { globalStyles } from '../styles/shareStyles';
 
 const isCriteriaMode = true;
 
@@ -41,7 +38,7 @@ const schema = yup.object({
 
 type FormData = yup.InferType<typeof schema>;
 
-const AssessmentDetailScreen: React.FC = () => {
+const HistoryDetailScreen: React.FC = () => {
   const navigation = useNavigation();
   const { control, handleSubmit } = useForm<FormData>({
     resolver: yupResolver(schema),
@@ -89,7 +86,7 @@ const AssessmentDetailScreen: React.FC = () => {
           buttonText={isCriteriaMode ? 'View Detail' : undefined}
           onPress={() => {
             isCriteriaMode &&
-              navigation.navigate('ScoreDetailTeacherScreen' as never);
+              navigation.navigate('ScoreDetailTeacherHistoryScreen' as never);
           }}
         />
 
@@ -149,41 +146,13 @@ const AssessmentDetailScreen: React.FC = () => {
           leftIcon={<CurriculumIcon />}
           backGroundColor={AppColors.b100}
           rightIcon={<NavigationIcon color={AppColors.b500} />}
-          linkTo={'FeedbackTeacherScreen'}
+          linkTo={'FeedbackScreen'}
         />
-
-        <View
-          style={[
-            globalStyles.flexRowStyle,
-            { marginTop: vs(25), justifyContent: 'center', gap: 10 },
-          ]}
-        >
-          <AppButton
-            title="Save Grade"
-            onPress={handleSubmit(handleSaveGrade)}
-            style={{
-              width: s(100),
-            }}
-            textVariant="body14pxRegular"
-            leftIcon={<CheckTickIcon />}
-          />
-          <AppButton
-            title="Auto Grade"
-            onPress={() => {}}
-            style={{
-              width: s(100),
-            }}
-            textVariant="body14pxRegular"
-            variant="secondary"
-            textColor={AppColors.black}
-            leftIcon={<AutoGradeIcon color={AppColors.black}/>}
-          />
-        </View>
       </View>
     </AppSafeView>
   );
 };
 
-export default AssessmentDetailScreen;
+export default HistoryDetailScreen;
 
 const styles = StyleSheet.create({});

@@ -3,6 +3,8 @@ import {
   CSharpIllustration,
   CurriculumIcon,
   DownloadIcon,
+  ExcelIcon,
+  ExportExcelIcon,
   GradeIcon,
   JavaIllustration,
   NodeJSIllustration,
@@ -303,11 +305,13 @@ export const teacherNavigation = [
   },
   {
     id: 3,
-    title: 'Grading History',
-    leftIcon: GradingHistoryIcon,
+    title: 'Export grade report',
+    leftIcon: ExcelIcon,
+    rightIcon: ExportExcelIcon,
     backGroundColor: AppColors.g100,
     rightIconColor: AppColors.g500,
     linkTo: 'GradingHistoryScreen',
+    onDownload: () => {},
   },
 ];
 
@@ -319,7 +323,6 @@ export const DocumentList = [
     linkFile: 'requirement.pdf',
     rightIcon: DownloadIcon,
     linkTo: 'AssessmentDetailScreen',
-    detailNavigation: 'AssessmentDetailScreen',
     onAction: () => {},
   },
 ];
@@ -372,19 +375,19 @@ export const PEList = [
   {
     id: 1,
     number: '01',
-    title: 'PE',
+    title: 'PE1',
     linkFile: 'pe.pdf',
-    rightIcon: DownloadIcon,
-    detailNavigation: '',
+    rightIcon: ViewIcon,
+    detailNavigation: 'AssignmentDetailScreen',
     onAction: () => {},
   },
   {
     id: 2,
     number: '02',
-    title: 'Criteria',
-    linkFile: 'criteria.pdf',
-    rightIcon: DownloadIcon,
-    detailNavigation: '',
+    title: 'PE2',
+    linkFile: 'pe.pdf',
+    rightIcon: ViewIcon,
+    detailNavigation: 'AssignmentDetailScreen',
     onAction: () => {},
   },
 ];
@@ -395,7 +398,7 @@ export const AssignmentList = [
     number: '01',
     title: 'Assignment 1',
     linkFile: 'asm1.pdf',
-    rightIcon: DownloadIcon,
+    rightIcon: ViewIcon,
     detailNavigation: 'AssignmentDetailScreen',
     onAction: () => {},
   },
@@ -404,8 +407,50 @@ export const AssignmentList = [
     number: '02',
     title: 'Assignment 2',
     linkFile: 'asm2.pdf',
-    rightIcon: DownloadIcon,
+    rightIcon: ViewIcon,
     detailNavigation: 'AssignmentDetailScreen',
+    onAction: () => {},
+  },
+];
+
+export const PETeacherList = [
+  {
+    id: 1,
+    number: '01',
+    title: 'PE1',
+    linkFile: 'pe.pdf',
+    rightIcon: ViewIcon,
+    detailNavigation: 'PracticalExamDetailScreen',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'PE2',
+    linkFile: 'pe.pdf',
+    rightIcon: ViewIcon,
+    detailNavigation: 'PracticalExamDetailScreen',
+    onAction: () => {},
+  },
+];
+
+export const AssignmentTeacherList = [
+  {
+    id: 1,
+    number: '01',
+    title: 'Assignment 1',
+    linkFile: 'asm1.pdf',
+    rightIcon: ViewIcon,
+    detailNavigation: 'AssignmentDetailTeacherScreen',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'Assignment 2',
+    linkFile: 'asm2.pdf',
+    rightIcon: ViewIcon,
+    detailNavigation: 'AssignmentDetailTeacherScreen',
     onAction: () => {},
   },
 ];

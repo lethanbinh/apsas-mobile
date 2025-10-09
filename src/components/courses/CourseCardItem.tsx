@@ -14,6 +14,7 @@ interface CourseCardItemProps {
   rightIcon: ReactNode;
   linkTo: string;
   hasTestCase?: boolean;
+  onDownload?: () => void;
 }
 
 const CourseCardItem = ({
@@ -23,6 +24,7 @@ const CourseCardItem = ({
   rightIcon,
   linkTo,
   hasTestCase = false,
+  onDownload,
 }: CourseCardItemProps) => {
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);
@@ -30,6 +32,11 @@ const CourseCardItem = ({
   return (
     <TouchableOpacity
       onPress={() => {
+        if (onDownload) {
+          onDownload();
+          return;
+        }
+
         if (linkTo && !hasTestCase) {
           navigation.navigate(linkTo as never);
         }
@@ -57,8 +64,12 @@ const CourseCardItem = ({
       <View>{rightIcon}</View>
 
       <BottomSheet visible={open} onClose={() => setOpen(false)}>
-        <SectionHeader title="Test Case" textVariant='h2' hasButton style={{
-        }}/>
+        <SectionHeader
+          title="Test Case"
+          textVariant="h2"
+          hasButton
+          style={{}}
+        />
 
         <TestCaseForm />
       </BottomSheet>

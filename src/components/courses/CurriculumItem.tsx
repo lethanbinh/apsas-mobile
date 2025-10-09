@@ -9,7 +9,7 @@ export interface CurriculumItemProps {
   title: string;
   linkFile: string;
   rightIcon: ReactNode;
-  detailNavigation: string;
+  detailNavigation?: string;
   onAction: () => void;
 }
 const CurriculumItem = ({
@@ -28,7 +28,9 @@ const CurriculumItem = ({
           <AppText>{number}</AppText>
         </View>
         <TouchableOpacity
-          onPress={() => navigation.navigate(detailNavigation as never)}
+          onPress={() =>
+            detailNavigation && navigation.navigate(detailNavigation as never)
+          }
         >
           <AppText variant="label16pxBold" style={{ color: '#202244' }}>
             {title}

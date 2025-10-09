@@ -5,6 +5,7 @@ import {
   View,
   TouchableOpacity,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import AppSafeView from '../components/views/AppSafeView';
 import ScreenHeader from '../components/common/ScreenHeader';
@@ -14,41 +15,60 @@ import { DownloadIcon } from '../assets/icons/courses';
 
 type Assignment = {
   id: string;
-  title: string;
-  semester: string;
   name: string;
   files: { id: string; title: string; fileName: string }[];
   status: 'Pending' | 'Approved' | 'Rejected';
   reason?: string;
 };
 
-const initialData: Assignment[] = [
+type Course = {
+  id: string;
+  courseName: string;
+  assignments: Assignment[];
+};
+
+const initialData: Course[] = [
   {
     id: '1',
-    title: 'SE1720 - Summer2025',
-    semester: '9',
-    name: 'Assignment1 - Nguyen NT',
-    files: [
-      { id: 'f1', title: 'Requirement', fileName: 'requirement.pdf' },
-      { id: 'f2', title: 'Criteria', fileName: 'criteria.pdf' },
+    courseName: 'Software Engineering',
+    assignments: [
+      {
+        id: 'a1',
+        name: 'Assignment 1 - Nguyen NT',
+        files: [
+          { id: 'f1', title: 'Requirement', fileName: 'requirement.pdf' },
+          { id: 'f2', title: 'Criteria', fileName: 'criteria.pdf' },
+          { id: 'f3', title: 'Database', fileName: 'database.sql' },
+        ],
+        status: 'Pending',
+      },
+      {
+        id: 'a2',
+        name: 'Assignment 2 - Tran VH',
+        files: [
+          { id: 'f4', title: 'Requirement', fileName: 'requirement.pdf' },
+          { id: 'f5', title: 'Criteria', fileName: 'criteria.pdf' },
+          { id: 'f6', title: 'Database', fileName: 'database.sql' },
+        ],
+        status: 'Pending',
+      },
     ],
-    status: 'Pending',
   },
   {
     id: '2',
-    title: 'SE1720 - Summer2025',
-    semester: '9',
-    name: 'Assignment2 - Tran VH',
-    files: [{ id: 'f3', title: 'Requirement', fileName: 'req2.pdf' }],
-    status: 'Pending',
-  },
-  {
-    id: '3',
-    title: 'SE1720 - Fall2025',
-    semester: '10',
-    name: 'Assignment3 - Le TT',
-    files: [{ id: 'f4', title: 'Requirement', fileName: 'req3.pdf' }],
-    status: 'Pending',
+    courseName: 'Database Management',
+    assignments: [
+      {
+        id: 'a3',
+        name: 'Assignment 1 - Le TT',
+        files: [
+          { id: 'f7', title: 'Requirement', fileName: 'requirement.pdf' },
+          { id: 'f8', title: 'Criteria', fileName: 'criteria.pdf' },
+          { id: 'f9', title: 'Database', fileName: 'database.sql' },
+        ],
+        status: 'Pending',
+      },
+    ],
   },
 ];
 
@@ -63,21 +83,35 @@ const ApprovalScreen = () => {
     setExpanded(expanded === id ? null : id);
   };
 
-  const handleApprove = (id: string) => {
+  const handleApprove = (courseId: string, assignmentId: string) => {
     setData(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, status: 'Approved' } : item,
+      prev.map(course =>
+        course.id === courseId
+          ? {
+              ...course,
+              assignments: course.assignments.map(a =>
+                a.id === assignmentId ? { ...a, status: 'Approved' } : a,
+              ),
+            }
+          : course,
       ),
     );
   };
 
-  const handleReject = (id: string) => {
-    if (!rejectReason[id]) return; // phải nhập lý do
+  const handleReject = (courseId: string, assignmentId: string) => {
+    if (!rejectReason[assignmentId]) return;
     setData(prev =>
-      prev.map(item =>
-        item.id === id
-          ? { ...item, status: 'Rejected', reason: rejectReason[id] }
-          : item,
+      prev.map(course =>
+        course.id === courseId
+          ? {
+              ...course,
+              assignments: course.assignments.map(a =>
+                a.id === assignmentId
+                  ? { ...a, status: 'Rejected', reason: rejectReason[assignmentId] }
+                  : a,
+              ),
+            }
+          : course,
       ),
     );
   };
@@ -93,102 +127,132 @@ const ApprovalScreen = () => {
     );
   };
 
+  const getCourseStatus = (assignments: Assignment[]) => {
+    const allApproved = assignments.every(a => a.status === 'Approved');
+    const anyRejected = assignments.some(a => a.status === 'Rejected');
+    if (allApproved) return 'Approved';
+    if (anyRejected) return 'Rejected';
+    return 'Pending';
+  };
+
   return (
     <AppSafeView>
       <ScreenHeader title="Approval" />
-      <View style={styles.container}>
-        {data.map(item => (
-          <View key={item.id} style={styles.card}>
-            <TouchableOpacity
-              style={styles.cardHeader}
-              onPress={() => toggleExpand(item.id)}
-            >
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              {renderStatus(item.status)}
-              <Text style={styles.expandIcon}>
-                {expanded === item.id ? '-' : '+'}
-              </Text>
-            </TouchableOpacity>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={{ padding: s(20), paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {data.map(course => {
+          const courseStatus = getCourseStatus(course.assignments);
 
-            {expanded === item.id && (
-              <View style={styles.cardBody}>
-                <Text style={styles.label}>Semester</Text>
-                <TextInput
-                  style={styles.input}
-                  editable={false}
-                  value={item.semester}
-                />
-                <Text style={styles.label}>Name</Text>
-                <TextInput
-                  style={styles.input}
-                  editable={false}
-                  value={item.name}
-                />
+          return (
+            <View key={course.id} style={styles.card}>
+              <TouchableOpacity
+                style={styles.cardHeader}
+                onPress={() => toggleExpand(course.id)}
+              >
+                <Text style={styles.cardTitle}>{course.courseName}</Text>
+                {renderStatus(courseStatus)}
+                <Text style={styles.expandIcon}>
+                  {expanded === course.id ? '-' : '+'}
+                </Text>
+              </TouchableOpacity>
 
-                {item.files.map((f, index) => (
-                  <View key={f.id} style={styles.fileRow}>
-                    <Text style={styles.fileIndex}>
-                      {String(index + 1).padStart(2, '0')}
-                    </Text>
-                    <View style={styles.fileInfo}>
-                      <Text style={styles.fileTitle}>{f.title}</Text>
-                      <Text style={styles.fileName}>{f.fileName}</Text>
-                    </View>
-                    <DownloadIcon />
-                  </View>
-                ))}
+              {expanded === course.id && (
+                <View style={styles.cardBody}>
+                  {course.assignments.map((assignment, idx) => (
+                    <View key={assignment.id} style={styles.assignmentBox}>
+                      <Text style={styles.assignmentTitle}>
+                        {idx + 1}. {assignment.name}
+                      </Text>
+                      {renderStatus(assignment.status)}
 
-                {item.status === 'Pending' && (
-                  <>
-                    {rejectReason[item.id] !== undefined && (
-                      <TextInput
-                        style={styles.reasonInput}
-                        placeholder="Enter reject reason..."
-                        value={rejectReason[item.id]}
-                        onChangeText={txt =>
-                          setRejectReason(prev => ({ ...prev, [item.id]: txt }))
-                        }
-                      />
-                    )}
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        style={[styles.btn, { backgroundColor: '#3B82F6' }]}
-                        onPress={() => handleApprove(item.id)}
-                      >
-                        <Text style={styles.btnText}>Approve</Text>
-                      </TouchableOpacity>
-                      {rejectReason[item.id] === undefined ? (
-                        <TouchableOpacity
-                          style={[styles.btn, { backgroundColor: '#F87171' }]}
-                          onPress={() =>
-                            setRejectReason(prev => ({
-                              ...prev,
-                              [item.id]: '',
-                            }))
-                          }
-                        >
-                          <Text style={styles.btnText}>Reject</Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          style={[styles.btn, { backgroundColor: '#DC2626' }]}
-                          onPress={() => handleReject(item.id)}
-                        >
-                          <Text style={styles.btnText}>Confirm Reject</Text>
-                        </TouchableOpacity>
+                      {assignment.files.map((f, index) => (
+                        <View key={f.id} style={styles.fileRow}>
+                          <Text style={styles.fileIndex}>
+                            {String(index + 1).padStart(2, '0')}
+                          </Text>
+                          <View style={styles.fileInfo}>
+                            <Text style={styles.fileTitle}>{f.title}</Text>
+                            <Text style={styles.fileName}>{f.fileName}</Text>
+                          </View>
+                          <DownloadIcon />
+                        </View>
+                      ))}
+
+                      {assignment.status === 'Pending' && (
+                        <>
+                          {rejectReason[assignment.id] !== undefined && (
+                            <TextInput
+                              style={styles.reasonInput}
+                              placeholder="Enter reject reason..."
+                              value={rejectReason[assignment.id]}
+                              onChangeText={txt =>
+                                setRejectReason(prev => ({
+                                  ...prev,
+                                  [assignment.id]: txt,
+                                }))
+                              }
+                            />
+                          )}
+                          <View style={styles.actionRow}>
+                            <TouchableOpacity
+                              style={[styles.btn, { backgroundColor: '#3B82F6' }]}
+                              onPress={() =>
+                                handleApprove(course.id, assignment.id)
+                              }
+                            >
+                              <Text style={styles.btnText}>Approve</Text>
+                            </TouchableOpacity>
+
+                            {rejectReason[assignment.id] === undefined ? (
+                              <TouchableOpacity
+                                style={[
+                                  styles.btn,
+                                  { backgroundColor: '#F87171' },
+                                ]}
+                                onPress={() =>
+                                  setRejectReason(prev => ({
+                                    ...prev,
+                                    [assignment.id]: '',
+                                  }))
+                                }
+                              >
+                                <Text style={styles.btnText}>Reject</Text>
+                              </TouchableOpacity>
+                            ) : (
+                              <TouchableOpacity
+                                style={[
+                                  styles.btn,
+                                  { backgroundColor: '#DC2626' },
+                                ]}
+                                onPress={() =>
+                                  handleReject(course.id, assignment.id)
+                                }
+                              >
+                                <Text style={styles.btnText}>
+                                  Confirm Reject
+                                </Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </>
+                      )}
+
+                      {assignment.status === 'Rejected' && (
+                        <Text style={styles.reasonText}>
+                          Reason: {assignment.reason}
+                        </Text>
                       )}
                     </View>
-                  </>
-                )}
-
-                {item.status === 'Rejected' && (
-                  <Text style={styles.reasonText}>Reason: {item.reason}</Text>
-                )}
-              </View>
-            )}
-          </View>
-        ))}
-      </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </ScrollView>
     </AppSafeView>
   );
 };
@@ -196,7 +260,7 @@ const ApprovalScreen = () => {
 export default ApprovalScreen;
 
 const styles = StyleSheet.create({
-  container: { padding: s(20) },
+  scrollContainer: { flex: 1 },
   card: {
     backgroundColor: AppColors.pr100,
     borderRadius: s(10),
@@ -209,27 +273,31 @@ const styles = StyleSheet.create({
   },
   cardTitle: { flex: 1, fontWeight: 'bold', fontSize: 16 },
   expandIcon: { fontSize: 18, marginLeft: 8 },
+  cardBody: { marginTop: 10 },
+  assignmentBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+  },
+  assignmentTitle: {
+    fontWeight: 'bold',
+    fontSize: 15,
+    marginBottom: 8,
+  },
   statusBox: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginHorizontal: 6,
   },
   statusText: { fontSize: 12, fontWeight: 'bold' },
-  cardBody: { marginTop: 10 },
-  label: { fontSize: 14, fontWeight: '500', marginTop: 6 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    padding: 6,
-    marginTop: 4,
-    backgroundColor: '#fff',
-  },
   fileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 10,
-    backgroundColor: '#fff',
+    backgroundColor: '#f9fafb',
     borderRadius: 8,
     padding: 8,
   },

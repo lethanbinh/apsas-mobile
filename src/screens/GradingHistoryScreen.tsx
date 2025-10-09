@@ -22,7 +22,7 @@ const GradingHistoryScreen = () => {
       fileName: 'homework1.zip',
       status: 'Late' as 'Late',
       timeSubmit: 'Submission 3',
-      onNavigate: () => navigation.navigate('ScoreDetailScreen' as never),
+      onNavigate: () => navigation.navigate('HistoryDetailScreen' as never),
     },
     {
       id: 2,
@@ -35,7 +35,7 @@ const GradingHistoryScreen = () => {
       fileName: 'assignment1.pdf',
       status: 'On time' as 'On time',
       timeSubmit: 'Submission 2',
-      onNavigate: () => navigation.navigate('ScoreDetailScreen' as never),
+      onNavigate: () => navigation.navigate('HistoryDetailScreen' as never),
     },
     {
       id: 3,
@@ -48,7 +48,7 @@ const GradingHistoryScreen = () => {
       fileName: 'labreport1.docx',
       status: 'Missing' as 'Missing',
       timeSubmit: 'Submission 1',
-      onNavigate: () => navigation.navigate('ScoreDetailScreen' as never),
+      onNavigate: () => navigation.navigate('HistoryDetailScreen' as never),
     },
   ];
   return (
