@@ -2,14 +2,19 @@ import { StyleSheet, Text, View } from 'react-native';
 import React from 'react';
 import AppText from '../texts/AppText';
 import { UserAvatarDemoIcon } from '../../assets/icons/icon';
-import { s } from 'react-native-size-matters';
+import { s, vs } from 'react-native-size-matters';
 
-const LecturerHeader = () => {
+interface LecturerHeaderProps {
+  title: string;
+  role: string;
+}
+
+const LecturerHeader = ({ title, role }: LecturerHeaderProps) => {
   return (
     <View style={styles.container}>
       <View>
-        <AppText variant='h3'>Hi, Binh</AppText>
-        <AppText variant='body12pxRegular'>Teacher</AppText>
+        <AppText variant="h3">{title}</AppText>
+        <AppText variant="body12pxRegular">{role}</AppText>
       </View>
       <View>
         <UserAvatarDemoIcon />
@@ -25,6 +30,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: s(25),
+    paddingHorizontal: s(25),
+    marginBottom: vs(20)
   },
 });

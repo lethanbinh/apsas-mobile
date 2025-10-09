@@ -1,12 +1,13 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
-import AuthStackNavigator from './AuthStack';
 import IntroScreen from '../screens/IntroScreen';
+import AuthStackNavigator from './AuthStack';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import LecturerBottomTabs from './LecturerBottomTabs';
+import AdminStackNavigator from './AdminStack';
 import HeadDeptBottomTabs from './HeadDeptBottomTabs';
+import LecturerBottomTabs from './LecturerBottomTabs';
 import StudentBottomTabs from './StudentBottomTabs';
 
 const Stack = createStackNavigator();
@@ -15,7 +16,7 @@ const MainAppStack = () => {
   const [userData, setUserData] = useState<{ id: number; role: string } | null>(
     {
       id: 1,
-      role: 'student', // "student" | "lecturer" | "head"
+      role: 'admin', // "student" | "lecturer" | "head"
     },
   );
   const [isFirstUseApp, setIsFirstUseApp] = useState<boolean | null>(false);
@@ -45,6 +46,8 @@ const MainAppStack = () => {
         return HeadDeptBottomTabs;
       case 'student':
         return StudentBottomTabs;
+      case 'admin':
+        return AdminStackNavigator;
       default:
         return StudentBottomTabs;
     }

@@ -13,7 +13,7 @@ const LecturerHomeScreen = () => {
   const navigation = useNavigation<any>();
   return (
     <AppSafeView>
-      <LecturerHeader />
+      <LecturerHeader title="Hi, Binh" role="Lecturer" />
       <View style={{ paddingHorizontal: s(25) }}>
         <SemesterCard
           title="Current Semester"

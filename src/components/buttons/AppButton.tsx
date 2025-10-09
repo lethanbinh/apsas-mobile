@@ -9,7 +9,7 @@ type TextVariant = keyof typeof textStyles;
 
 interface AppButtonProps {
   onPress: () => void;
-  title: string;
+  title?: string;
   backgroundColor?: string;
   textColor?: string;
   style?: Object;
@@ -58,22 +58,25 @@ const AppButton = ({
       disabled={disabled}
     >
       {leftIcon}
-      <AppText
-        style={[
-          styles.textTitle,
-          {
-            color: textColor,
-          },
-          ...(styleTitle
-            ? Array.isArray(styleTitle)
-              ? styleTitle
-              : [styleTitle]
-            : []),
-        ]}
-        variant={textVariant}
-      >
-        {title}
-      </AppText>
+      {title && (
+        <AppText
+          style={[
+            styles.textTitle,
+            {
+              color: textColor,
+            },
+            ...(styleTitle
+              ? Array.isArray(styleTitle)
+                ? styleTitle
+                : [styleTitle]
+              : []),
+          ]}
+          variant={textVariant}
+        >
+          {title}
+        </AppText>
+      )}
+
       {rightIcon}
     </TouchableOpacity>
   );
