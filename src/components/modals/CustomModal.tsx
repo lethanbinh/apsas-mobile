@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Portal } from 'react-native-paper';
 import { s, vs } from 'react-native-size-matters';
 import AppText from '../texts/AppText';

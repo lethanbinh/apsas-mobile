@@ -1,14 +1,20 @@
-import { StyleSheet, Text, View } from 'react-native';
 import React from 'react';
-import { SmallAppIcon } from '../../assets/icons/icon';
-import { SearchIcon } from '../../assets/icons/header-icon';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s } from 'react-native-size-matters';
+import { SearchIcon } from '../../assets/icons/header-icon';
+import { SmallAppIcon } from '../../assets/icons/icon';
 
-const AppHeader = () => {
+interface AppHeaderProps {
+  onSearch?: () => void;
+}
+
+const AppHeader = ({ onSearch }: AppHeaderProps) => {
   return (
     <View style={styles.container}>
       <SmallAppIcon />
-      <SearchIcon />
+      <TouchableOpacity onPress={onSearch}>
+        <SearchIcon />
+      </TouchableOpacity>
     </View>
   );
 };

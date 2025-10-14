@@ -8,8 +8,145 @@ import CurriculumList from '../components/courses/CurriculumList';
 import RadioWithTitle from '../components/inputs/RadioWithTitle';
 import { AppColors } from '../styles/color';
 import { UploadIcon } from '../assets/icons/icon';
+import { pick } from '@react-native-documents/picker';
+
+// Dữ liệu ban đầu
+const initialCoursesData = [
+  {
+    id: '1',
+    title: 'Capstone Project',
+    status: 'Pending',
+    assignments: [
+      {
+        id: 'a1',
+        title: 'Assignment 1 - Nguyen NT',
+        hasTestCase: true,
+        sections: [
+          {
+            title: 'Materials',
+            data: [
+              {
+                id: 1,
+                number: '01',
+                title: 'Requirement',
+                linkFile: 'requirement.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 2,
+                number: '02',
+                title: 'Criteria',
+                linkFile: 'criteria.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 3,
+                number: '03',
+                title: 'Database file',
+                linkFile: 'database.sql',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'a2',
+        title: 'Assignment 2 - Le TB',
+        hasTestCase: false,
+        sections: [
+          {
+            title: 'Materials',
+            data: [
+              {
+                id: 1,
+                number: '01',
+                title: 'Requirement',
+                linkFile: 'requirement_lab.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 2,
+                number: '02',
+                title: 'Criteria',
+                linkFile: 'criteria_lab.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 3,
+                number: '03',
+                title: 'Database file',
+                linkFile: 'lab_db.sql',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: '2',
+    title: 'Lab211 Java',
+    status: 'Approve',
+    assignments: [
+      {
+        id: 'a3',
+        title: 'Assignment 1 - Do TH',
+        hasTestCase: true,
+        sections: [
+          {
+            title: 'Materials',
+            data: [
+              {
+                id: 1,
+                number: '01',
+                title: 'Requirement',
+                linkFile: 'lab_requirement.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 2,
+                number: '02',
+                title: 'Criteria',
+                linkFile: 'lab_criteria.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 3,
+                number: '03',
+                title: 'Database file',
+                linkFile: 'lab_database.sql',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
 
 const CreateAssessmentScreen = () => {
+  const [courses, setCourses] = useState(initialCoursesData);
   const [expandedCourse, setExpandedCourse] = useState<string | null>('1');
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(
     null,
@@ -18,139 +155,61 @@ const CreateAssessmentScreen = () => {
 
   const ASSIGNMENT_TYPES = ['Basic assignment', 'Web API', 'Web UI'];
 
-  const courses = [
-    {
-      id: '1',
-      title: 'Capstone Project',
-      status: 'Pending',
-      assignments: [
-        {
-          id: 'a1',
-          title: 'Assignment 1 - Nguyen NT',
-          hasTestCase: true,
-          sections: [
-            {
-              title: 'Materials',
-              data: [
-                {
-                  id: 1,
-                  number: '01',
-                  title: 'Requirement',
-                  linkFile: 'requirement.pdf',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-                {
-                  id: 2,
-                  number: '02',
-                  title: 'Criteria',
-                  linkFile: 'criteria.pdf',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-                {
-                  id: 3,
-                  number: '03',
-                  title: 'Database file',
-                  linkFile: 'database.sql',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: 'a2',
-          title: 'Assignment 2 - Le TB',
-          hasTestCase: false,
-          sections: [
-            {
-              title: 'Materials',
-              data: [
-                {
-                  id: 1,
-                  number: '01',
-                  title: 'Requirement',
-                  linkFile: 'requirement_lab.pdf',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-                {
-                  id: 2,
-                  number: '02',
-                  title: 'Criteria',
-                  linkFile: 'criteria_lab.pdf',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-                {
-                  id: 3,
-                  number: '03',
-                  title: 'Database file',
-                  linkFile: 'lab_db.sql',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: '2',
-      title: 'Lab211 Java',
-      status: 'Approve',
-      assignments: [
-        {
-          id: 'a3',
-          title: 'Assignment 1 - Do TH',
-          hasTestCase: true,
-          sections: [
-            {
-              title: 'Materials',
-              data: [
-                {
-                  id: 1,
-                  number: '01',
-                  title: 'Requirement',
-                  linkFile: 'lab_requirement.pdf',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-                {
-                  id: 2,
-                  number: '02',
-                  title: 'Criteria',
-                  linkFile: 'lab_criteria.pdf',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-                {
-                  id: 3,
-                  number: '03',
-                  title: 'Database file',
-                  linkFile: 'lab_database.sql',
-                  rightIcon: UploadIcon,
-                  detailNavigation: '',
-                  onAction: () => {},
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  ];
+  // 2. Cập nhật hàm xử lý upload file
+  const handleFileUpload = async (
+    courseId: string,
+    assignmentId: string,
+    materialId: number,
+  ) => {
+    try {
+      // Gọi hàm pick, không cần `type` để cho phép mọi loại file
+      const result = await pick();
+
+      // Thư viện mới trả về một mảng, ta lấy phần tử đầu tiên
+      if (result && result.length > 0) {
+        const file = result[0];
+
+        // Cập nhật state với tên file mới
+        const updatedCourses = courses.map(course => {
+          if (course.id === courseId) {
+            return {
+              ...course,
+              assignments: course.assignments.map(assignment => {
+                if (assignment.id === assignmentId) {
+                  return {
+                    ...assignment,
+                    sections: assignment.sections.map(section => ({
+                      ...section,
+                      data: section.data.map(material => {
+                        if (material.id === materialId) {
+                          // Sử dụng nullish coalescing để an toàn hơn
+                          return {
+                            ...material,
+                            linkFile: file.name ?? 'Unknown File',
+                          };
+                        }
+                        return material;
+                      }),
+                    })),
+                  };
+                }
+                return assignment;
+              }),
+            };
+          }
+          return course;
+        });
+        setCourses(updatedCourses);
+      }
+    } catch (err: any) {
+      // 3. Cập nhật cách xử lý lỗi cancel
+      if (err?.message?.includes('User cancelled')) {
+        console.log('User cancelled picking');
+      } else {
+        console.error('File picker error:', err);
+      }
+    }
+  };
 
   const renderStatusTag = (status: string) => {
     let bg = AppColors.b100;
@@ -179,7 +238,6 @@ const CreateAssessmentScreen = () => {
       >
         {courses.map(course => (
           <View key={course.id} style={styles.courseCard}>
-            {/* --- Course Header --- */}
             <TouchableOpacity
               style={styles.courseHeader}
               onPress={() =>
@@ -191,18 +249,17 @@ const CreateAssessmentScreen = () => {
               <AppText variant="label16pxBold" style={{ flex: 1 }}>
                 {course.title}
               </AppText>
-              {renderStatusTag(course.status)}
+              <AppText>{renderStatusTag(course.status)}</AppText>
+
               <AppText style={styles.expandIcon}>
                 {expandedCourse === course.id ? '−' : '+'}
               </AppText>
             </TouchableOpacity>
 
-            {/* --- Course Body --- */}
             {expandedCourse === course.id && (
               <View style={styles.courseBody}>
                 {course.assignments.map(assignment => (
                   <View key={assignment.id} style={styles.assignmentCard}>
-                    {/* --- Assignment Header --- */}
                     <TouchableOpacity
                       style={styles.assignmentHeader}
                       onPress={() =>
@@ -224,15 +281,11 @@ const CreateAssessmentScreen = () => {
                       </AppText>
                     </TouchableOpacity>
 
-                    {/* --- Assignment Expanded Body --- */}
                     {expandedAssignment === assignment.id && (
                       <View style={styles.assignmentBody}>
                         <AppText
                           variant="body14pxBold"
-                          style={{
-                            marginBottom: vs(8),
-                            color: AppColors.n700,
-                          }}
+                          style={{ marginBottom: vs(8), color: AppColors.n700 }}
                         >
                           Assignment Type
                         </AppText>
@@ -247,7 +300,18 @@ const CreateAssessmentScreen = () => {
                         ))}
 
                         <CurriculumList
-                          sections={assignment.sections}
+                          sections={assignment.sections.map(section => ({
+                            ...section,
+                            data: section.data.map(material => ({
+                              ...material,
+                              onAction: () =>
+                                handleFileUpload(
+                                  course.id,
+                                  assignment.id,
+                                  material.id,
+                                ),
+                            })),
+                          }))}
                           isDownloadable={false}
                           isSaved={true}
                           hasTestCase={assignment.hasTestCase}

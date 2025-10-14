@@ -19,6 +19,7 @@ const CurriculumItem = ({
   linkFile,
   rightIcon,
   detailNavigation,
+  onAction,
 }: CurriculumItemProps) => {
   const navigation = useNavigation();
   return (
@@ -40,7 +41,7 @@ const CurriculumItem = ({
           </AppText>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.iconWrapper}>
+      <TouchableOpacity style={styles.iconWrapper} onPress={onAction}>
         {rightIcon}
       </TouchableOpacity>
     </View>

@@ -6,12 +6,17 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
+  PermissionsAndroid,
+  Platform,
+  Alert,
 } from 'react-native';
 import AppSafeView from '../components/views/AppSafeView';
 import ScreenHeader from '../components/common/ScreenHeader';
 import { AppColors } from '../styles/color';
 import { s } from 'react-native-size-matters';
 import { DownloadIcon } from '../assets/icons/courses';
+// 1. Import thư viện blob-util
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 type Assignment = {
   id: string;
@@ -28,57 +33,111 @@ type Course = {
 };
 
 const initialData: Course[] = [
-  {
-    id: '1',
-    courseName: 'Software Engineering',
-    assignments: [
-      {
-        id: 'a1',
-        name: 'Assignment 1 - Nguyen NT',
-        files: [
-          { id: 'f1', title: 'Requirement', fileName: 'requirement.pdf' },
-          { id: 'f2', title: 'Criteria', fileName: 'criteria.pdf' },
-          { id: 'f3', title: 'Database', fileName: 'database.sql' },
-        ],
-        status: 'Pending',
-      },
-      {
-        id: 'a2',
-        name: 'Assignment 2 - Tran VH',
-        files: [
-          { id: 'f4', title: 'Requirement', fileName: 'requirement.pdf' },
-          { id: 'f5', title: 'Criteria', fileName: 'criteria.pdf' },
-          { id: 'f6', title: 'Database', fileName: 'database.sql' },
-        ],
-        status: 'Pending',
-      },
-    ],
-  },
-  {
-    id: '2',
-    courseName: 'Database Management',
-    assignments: [
-      {
-        id: 'a3',
-        name: 'Assignment 1 - Le TT',
-        files: [
-          { id: 'f7', title: 'Requirement', fileName: 'requirement.pdf' },
-          { id: 'f8', title: 'Criteria', fileName: 'criteria.pdf' },
-          { id: 'f9', title: 'Database', fileName: 'database.sql' },
-        ],
-        status: 'Pending',
-      },
-    ],
-  },
+  {
+    id: '1',
+    courseName: 'Software Engineering',
+    assignments: [
+      {
+        id: 'a1',
+        name: 'Assignment 1 - Nguyen NT',
+        files: [
+          { id: 'f1', title: 'Requirement', fileName: 'requirement.pdf' },
+          { id: 'f2', title: 'Criteria', fileName: 'criteria.pdf' },
+          { id: 'f3', title: 'Database', fileName: 'database.sql' },
+        ],
+        status: 'Pending',
+      },
+      {
+        id: 'a2',
+        name: 'Assignment 2 - Tran VH',
+        files: [
+          { id: 'f4', title: 'Requirement', fileName: 'requirement.pdf' },
+          { id: 'f5', title: 'Criteria', fileName: 'criteria.pdf' },
+          { id: 'f6', title: 'Database', fileName: 'database.sql' },
+        ],
+        status: 'Pending',
+      },
+    ],
+  },
+  {
+    id: '2',
+    courseName: 'Database Management',
+    assignments: [
+      {
+        id: 'a3',
+        name: 'Assignment 1 - Le TT',
+        files: [
+          { id: 'f7', title: 'Requirement', fileName: 'requirement.pdf' },
+          { id: 'f8', title: 'Criteria', fileName: 'criteria.pdf' },
+          { id: 'f9', title: 'Database', fileName: 'database.sql' },
+        ],
+        status: 'Pending',
+      },
+    ],
+  },
 ];
 
 const ApprovalScreen = () => {
   const [data, setData] = useState(initialData);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState<{ [key: string]: string }>(
-    {},
-  );
+  const [rejectReason, setRejectReason] = useState<{ [key: string]: string }>({});
 
+  // 2. Thêm hàm xin quyền và hàm download
+  const requestStoragePermission = async () => {
+    if (Platform.OS !== 'android') return true;
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission Required',
+          message: 'This app needs access to your storage to download files.',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
+
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      Alert.alert('Permission Denied', 'Storage permission is required to download files.');
+      return;
+    }
+
+    const sampleFileUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+    const { dirs } = ReactNativeBlobUtil.fs;
+    const dirToSave = Platform.OS === 'ios' ? dirs.DocumentDir : dirs.DownloadDir;
+    
+    const config = {
+      fileCache: true,
+      path: `${dirToSave}/${fileName}`,
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        notification: true,
+        path: `${dirToSave}/${fileName}`,
+        description: 'Downloading file.',
+      },
+    };
+
+    Alert.alert('Starting Download', `Downloading ${fileName}...`);
+
+    ReactNativeBlobUtil.config(config)
+      .fetch('GET', sampleFileUrl)
+      .then(res => {
+        if (Platform.OS === 'ios') {
+          ReactNativeBlobUtil.ios.previewDocument(res.path());
+        }
+        Alert.alert('Download Complete', `${fileName} has been saved to your Downloads folder.`);
+      })
+      .catch(error => {
+        console.error(error);
+        Alert.alert('Download Error', 'An error occurred while downloading the file.');
+      });
+  };
   const toggleExpand = (id: string) => {
     setExpanded(expanded === id ? null : id);
   };
@@ -177,7 +236,10 @@ const ApprovalScreen = () => {
                             <Text style={styles.fileTitle}>{f.title}</Text>
                             <Text style={styles.fileName}>{f.fileName}</Text>
                           </View>
-                          <DownloadIcon />
+                          {/* 3. Bọc DownloadIcon trong TouchableOpacity và gọi handleDownload */}
+                          <TouchableOpacity onPress={() => handleDownload(f.fileName, f.fileName)}>
+                            <DownloadIcon />
+                          </TouchableOpacity>
                         </View>
                       ))}
 
@@ -305,7 +367,6 @@ const styles = StyleSheet.create({
   fileInfo: { flex: 1 },
   fileTitle: { fontWeight: 'bold' },
   fileName: { color: '#6B7280' },
-  downloadIcon: { fontSize: 18, color: '#3B82F6' },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

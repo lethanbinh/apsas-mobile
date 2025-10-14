@@ -4,7 +4,6 @@ import { StyleSheet } from 'react-native';
 import IntroScreen from '../screens/IntroScreen';
 import AuthStackNavigator from './AuthStack';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import AdminStackNavigator from './AdminStack';
 import HeadDeptBottomTabs from './HeadDeptBottomTabs';
 import LecturerBottomTabs from './LecturerBottomTabs';
@@ -16,15 +15,15 @@ const MainAppStack = () => {
   const [userData, setUserData] = useState<{ id: number; role: string } | null>(
     {
       id: 1,
-      role: 'admin', // "student" | "lecturer" | "head"
+      role: 'head', // "student" | "lecturer" | "head"
     },
   );
   const [isFirstUseApp, setIsFirstUseApp] = useState<boolean | null>(false);
 
   useEffect(() => {
     const loadData = async () => {
-      const value = await AsyncStorage.getItem('isFirstUseApp');
-      setIsFirstUseApp(value === 'true');
+      // const value = await AsyncStorage.getItem('isFirstUseApp');
+      // setIsFirstUseApp(value === 'true');
     };
     loadData();
   }, []);
@@ -32,11 +31,13 @@ const MainAppStack = () => {
   let initRoute = '';
   if (!isFirstUseApp && userData) {
     initRoute = 'MainAppBottomTabs';
-  } else if (!isFirstUseApp || !userData) {
+  } else if (!userData && !isFirstUseApp) {
     initRoute = 'AuthStack';
   } else {
     initRoute = 'IntroScreen';
   }
+
+  console.log(initRoute, isFirstUseApp, userData)
 
   const getBottomTabsByRole = (role: string) => {
     switch (role) {

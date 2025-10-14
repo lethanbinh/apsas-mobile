@@ -1144,18 +1144,25 @@ export const CloseIcon = (props: SvgProps) => (
   </Svg>
 );
 
-export const SearchIcon = (props: SvgProps) => (
+interface SearchIconProps extends SvgProps {
+  color?: string;
+}
+
+export const SearchIcon = ({
+  color = '#D2D3D3',
+  ...props
+}: SearchIconProps) => (
   <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" {...props}>
     <Path
       d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
-      stroke="#D2D3D3"
+      stroke={color}
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <Path
       d="M17.5 17.5L13.875 13.875"
-      stroke="#D2D3D3"
+      stroke={color} // 3. Và ở đây
       strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -1163,14 +1170,48 @@ export const SearchIcon = (props: SvgProps) => (
   </Svg>
 );
 
-export const PlusIcon = (props: SvgProps) => (
+export const CloseSearchIcon = (props: SvgProps) => (
   <Svg
-    width={16}
-    height={16}
-    viewBox="0 0 16 16"
+    width={20}
+    height={20}
+    viewBox="0 0 20 20"
     fill="none"
     {...props}
   >
+    <G clipPath="url(#clip0_144_3388)">
+      <Path
+        d="M10.0003 18.3337C14.6027 18.3337 18.3337 14.6027 18.3337 10.0003C18.3337 5.39795 14.6027 1.66699 10.0003 1.66699C5.39795 1.66699 1.66699 5.39795 1.66699 10.0003C1.66699 14.6027 5.39795 18.3337 10.0003 18.3337Z"
+        fill="#3787FF"
+        stroke="#3787FF"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12.5 7.5L7.5 12.5"
+        stroke="white"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M7.5 7.5L12.5 12.5"
+        stroke="white"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </G>
+    <Defs>
+      <ClipPath id="clip0_144_3388">
+        <Rect width={20} height={20} fill="white" />
+      </ClipPath>
+    </Defs>
+  </Svg>
+);
+
+export const PlusIcon = (props: SvgProps) => (
+  <Svg width={16} height={16} viewBox="0 0 16 16" fill="none" {...props}>
     <Path
       d="M7.33301 8.66634H3.33301V7.33301H7.33301V3.33301H8.66634V7.33301H12.6663V8.66634H8.66634V12.6663H7.33301V8.66634Z"
       fill="#1F2223"
@@ -1179,13 +1220,7 @@ export const PlusIcon = (props: SvgProps) => (
 );
 
 export const CloneIcon = (props: SvgProps) => (
-  <Svg
-    width={25}
-    height={24}
-    viewBox="0 0 25 24"
-    fill="none"
-    {...props}
-  >
+  <Svg width={25} height={24} viewBox="0 0 25 24" fill="none" {...props}>
     <Path
       d="M20.1568 5.41992H8.74461C7.12634 5.41992 5.81445 6.73181 5.81445 8.35003V19.7623C5.81445 21.3805 7.12634 22.6924 8.74461 22.6924H20.1568C21.7751 22.6924 23.087 21.3805 23.087 19.7623V8.35003C23.087 6.73181 21.7751 5.41992 20.1568 5.41992Z"
       stroke="black"
