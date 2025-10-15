@@ -1,98 +1,121 @@
 import React, { useState } from 'react';
 import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
+  Alert,
   PermissionsAndroid,
   Platform,
-  Alert,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import AppSafeView from '../components/views/AppSafeView';
-import ScreenHeader from '../components/common/ScreenHeader';
-import { AppColors } from '../styles/color';
-import { s } from 'react-native-size-matters';
-import { DownloadIcon } from '../assets/icons/courses';
-// 1. Import thư viện blob-util
 import ReactNativeBlobUtil from 'react-native-blob-util';
+import { s, vs } from 'react-native-size-matters';
+import ApprovalAccordion from '../components/approval/ApprovalAccordion';
+import ScreenHeader from '../components/common/ScreenHeader';
+import AppText from '../components/texts/AppText';
+import AppSafeView from '../components/views/AppSafeView';
+import { AppColors } from '../styles/color';
+import StatusTag from '../components/assessments/StatusTag';
 
-type Assignment = {
+type AssignmentStatus = 'Pending' | 'Approved' | 'Rejected';
+
+export interface Question {
+  id: number;
+  title: string;
+  content: string;
+  imageUrl: string;
+}
+
+export interface Assignment {
   id: string;
   name: string;
-  files: { id: string; title: string; fileName: string }[];
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: AssignmentStatus;
+  questions: Question[];
   reason?: string;
-};
+  assignmentType: 'Basic assignment' | 'Web API' | 'Web UI'; // << THÊM THUỘC TÍNH MỚI
+}
 
-type Course = {
+export interface Course {
   id: string;
   courseName: string;
   assignments: Assignment[];
-};
+}
 
 const initialData: Course[] = [
-  {
-    id: '1',
-    courseName: 'Software Engineering',
-    assignments: [
-      {
-        id: 'a1',
-        name: 'Assignment 1 - Nguyen NT',
-        files: [
-          { id: 'f1', title: 'Requirement', fileName: 'requirement.pdf' },
-          { id: 'f2', title: 'Criteria', fileName: 'criteria.pdf' },
-          { id: 'f3', title: 'Database', fileName: 'database.sql' },
-        ],
-        status: 'Pending',
-      },
-      {
-        id: 'a2',
-        name: 'Assignment 2 - Tran VH',
-        files: [
-          { id: 'f4', title: 'Requirement', fileName: 'requirement.pdf' },
-          { id: 'f5', title: 'Criteria', fileName: 'criteria.pdf' },
-          { id: 'f6', title: 'Database', fileName: 'database.sql' },
-        ],
-        status: 'Pending',
-      },
-    ],
-  },
-  {
-    id: '2',
-    courseName: 'Database Management',
-    assignments: [
-      {
-        id: 'a3',
-        name: 'Assignment 1 - Le TT',
-        files: [
-          { id: 'f7', title: 'Requirement', fileName: 'requirement.pdf' },
-          { id: 'f8', title: 'Criteria', fileName: 'criteria.pdf' },
-          { id: 'f9', title: 'Database', fileName: 'database.sql' },
-        ],
-        status: 'Pending',
-      },
-    ],
-  },
+  {
+    id: '1',
+    courseName: 'Software Engineering',
+    assignments: [
+      {
+        id: 'a1',
+        name: 'Assignment 1 - Nguyen NT',
+        status: 'Pending',
+        assignmentType: 'Basic assignment', // << THÊM DỮ LIỆU
+        questions: [
+          {
+            id: 1,
+            title: 'Create a program',
+            content:
+              'Amet minim mollit non deserunt ullamco est sit aliqua dolor do sit amet.',
+            imageUrl:
+              'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTp1a2pnT6V6RhTJAqy4iaK74K-BSsC9BZR3Q&s',
+          },
+        ],
+      },
+      {
+        id: 'a2',
+        name: 'Assignment 2 - Tran VH',
+        status: 'Pending',
+        assignmentType: 'Web API', // << THÊM DỮ LIỆU
+        questions: [
+          {
+            id: 1,
+            title: 'Create an API',
+            content:
+              'Amet minim mollit non deserunt ullamco est sit aliqua dolor do sit amet.',
+            imageUrl:
+              'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTp1a2pnT6V6RhTJAqy4iaK74K-BSsC9BZR3Q&s',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: '2',
+    courseName: 'Database Management',
+    assignments: [
+      {
+        id: 'a3',
+        name: 'Assignment 1 - Le TT',
+        status: 'Pending',
+        assignmentType: 'Web UI', // << THÊM DỮ LIỆU
+        questions: [
+          {
+            id: 1,
+            title: 'Design a schema',
+            content:
+              'Amet minim mollit non deserunt ullamco est sit aliqua dolor do sit amet.',
+            imageUrl:
+              'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTp1a2pnT6V6RhTJAqy4iaK74K-BSsC9BZR3Q&s',
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 const ApprovalScreen = () => {
-  const [data, setData] = useState(initialData);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState<{ [key: string]: string }>({});
+  const [data, setData] = useState<Course[]>(initialData);
+  const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
+  const [expandedAssignment, setExpandedAssignment] = useState<string | null>(
+    null
+  );
 
-  // 2. Thêm hàm xin quyền và hàm download
   const requestStoragePermission = async () => {
     if (Platform.OS !== 'android') return true;
     try {
       const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-        {
-          title: 'Storage Permission Required',
-          message: 'This app needs access to your storage to download files.',
-          buttonPositive: 'OK',
-        },
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (err) {
@@ -101,17 +124,20 @@ const ApprovalScreen = () => {
     }
   };
 
-  const handleDownload = async (fileUrl: string, fileName: string) => {
+  const handleDownload = async (fileName: string) => {
     const hasPermission = await requestStoragePermission();
     if (!hasPermission) {
-      Alert.alert('Permission Denied', 'Storage permission is required to download files.');
+      Alert.alert(
+        'Permission Denied',
+        'Storage permission is required to download files.'
+      );
       return;
     }
-
-    const sampleFileUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+    const sampleFileUrl =
+      'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
     const { dirs } = ReactNativeBlobUtil.fs;
-    const dirToSave = Platform.OS === 'ios' ? dirs.DocumentDir : dirs.DownloadDir;
-    
+    const dirToSave =
+      Platform.OS === 'ios' ? dirs.DocumentDir : dirs.DownloadDir;
     const config = {
       fileCache: true,
       path: `${dirToSave}/${fileName}`,
@@ -122,24 +148,25 @@ const ApprovalScreen = () => {
         description: 'Downloading file.',
       },
     };
-
     Alert.alert('Starting Download', `Downloading ${fileName}...`);
-
     ReactNativeBlobUtil.config(config)
       .fetch('GET', sampleFileUrl)
       .then(res => {
         if (Platform.OS === 'ios') {
           ReactNativeBlobUtil.ios.previewDocument(res.path());
         }
-        Alert.alert('Download Complete', `${fileName} has been saved to your Downloads folder.`);
+        Alert.alert(
+          'Download Complete',
+          `${fileName} has been saved to your Downloads folder.`
+        );
       })
       .catch(error => {
         console.error(error);
-        Alert.alert('Download Error', 'An error occurred while downloading the file.');
+        Alert.alert(
+          'Download Error',
+          'An error occurred while downloading the file.'
+        );
       });
-  };
-  const toggleExpand = (id: string) => {
-    setExpanded(expanded === id ? null : id);
   };
 
   const handleApprove = (courseId: string, assignmentId: string) => {
@@ -149,16 +176,19 @@ const ApprovalScreen = () => {
           ? {
               ...course,
               assignments: course.assignments.map(a =>
-                a.id === assignmentId ? { ...a, status: 'Approved' } : a,
+                a.id === assignmentId ? { ...a, status: 'Approved' } : a
               ),
             }
-          : course,
-      ),
+          : course
+      )
     );
   };
 
-  const handleReject = (courseId: string, assignmentId: string) => {
-    if (!rejectReason[assignmentId]) return;
+  const handleReject = (
+    courseId: string,
+    assignmentId: string,
+    reason: string
+  ) => {
     setData(prev =>
       prev.map(course =>
         course.id === courseId
@@ -166,23 +196,12 @@ const ApprovalScreen = () => {
               ...course,
               assignments: course.assignments.map(a =>
                 a.id === assignmentId
-                  ? { ...a, status: 'Rejected', reason: rejectReason[assignmentId] }
-                  : a,
+                  ? { ...a, status: 'Rejected', reason: reason }
+                  : a
               ),
             }
-          : course,
-      ),
-    );
-  };
-
-  const renderStatus = (status: string) => {
-    let bg = '#FFD700';
-    if (status === 'Approved') bg = '#A5F3B7';
-    if (status === 'Rejected') bg = '#FCA5A5';
-    return (
-      <View style={[styles.statusBox, { backgroundColor: bg }]}>
-        <Text style={styles.statusText}>{status}</Text>
-      </View>
+          : course
+      )
     );
   };
 
@@ -198,122 +217,52 @@ const ApprovalScreen = () => {
     <AppSafeView>
       <ScreenHeader title="Approval" />
       <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={{ padding: s(20), paddingBottom: 80 }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: s(20), paddingBottom: vs(40) }}
         showsVerticalScrollIndicator={false}
       >
-        {data.map(course => {
-          const courseStatus = getCourseStatus(course.assignments);
+        {data.map(course => (
+          <View key={course.id} style={styles.courseCard}>
+            <TouchableOpacity
+              style={styles.courseHeader}
+              onPress={() =>
+                setExpandedCourse(prevId =>
+                  prevId === course.id ? null : course.id
+                )
+              }
+            >
+              <AppText variant="label16pxBold" style={{ flex: 1 }}>
+                {course.courseName}
+              </AppText>
+              <StatusTag status={getCourseStatus(course.assignments)} />
+              <AppText style={styles.expandIcon}>
+                {expandedCourse === course.id ? '−' : '+'}
+              </AppText>
+            </TouchableOpacity>
 
-          return (
-            <View key={course.id} style={styles.card}>
-              <TouchableOpacity
-                style={styles.cardHeader}
-                onPress={() => toggleExpand(course.id)}
-              >
-                <Text style={styles.cardTitle}>{course.courseName}</Text>
-                {renderStatus(courseStatus)}
-                <Text style={styles.expandIcon}>
-                  {expanded === course.id ? '-' : '+'}
-                </Text>
-              </TouchableOpacity>
-
-              {expanded === course.id && (
-                <View style={styles.cardBody}>
-                  {course.assignments.map((assignment, idx) => (
-                    <View key={assignment.id} style={styles.assignmentBox}>
-                      <Text style={styles.assignmentTitle}>
-                        {idx + 1}. {assignment.name}
-                      </Text>
-                      {renderStatus(assignment.status)}
-
-                      {assignment.files.map((f, index) => (
-                        <View key={f.id} style={styles.fileRow}>
-                          <Text style={styles.fileIndex}>
-                            {String(index + 1).padStart(2, '0')}
-                          </Text>
-                          <View style={styles.fileInfo}>
-                            <Text style={styles.fileTitle}>{f.title}</Text>
-                            <Text style={styles.fileName}>{f.fileName}</Text>
-                          </View>
-                          {/* 3. Bọc DownloadIcon trong TouchableOpacity và gọi handleDownload */}
-                          <TouchableOpacity onPress={() => handleDownload(f.fileName, f.fileName)}>
-                            <DownloadIcon />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-
-                      {assignment.status === 'Pending' && (
-                        <>
-                          {rejectReason[assignment.id] !== undefined && (
-                            <TextInput
-                              style={styles.reasonInput}
-                              placeholder="Enter reject reason..."
-                              value={rejectReason[assignment.id]}
-                              onChangeText={txt =>
-                                setRejectReason(prev => ({
-                                  ...prev,
-                                  [assignment.id]: txt,
-                                }))
-                              }
-                            />
-                          )}
-                          <View style={styles.actionRow}>
-                            <TouchableOpacity
-                              style={[styles.btn, { backgroundColor: '#3B82F6' }]}
-                              onPress={() =>
-                                handleApprove(course.id, assignment.id)
-                              }
-                            >
-                              <Text style={styles.btnText}>Approve</Text>
-                            </TouchableOpacity>
-
-                            {rejectReason[assignment.id] === undefined ? (
-                              <TouchableOpacity
-                                style={[
-                                  styles.btn,
-                                  { backgroundColor: '#F87171' },
-                                ]}
-                                onPress={() =>
-                                  setRejectReason(prev => ({
-                                    ...prev,
-                                    [assignment.id]: '',
-                                  }))
-                                }
-                              >
-                                <Text style={styles.btnText}>Reject</Text>
-                              </TouchableOpacity>
-                            ) : (
-                              <TouchableOpacity
-                                style={[
-                                  styles.btn,
-                                  { backgroundColor: '#DC2626' },
-                                ]}
-                                onPress={() =>
-                                  handleReject(course.id, assignment.id)
-                                }
-                              >
-                                <Text style={styles.btnText}>
-                                  Confirm Reject
-                                </Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        </>
-                      )}
-
-                      {assignment.status === 'Rejected' && (
-                        <Text style={styles.reasonText}>
-                          Reason: {assignment.reason}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          );
-        })}
+            {expandedCourse === course.id && (
+              <View style={styles.courseBody}>
+                {course.assignments.map(assignment => (
+                  <ApprovalAccordion
+                    key={assignment.id}
+                    assignment={assignment}
+                    isExpanded={expandedAssignment === assignment.id}
+                    onToggle={() =>
+                      setExpandedAssignment(prevId =>
+                        prevId === assignment.id ? null : assignment.id
+                      )
+                    }
+                    onApprove={() => handleApprove(course.id, assignment.id)}
+                    onReject={reason =>
+                      handleReject(course.id, assignment.id, reason)
+                    }
+                    onDownload={handleDownload} // << TRUYỀN HÀM XUỐNG
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
       </ScrollView>
     </AppSafeView>
   );
@@ -322,75 +271,29 @@ const ApprovalScreen = () => {
 export default ApprovalScreen;
 
 const styles = StyleSheet.create({
-  scrollContainer: { flex: 1 },
-  card: {
-    backgroundColor: AppColors.pr100,
-    borderRadius: s(10),
-    marginBottom: 12,
-    padding: 10,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardTitle: { flex: 1, fontWeight: 'bold', fontSize: 16 },
-  expandIcon: { fontSize: 18, marginLeft: 8 },
-  cardBody: { marginTop: 10 },
-  assignmentBox: {
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 12,
-  },
-  assignmentTitle: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    marginBottom: 8,
-  },
-  statusBox: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginHorizontal: 6,
-  },
-  statusText: { fontSize: 12, fontWeight: 'bold' },
-  fileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 8,
-  },
-  fileIndex: { fontWeight: 'bold', marginRight: 10 },
-  fileInfo: { flex: 1 },
-  fileTitle: { fontWeight: 'bold' },
-  fileName: { color: '#6B7280' },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  btn: {
-    flex: 1,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    padding: 10,
-    alignItems: 'center',
-  },
-  btnText: { color: '#fff', fontWeight: 'bold' },
-  reasonInput: {
+  courseCard: {
+    backgroundColor: AppColors.white,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#F87171',
-    borderRadius: 8,
-    padding: 6,
-    marginTop: 8,
-    backgroundColor: '#fff',
+    borderColor: AppColors.pr100,
+    marginBottom: vs(16),
   },
-  reasonText: {
-    marginTop: 8,
-    color: '#DC2626',
-    fontStyle: 'italic',
+  courseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: vs(12),
+    paddingHorizontal: s(14),
+  },
+  expandIcon: {
+    fontSize: 18,
+    marginLeft: 6,
+    color: AppColors.n700,
+  },
+  courseBody: {
+    backgroundColor: AppColors.pr100,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    paddingTop: vs(2),
+    paddingBottom: vs(10),
   },
 });

@@ -1,5 +1,10 @@
 import React, { ReactNode, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from 'react-native';
 import { s } from 'react-native-size-matters';
 import AppText from '../texts/AppText';
 import { useNavigation } from '@react-navigation/native';
@@ -12,9 +17,11 @@ interface CourseCardItemProps {
   leftIcon: ReactNode;
   backGroundColor: string;
   rightIcon: ReactNode;
-  linkTo: string;
+  linkTo?: string;
   hasTestCase?: boolean;
   onDownload?: () => void;
+  style?: ViewStyle;
+  onPress?: () => void; // Thêm prop onPress mới
 }
 
 const CourseCardItem = ({
@@ -25,31 +32,44 @@ const CourseCardItem = ({
   linkTo,
   hasTestCase = false,
   onDownload,
+  style,
+  onPress, // Destructure prop mới
 }: CourseCardItemProps) => {
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);
 
+  // Tạo một hàm xử lý trung gian
+  const handlePress = () => {
+    // Ưu tiên chạy onPress được truyền từ bên ngoài
+    if (onPress) {
+      onPress();
+      return;
+    }
+
+    // Nếu không có onPress, chạy logic cũ
+    if (onDownload) {
+      onDownload();
+      return;
+    }
+
+    if (linkTo && !hasTestCase) {
+      navigation.navigate(linkTo as never);
+    }
+
+    if (hasTestCase) {
+      setOpen(true);
+    }
+  };
+
   return (
     <TouchableOpacity
-      onPress={() => {
-        if (onDownload) {
-          onDownload();
-          return;
-        }
-
-        if (linkTo && !hasTestCase) {
-          navigation.navigate(linkTo as never);
-        }
-
-        if (hasTestCase) {
-          setOpen(true);
-        }
-      }}
+      onPress={handlePress} // Sử dụng hàm xử lý mới
       style={[
         styles.container,
         {
           backgroundColor: backGroundColor,
         },
+        style,
       ]}
     >
       <View
@@ -70,7 +90,6 @@ const CourseCardItem = ({
           hasButton
           style={{}}
         />
-
         <TestCaseForm />
       </BottomSheet>
     </TouchableOpacity>

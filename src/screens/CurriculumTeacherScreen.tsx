@@ -4,11 +4,9 @@ import ScreenHeader from '../components/common/ScreenHeader';
 import CurriculumList from '../components/courses/CurriculumList';
 import AppSafeView from '../components/views/AppSafeView';
 import { AssignmentTeacherList, PETeacherList, SyllabusList } from '../data/coursesData';
-// 1. Import thư viện blob-util
 import ReactNativeBlobUtil from 'react-native-blob-util';
 
 const CurriculumTeacherScreen = () => {
-  // 2. Sao chép hàm xin quyền và hàm download
   const requestStoragePermission = async () => {
     if (Platform.OS !== 'android') return true;
     try {
@@ -65,13 +63,11 @@ const CurriculumTeacherScreen = () => {
       });
   };
 
-  // 3. Gắn hàm download vào dữ liệu SyllabusList
   const syllabusWithActions = SyllabusList.map(item => ({
     ...item,
     onAction: () => handleDownload(item.linkFile, item.linkFile),
   }));
 
-  // 4. Sử dụng dữ liệu đã cập nhật cho 'Slides'
   const sections = [
     { title: 'Slides', data: syllabusWithActions },
     { title: 'Assignments', data: AssignmentTeacherList },

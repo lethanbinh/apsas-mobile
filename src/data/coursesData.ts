@@ -322,7 +322,18 @@ export const DocumentList = [
     title: 'Requirement',
     linkFile: 'requirement.pdf',
     rightIcon: DownloadIcon,
-    linkTo: 'AssessmentDetailScreen',
+    linkTo: '',
+    detailNavigation: 'RequirementTeacherScreen',
+    onAction: () => {},
+  },
+  {
+    id: 2,
+    number: '02',
+    title: 'Database',
+    linkFile: 'database.pdf',
+    rightIcon: DownloadIcon,
+    linkTo: '',
+    detailNavigation: 'RequirementTeacherScreen',
     onAction: () => {},
   },
 ];
@@ -696,5 +707,142 @@ export const submissionList = [
     rightIcon: DownloadIcon,
     detailNavigation: 'ScoreDetailScreen',
     onAction: () => {},
+  },
+];
+
+export const initialCoursesData = [
+  {
+    id: '1',
+    title: 'Capstone Project',
+    status: 'Pending',
+    assignments: [
+      {
+        id: 'a1',
+        title: 'Assignment 1',
+        hasTestCase: true,
+        status: 'Pending',
+        sections: [
+          {
+            title: 'Materials',
+            data: [
+              {
+                id: 1,
+                number: '01',
+                title: 'Requirement',
+                linkFile: 'requirement.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 2,
+                number: '02',
+                title: 'Criteria',
+                linkFile: 'criteria.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 3,
+                number: '03',
+                title: 'Database file',
+                linkFile: 'database.sql',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'a2',
+        title: 'Assignment 2',
+        hasTestCase: false,
+        status: 'Approve',
+        sections: [
+          {
+            title: 'Materials',
+            data: [
+              {
+                id: 1,
+                number: '01',
+                title: 'Requirement',
+                linkFile: 'requirement_lab.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 2,
+                number: '02',
+                title: 'Criteria',
+                linkFile: 'criteria_lab.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 3,
+                number: '03',
+                title: 'Database file',
+                linkFile: 'lab_db.sql',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: '2',
+    title: 'Lab211 Java',
+    status: 'Approve',
+    assignments: [
+      {
+        id: 'a3',
+        title: 'Assignment 1',
+        hasTestCase: true,
+        status: 'Approve',
+        sections: [
+          {
+            title: 'Materials',
+            data: [
+              {
+                id: 1,
+                number: '01',
+                title: 'Requirement',
+                linkFile: 'lab_requirement.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 2,
+                number: '02',
+                title: 'Criteria',
+                linkFile: 'lab_criteria.pdf',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+              {
+                id: 3,
+                number: '03',
+                title: 'Database file',
+                linkFile: 'lab_database.sql',
+                rightIcon: UploadIcon,
+                detailNavigation: '',
+                onAction: () => {},
+              },
+            ],
+          },
+        ],
+      },
+    ],
   },
 ];

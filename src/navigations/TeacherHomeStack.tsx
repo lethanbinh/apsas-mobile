@@ -22,6 +22,7 @@ import TaskListScreen from '../screens/TaskListScreen';
 import AssignmentDetailTeacherScreen from '../screens/AssignmentDetailTeacherScreen';
 import HistoryDetailScreen from '../screens/HistoryDetailScreen';
 import ScoreDetailTeacherHistoryScreen from '../screens/ScoreDetailTeacherHistoryScreen';
+import RequirementTeacherScreen from '../screens/RequirementTeacherScreen';
 
 const TeacherHomeStack = createStackNavigator();
 const TeacherHomeStackNavigator = () => {
@@ -108,6 +109,10 @@ const TeacherHomeStackNavigator = () => {
       <TeacherHomeStack.Screen
         name="ScoreDetailTeacherHistoryScreen"
         component={ScoreDetailTeacherHistoryScreen}
+      />
+      <TeacherHomeStack.Screen
+        name="RequirementTeacherScreen"
+        component={RequirementTeacherScreen}
       />
     </TeacherHomeStack.Navigator>
   );

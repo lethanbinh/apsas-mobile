@@ -1,8 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native'
 import React from 'react'
-import { globalStyles } from '../styles/shareStyles'
+import { StyleSheet, View } from 'react-native'
 import AuthenticationHeader from '../components/authentication/AuthenticationHeader'
 import CreateNewPasswordForm from '../components/authentication/CreateNewPasswordForm'
+import { globalStyles } from '../styles/shareStyles'
 
 const CreateNewPasswordScreen = () => {
   return (

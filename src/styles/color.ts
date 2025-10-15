@@ -19,6 +19,10 @@ export const AppColors = {
   n200: '#EAEAEA',
   n100: '#F6F6F6',
 
+//  yellow 
+  y500: '#F2A700',
+  y100: '#FEF7E1',
+
   //   green
   g500: '#B4D479',
   g300: '#D8E4C2',

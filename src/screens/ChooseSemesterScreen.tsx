@@ -108,8 +108,8 @@ const styles = StyleSheet.create({
     borderRadius: s(12),
     paddingVertical: vs(20),
     paddingHorizontal: s(16),
-    marginHorizontal: s(20), // tránh sát mép màn hình
-    alignItems: 'stretch', // các thành phần full chiều ngang
+    marginHorizontal: s(20),
+    alignItems: 'stretch',
   },
   modalTitle: {
     fontSize: s(16),

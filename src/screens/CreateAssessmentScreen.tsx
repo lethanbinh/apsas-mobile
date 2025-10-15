@@ -1,232 +1,22 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
-import ScreenHeader from '../components/common/ScreenHeader';
-import AppSafeView from '../components/views/AppSafeView';
-import AppText from '../components/texts/AppText';
-import CurriculumList from '../components/courses/CurriculumList';
-import RadioWithTitle from '../components/inputs/RadioWithTitle';
-import { AppColors } from '../styles/color';
-import { UploadIcon } from '../assets/icons/icon';
-import { pick } from '@react-native-documents/picker';
 
-// Dữ liệu ban đầu
-const initialCoursesData = [
-  {
-    id: '1',
-    title: 'Capstone Project',
-    status: 'Pending',
-    assignments: [
-      {
-        id: 'a1',
-        title: 'Assignment 1 - Nguyen NT',
-        hasTestCase: true,
-        sections: [
-          {
-            title: 'Materials',
-            data: [
-              {
-                id: 1,
-                number: '01',
-                title: 'Requirement',
-                linkFile: 'requirement.pdf',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-              {
-                id: 2,
-                number: '02',
-                title: 'Criteria',
-                linkFile: 'criteria.pdf',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-              {
-                id: 3,
-                number: '03',
-                title: 'Database file',
-                linkFile: 'database.sql',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'a2',
-        title: 'Assignment 2 - Le TB',
-        hasTestCase: false,
-        sections: [
-          {
-            title: 'Materials',
-            data: [
-              {
-                id: 1,
-                number: '01',
-                title: 'Requirement',
-                linkFile: 'requirement_lab.pdf',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-              {
-                id: 2,
-                number: '02',
-                title: 'Criteria',
-                linkFile: 'criteria_lab.pdf',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-              {
-                id: 3,
-                number: '03',
-                title: 'Database file',
-                linkFile: 'lab_db.sql',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: '2',
-    title: 'Lab211 Java',
-    status: 'Approve',
-    assignments: [
-      {
-        id: 'a3',
-        title: 'Assignment 1 - Do TH',
-        hasTestCase: true,
-        sections: [
-          {
-            title: 'Materials',
-            data: [
-              {
-                id: 1,
-                number: '01',
-                title: 'Requirement',
-                linkFile: 'lab_requirement.pdf',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-              {
-                id: 2,
-                number: '02',
-                title: 'Criteria',
-                linkFile: 'lab_criteria.pdf',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-              {
-                id: 3,
-                number: '03',
-                title: 'Database file',
-                linkFile: 'lab_database.sql',
-                rightIcon: UploadIcon,
-                detailNavigation: '',
-                onAction: () => {},
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-];
+import ScreenHeader from '../components/common/ScreenHeader';
+import AppText from '../components/texts/AppText';
+import AppSafeView from '../components/views/AppSafeView';
+
+import AssignmentAccordion from '../components/assessments/AssignmentAccordion';
+import StatusTag from '../components/assessments/StatusTag';
+import { initialCoursesData } from '../data/coursesData';
+import { AppColors } from '../styles/color';
 
 const CreateAssessmentScreen = () => {
   const [courses, setCourses] = useState(initialCoursesData);
   const [expandedCourse, setExpandedCourse] = useState<string | null>('1');
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(
-    null,
+    null
   );
-  const [selectedType, setSelectedType] = useState('Basic assignment');
-
-  const ASSIGNMENT_TYPES = ['Basic assignment', 'Web API', 'Web UI'];
-
-  // 2. Cập nhật hàm xử lý upload file
-  const handleFileUpload = async (
-    courseId: string,
-    assignmentId: string,
-    materialId: number,
-  ) => {
-    try {
-      // Gọi hàm pick, không cần `type` để cho phép mọi loại file
-      const result = await pick();
-
-      // Thư viện mới trả về một mảng, ta lấy phần tử đầu tiên
-      if (result && result.length > 0) {
-        const file = result[0];
-
-        // Cập nhật state với tên file mới
-        const updatedCourses = courses.map(course => {
-          if (course.id === courseId) {
-            return {
-              ...course,
-              assignments: course.assignments.map(assignment => {
-                if (assignment.id === assignmentId) {
-                  return {
-                    ...assignment,
-                    sections: assignment.sections.map(section => ({
-                      ...section,
-                      data: section.data.map(material => {
-                        if (material.id === materialId) {
-                          // Sử dụng nullish coalescing để an toàn hơn
-                          return {
-                            ...material,
-                            linkFile: file.name ?? 'Unknown File',
-                          };
-                        }
-                        return material;
-                      }),
-                    })),
-                  };
-                }
-                return assignment;
-              }),
-            };
-          }
-          return course;
-        });
-        setCourses(updatedCourses);
-      }
-    } catch (err: any) {
-      // 3. Cập nhật cách xử lý lỗi cancel
-      if (err?.message?.includes('User cancelled')) {
-        console.log('User cancelled picking');
-      } else {
-        console.error('File picker error:', err);
-      }
-    }
-  };
-
-  const renderStatusTag = (status: string) => {
-    let bg = AppColors.b100;
-    let color = AppColors.pr500;
-    if (status === 'Approve') {
-      bg = AppColors.g100;
-      color = AppColors.g500;
-    } else if (status === 'Rejected') {
-      bg = AppColors.r100;
-      color = AppColors.r500;
-    }
-    return (
-      <View style={[styles.statusTag, { backgroundColor: bg }]}>
-        <AppText style={[styles.statusText, { color }]}>{status}</AppText>
-      </View>
-    );
-  };
 
   return (
     <AppSafeView>
@@ -242,87 +32,31 @@ const CreateAssessmentScreen = () => {
               style={styles.courseHeader}
               onPress={() =>
                 setExpandedCourse(
-                  expandedCourse === course.id ? null : course.id,
+                  expandedCourse === course.id ? null : course.id
                 )
               }
             >
               <AppText variant="label16pxBold" style={{ flex: 1 }}>
                 {course.title}
               </AppText>
-              <AppText>{renderStatusTag(course.status)}</AppText>
-
+              <StatusTag status={course.status} />
               <AppText style={styles.expandIcon}>
                 {expandedCourse === course.id ? '−' : '+'}
               </AppText>
             </TouchableOpacity>
-
             {expandedCourse === course.id && (
               <View style={styles.courseBody}>
                 {course.assignments.map(assignment => (
-                  <View key={assignment.id} style={styles.assignmentCard}>
-                    <TouchableOpacity
-                      style={styles.assignmentHeader}
-                      onPress={() =>
-                        setExpandedAssignment(
-                          expandedAssignment === assignment.id
-                            ? null
-                            : assignment.id,
-                        )
-                      }
-                    >
-                      <AppText
-                        variant="body14pxBold"
-                        style={{ flex: 1, color: AppColors.n900 }}
-                      >
-                        {assignment.title}
-                      </AppText>
-                      <AppText style={styles.expandIcon}>
-                        {expandedAssignment === assignment.id ? '−' : '+'}
-                      </AppText>
-                    </TouchableOpacity>
-
-                    {expandedAssignment === assignment.id && (
-                      <View style={styles.assignmentBody}>
-                        <AppText
-                          variant="body14pxBold"
-                          style={{ marginBottom: vs(8), color: AppColors.n700 }}
-                        >
-                          Assignment Type
-                        </AppText>
-
-                        {ASSIGNMENT_TYPES.map(item => (
-                          <RadioWithTitle
-                            key={item}
-                            title={item}
-                            selected={item === selectedType}
-                            onPress={() => setSelectedType(item)}
-                          />
-                        ))}
-
-                        <CurriculumList
-                          sections={assignment.sections.map(section => ({
-                            ...section,
-                            data: section.data.map(material => ({
-                              ...material,
-                              onAction: () =>
-                                handleFileUpload(
-                                  course.id,
-                                  assignment.id,
-                                  material.id,
-                                ),
-                            })),
-                          }))}
-                          isDownloadable={false}
-                          isSaved={true}
-                          hasTestCase={assignment.hasTestCase}
-                          containerStyle={{
-                            paddingHorizontal: 0,
-                            paddingBottom: 0,
-                          }}
-                        />
-                      </View>
-                    )}
-                  </View>
+                  <AssignmentAccordion
+                    key={assignment.id}
+                    assignment={assignment}
+                    isExpanded={expandedAssignment === assignment.id}
+                    onToggle={() =>
+                      setExpandedAssignment(prevId =>
+                        prevId === assignment.id ? null : assignment.id
+                      )
+                    }
+                  />
                 ))}
               </View>
             )}
@@ -354,39 +88,11 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     color: AppColors.n700,
   },
-  statusTag: {
-    paddingHorizontal: s(8),
-    paddingVertical: s(2),
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   courseBody: {
     backgroundColor: AppColors.pr100,
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
+    paddingTop: vs(2),
     paddingBottom: vs(10),
-  },
-  assignmentCard: {
-    backgroundColor: AppColors.white,
-    borderRadius: 10,
-    marginHorizontal: s(10),
-    marginVertical: vs(8),
-    borderWidth: 1,
-    borderColor: AppColors.n200,
-  },
-  assignmentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: vs(10),
-    paddingHorizontal: s(14),
-    borderBottomWidth: 1,
-    borderBottomColor: AppColors.n100,
-  },
-  assignmentBody: {
-    paddingHorizontal: s(16),
-    paddingVertical: vs(12),
   },
 });

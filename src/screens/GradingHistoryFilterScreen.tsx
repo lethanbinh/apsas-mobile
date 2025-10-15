@@ -15,8 +15,6 @@ import { globalStyles } from '../styles/shareStyles';
 const GradingHistoryFilterScreen = () => {
   const navigation = useNavigation();
   const [searchValue, setSearchValue] = useState<string>('');
-
-  // state cho sort
   const [sortDate, setSortDate] = useState<'oldest' | 'newest'>('oldest');
   const [sortGrade, setSortGrade] = useState<'highest' | 'lowest'>('highest');
 

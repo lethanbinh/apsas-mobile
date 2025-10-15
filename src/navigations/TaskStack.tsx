@@ -6,6 +6,7 @@ import ScoreDetailTeacherScreen from '../screens/ScoreDetailTeacherScreen';
 import FeedbackTeacherScreen from '../screens/FeedbackTeacherScreen';
 import DashboardTeacherScreen from '../screens/DashboardTeacherScreen';
 import CreateAssessmentScreen from '../screens/CreateAssessmentScreen';
+import RequirementTeacherScreen from '../screens/RequirementTeacherScreen';
 
 const TaskStack = createStackNavigator();
 
@@ -36,6 +37,10 @@ export default function TaskStackNavigator() {
       <TaskStack.Screen
         name="DashboardTeacherScreen"
         component={DashboardTeacherScreen}
+      />
+      <TaskStack.Screen
+        name="RequirementTeacherScreen"
+        component={RequirementTeacherScreen}
       />
     </TaskStack.Navigator>
   );

@@ -1,71 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { BarChart } from 'react-native-gifted-charts';
 import ScreenHeader from '../components/common/ScreenHeader';
 import AppSafeView from '../components/views/AppSafeView';
+import { assessmentData, coursesData } from '../data/adminData';
 
 const AdminDashboardScreen = () => {
-  // Assessment data
-  const assessmentData = [
-    {
-      label: 'Fall2025',
-      stacks: [
-        { value: 50, color: '#007bff' }, // Asm
-        { value: 30, color: '#28a745' }, // Lab
-        { value: 45, color: '#6f42c1' }, // PE
-      ],
-    },
-    {
-      label: 'Summer2025',
-      stacks: [
-        { value: 60, color: '#007bff' },
-        { value: 40, color: '#28a745' },
-        { value: 50, color: '#6f42c1' },
-      ],
-    },
-    {
-      label: 'Spring2025',
-      stacks: [
-        { value: 55, color: '#007bff' },
-        { value: 35, color: '#28a745' },
-        { value: 52, color: '#6f42c1' },
-      ],
-    },
-  ];
-
-  // Courses data
-  const coursesData = [
-    {
-      label: 'Fall2024',
-      stacks: [
-        { value: 20, color: '#007bff' }, // Course
-        { value: 35, color: '#28a745' }, // Lab
-      ],
-    },
-    {
-      label: 'Spring2025',
-      stacks: [
-        { value: 30, color: '#007bff' },
-        { value: 40, color: '#28a745' },
-      ],
-    },
-    {
-      label: 'Spring2025',
-      stacks: [
-        { value: 28, color: '#007bff' },
-        { value: 45, color: '#28a745' },
-      ],
-    },
-    {
-      label: 'Fall2025',
-      stacks: [
-        { value: 25, color: '#007bff' },
-        { value: 60, color: '#28a745' },
-      ],
-    },
-  ];
-
   return (
     <AppSafeView>
       <ScreenHeader title="Data" />
@@ -113,15 +60,21 @@ const AdminDashboardScreen = () => {
 
           <View style={styles.legendContainer}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendBox, { backgroundColor: '#007bff' }]} />
+              <View
+                style={[styles.legendBox, { backgroundColor: '#007bff' }]}
+              />
               <Text style={styles.legendText}>Asm</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendBox, { backgroundColor: '#28a745' }]} />
+              <View
+                style={[styles.legendBox, { backgroundColor: '#28a745' }]}
+              />
               <Text style={styles.legendText}>Lab</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendBox, { backgroundColor: '#6f42c1' }]} />
+              <View
+                style={[styles.legendBox, { backgroundColor: '#6f42c1' }]}
+              />
               <Text style={styles.legendText}>PE</Text>
             </View>
           </View>
@@ -151,11 +104,15 @@ const AdminDashboardScreen = () => {
 
           <View style={styles.legendContainer}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendBox, { backgroundColor: '#007bff' }]} />
+              <View
+                style={[styles.legendBox, { backgroundColor: '#007bff' }]}
+              />
               <Text style={styles.legendText}>Course</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendBox, { backgroundColor: '#28a745' }]} />
+              <View
+                style={[styles.legendBox, { backgroundColor: '#28a745' }]}
+              />
               <Text style={styles.legendText}>Lab</Text>
             </View>
           </View>
@@ -179,15 +136,31 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: s(10) },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: s(10),
+  },
   cardTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
   viewAll: { fontSize: 13, color: '#007bff' },
-  usersRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: s(10) },
+  usersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: s(10),
+  },
   userItem: { alignItems: 'center' },
   userNumber: { fontSize: 20, fontWeight: '700' },
   userLabel: { fontSize: 13, color: '#777' },
-  legendContainer: { flexDirection: 'row', marginTop: 10, justifyContent: 'center' },
-  legendItem: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 10 },
+  legendContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+    justifyContent: 'center',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
   legendBox: { width: 14, height: 14, borderRadius: 3, marginRight: 6 },
   legendText: { fontSize: 12, color: '#333' },
 });
