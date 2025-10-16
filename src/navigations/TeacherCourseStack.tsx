@@ -15,11 +15,11 @@ import GradingHistoryScreen from '../screens/GradingHistoryScreen';
 import ParticipantsScreen from '../screens/ParticipantsScreen';
 import PracticalExamDetailScreen from '../screens/PracticalExamDetailScreen';
 import ScoreDetailScreen from '../screens/ScoreDetailScreen';
-import ScoreDetailTeacherScreen from '../screens/ScoreDetailTeacherScreen';
 import SubmissionScreen from '../screens/SubmissionScreen';
 import TeachingClassScreen from '../screens/TeachingClassScreen';
 import HistoryDetailScreen from '../screens/HistoryDetailScreen';
 import ScoreDetailTeacherHistoryScreen from '../screens/ScoreDetailTeacherHistoryScreen';
+import RequirementTeacherScreen from '../screens/RequirementTeacherScreen';
 const TeacherCourseStack = createStackNavigator();
 
 const TeacherCourseStackNavigator = () => {
@@ -83,10 +83,6 @@ const TeacherCourseStackNavigator = () => {
         component={AssessmentDetailScreen}
       />
       <TeacherCourseStack.Screen
-        name="ScoreDetailTeacherScreen"
-        component={ScoreDetailTeacherScreen}
-      />
-      <TeacherCourseStack.Screen
         name="FeedbackTeacherScreen"
         component={FeedbackTeacherScreen}
       />
@@ -101,6 +97,10 @@ const TeacherCourseStackNavigator = () => {
       <TeacherCourseStack.Screen
         name="ScoreDetailTeacherHistoryScreen"
         component={ScoreDetailTeacherHistoryScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="RequirementTeacherScreen"
+        component={RequirementTeacherScreen}
       />
     </TeacherCourseStack.Navigator>
   );

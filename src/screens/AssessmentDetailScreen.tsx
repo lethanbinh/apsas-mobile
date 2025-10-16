@@ -1,8 +1,8 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useState } from 'react'; // << Thêm useState
 import { useForm } from 'react-hook-form';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native'; // << Thêm ScrollView
 import { s, vs } from 'react-native-size-matters';
 import * as yup from 'yup';
 import {
@@ -11,50 +11,62 @@ import {
   DownloadIcon,
   NavigationIcon,
 } from '../assets/icons/courses';
+import { CheckTickIcon, HistoryIcon } from '../assets/icons/icon';
 import AppButton from '../components/buttons/AppButton';
-import AppDropdownController from '../components/common/AppDropdownController';
 import ScreenHeader from '../components/common/ScreenHeader';
 import SectionHeader from '../components/common/SectionHeader';
 import CourseCardItem from '../components/courses/CourseCardItem';
 import CurriculumItem from '../components/courses/CurriculumItem';
-import AppTextInputController from '../components/inputs/AppTextInputController';
+import ParticipantItem from '../components/courses/ParticipantItem';
+import ScoreQuestionAccordion from '../components/scoring/ScoreQuestionAccordion'; // << Import component mới
+import AppText from '../components/texts/AppText'; // << Import AppText
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
-import { CheckTickIcon, HistoryIcon } from '../assets/icons/icon';
 import { globalStyles } from '../styles/shareStyles';
 
-const isCriteriaMode = true;
+// Dữ liệu giả cho phần Score
+const MOCK_SCORE_DATA = [
+  {
+    id: 1,
+    title: 'Question 1',
+    score: 5,
+    maxScore: 10,
+    criteria: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+  },
+  { id: 2, title: 'Question 2', score: 5, maxScore: 10, criteria: [] },
+  { id: 3, title: 'Question 3', score: 5, maxScore: 10, criteria: [] },
+];
 
+// Cập nhật schema để phù hợp với cấu trúc điểm mới
 const schema = yup.object({
-  testcase1: isCriteriaMode
-    ? yup.string().required('Criteria 1 is required')
-    : yup.string().required('Result is required'),
-  testcase2: isCriteriaMode
-    ? yup.string().required('Criteria 2 is required')
-    : yup.string().required('Result is required'),
-  totalGrade: yup
-    .string()
-    .required('Grade is required')
-    .matches(/^\d+\/\d+$/, 'Format must be like 5/10'),
-  feedback: yup.string().optional(),
+  questions: yup.array().of(
+    yup.object({
+      criteria: yup.array().of(
+        yup.object({
+          score: yup.string().required('Score is required'),
+          comment: yup.string(),
+        })
+      ),
+    })
+  ),
 });
-
-type FormData = yup.InferType<typeof schema>;
 
 const AssessmentDetailScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { control, handleSubmit } = useForm<FormData>({
+  const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(1);
+
+  const { control, handleSubmit } = useForm({
     resolver: yupResolver(schema),
+    // Cập nhật defaultValues
     defaultValues: {
-      testcase1: '',
-      testcase2: '',
-      totalGrade: '',
-      feedback: '',
+      questions: MOCK_SCORE_DATA.map(q => ({
+        criteria: q.criteria.map(() => ({ score: '', comment: '' })),
+      })),
     },
   });
 
-  const handleSaveGrade = (formData: FormData) => {
-    console.log('Submitted:', formData);
+  const handleSaveGrade = (formData: any) => {
+    console.log('Submitted Scores:', formData);
   };
 
   return (
@@ -66,9 +78,11 @@ const AssessmentDetailScreen: React.FC = () => {
         rightIcon={
           <HistoryIcon fill={AppColors.pr500} stroke={AppColors.pr500} />
         }
-        title={isCriteriaMode ? 'Assessment by Criteria' : 'Assessment Detail'}
+        title={'Score'}
       />
-      <View style={{ paddingVertical: s(20), paddingHorizontal: s(25) }}>
+      {/* << BỌC TẤT CẢ TRONG SCROLLVIEW >> */}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* === PHẦN SUBMIT FILE (GIỮ NGUYÊN) === */}
         <SectionHeader
           title="File Submit - LeThanhBinh - SE1720"
           style={{ marginBottom: vs(20) }}
@@ -82,74 +96,40 @@ const AssessmentDetailScreen: React.FC = () => {
           detailNavigation={''}
           onAction={() => {}}
         />
+        <SectionHeader title="Score" style={{ marginBottom: vs(10) }} />
 
-        <SectionHeader
-          title="Result"
-          style={{ marginBottom: vs(20) }}
-          buttonText={isCriteriaMode ? 'View Detail' : undefined}
-          onPress={() => {
-            isCriteriaMode &&
-              navigation.navigate('ScoreDetailTeacherScreen' as never);
-          }}
-        />
+        {MOCK_SCORE_DATA.map((question, index) => (
+          <ScoreQuestionAccordion
+            key={question.id}
+            question={question}
+            index={index}
+            isExpanded={expandedQuestionId === question.id}
+            onToggle={() =>
+              setExpandedQuestionId(prevId =>
+                prevId === question.id ? null : question.id
+              )
+            }
+            control={control}
+          />
+        ))}
 
-        {/* 🔁 Chuyển điều kiện render */}
-        {isCriteriaMode ? (
-          <>
-            <AppTextInputController
-              control={control}
-              name="testcase1"
-              label="Criteria 1"
-              placeholder="Enter criteria 1 details..."
-            />
-            <AppTextInputController
-              control={control}
-              name="testcase2"
-              label="Criteria 2"
-              placeholder="Enter criteria 2 details..."
-              style={{ marginBottom: vs(15) }}
-            />
-          </>
-        ) : (
-          <>
-            <AppDropdownController
-              control={control}
-              name="testcase1"
-              label="Testcase 1"
-              options={[
-                { label: 'Select result...', value: '' },
-                { label: 'Pass', value: 'Pass' },
-                { label: 'Failed', value: 'Failed' },
-              ]}
-            />
-            <AppDropdownController
-              control={control}
-              name="testcase2"
-              label="Testcase 2"
-              options={[
-                { label: 'Select result...', value: '' },
-                { label: 'Pass', value: 'Pass' },
-                { label: 'Failed', value: 'Failed' },
-              ]}
-            />
-          </>
-        )}
+        <View style={styles.totalGradeBar}>
+          <AppText variant="label16pxBold">Total Grade</AppText>
+          <View style={styles.totalScoreBadge}>
+            <AppText variant="body14pxBold" style={{ color: AppColors.r500 }}>
+              5/10
+            </AppText>
+          </View>
+        </View>
 
-        {/* Total Grade */}
-        <AppTextInputController
-          name="totalGrade"
-          control={control}
-          label="Total Grade"
-          placeholder="e.g. 5/10"
-          style={{ marginBottom: vs(15) }}
-        />
-
+        {/* === PHẦN FEEDBACK VÀ NÚT BẤM (GIỮ NGUYÊN) === */}
         <CourseCardItem
           title={'Feedback'}
           leftIcon={<CurriculumIcon />}
           backGroundColor={AppColors.b100}
           rightIcon={<NavigationIcon color={AppColors.b500} />}
           linkTo={'FeedbackTeacherScreen'}
+          style={{ marginTop: vs(25) }}
         />
 
         <View
@@ -176,14 +156,34 @@ const AssessmentDetailScreen: React.FC = () => {
             textVariant="body14pxRegular"
             variant="secondary"
             textColor={AppColors.black}
-            leftIcon={<AutoGradeIcon color={AppColors.black}/>}
+            leftIcon={<AutoGradeIcon color={AppColors.black} />}
           />
         </View>
-      </View>
+      </ScrollView>
     </AppSafeView>
   );
 };
 
 export default AssessmentDetailScreen;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  scrollContainer: {
+    paddingVertical: s(20),
+    paddingHorizontal: s(25),
+  },
+  totalGradeBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: AppColors.n100,
+    borderRadius: 12,
+    padding: s(15),
+    marginTop: vs(10),
+  },
+  totalScoreBadge: {
+    backgroundColor: AppColors.r100,
+    paddingHorizontal: s(12),
+    paddingVertical: vs(5),
+    borderRadius: 6,
+  },
+});

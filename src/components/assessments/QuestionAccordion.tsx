@@ -1,20 +1,21 @@
 import React from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, ImageSourcePropType, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import { NavigationIcon } from '../../assets/icons/courses'; // Sửa lại icon cho đúng
-import { TestCaseIcon } from '../../assets/icons/icon'; // Sửa lại icon cho đúng
+import { NavigationIcon } from '../../assets/icons/courses';
+import { TestCaseIcon } from '../../assets/icons/icon';
 import { AppColors } from '../../styles/color';
 import AppText from '../texts/AppText';
-import CourseCardItem from '../courses/CourseCardItem'; // Import CourseCardItem
+import CourseCardItem from '../courses/CourseCardItem';
 
 interface QuestionAccordionProps {
   title: string;
   description: string;
-  imageUrl: object;
+  imageUrl: ImageSourcePropType;
   isExpanded: boolean;
   onPress: () => void;
-  onCriteriaPress: () => void; // Thêm prop để xử lý bấm vào Criteria
+  onCriteriaPress?: () => void; // Prop này giờ là tùy chọn
+  showCriteria?: boolean; // << THÊM PROP MỚI
 }
 
 const QuestionAccordion = ({
@@ -23,7 +24,8 @@ const QuestionAccordion = ({
   imageUrl,
   isExpanded,
   onPress,
-  onCriteriaPress, // Nhận prop
+  onCriteriaPress,
+  showCriteria = true, // << GIÁ TRỊ MẶC ĐỊNH LÀ TRUE
 }: QuestionAccordionProps) => {
   return (
     <View style={styles.container}>
@@ -32,7 +34,7 @@ const QuestionAccordion = ({
           {title}
         </AppText>
         <AntDesign
-          name={isExpanded ? 'up' : 'down'} // Đảo ngược icon cho đúng
+          name={isExpanded ? 'up' : 'down'}
           size={16}
           color={AppColors.n700}
         />
@@ -45,14 +47,17 @@ const QuestionAccordion = ({
             <AppText style={styles.readMore}> Read more</AppText>
           </AppText>
           <Image source={imageUrl} style={styles.image} />
-          {/* SỬ DỤNG LẠI COURSE CARD ITEM */}
-          <CourseCardItem
-            title="Criteria"
-            leftIcon={<TestCaseIcon />}
-            rightIcon={<NavigationIcon color={AppColors.pr500} />}
-            backGroundColor={AppColors.pr100}
-            onPress={onCriteriaPress} // Gán hàm xử lý
-          />
+
+          {/* === HIỂN THỊ CRITERIA CÓ ĐIỀU KIỆN === */}
+          {showCriteria && (
+            <CourseCardItem
+              title="Criteria"
+              leftIcon={<TestCaseIcon />}
+              rightIcon={<NavigationIcon color={AppColors.pr500} />}
+              backGroundColor={AppColors.pr100}
+              onPress={onCriteriaPress}
+            />
+          )}
         </View>
       )}
     </View>

@@ -15,7 +15,6 @@ import CreateAssessmentScreen from '../screens/CreateAssessmentScreen';
 import GradingHistoryFilterScreen from '../screens/GradingHistoryFilterScreen';
 import GradesScreen from '../screens/GradesScreen';
 import AssessmentDetailScreen from '../screens/AssessmentDetailScreen';
-import ScoreDetailTeacherScreen from '../screens/ScoreDetailTeacherScreen';
 import FeedbackTeacherScreen from '../screens/FeedbackTeacherScreen';
 import DashboardTeacherScreen from '../screens/DashboardTeacherScreen';
 import TaskListScreen from '../screens/TaskListScreen';
@@ -80,10 +79,6 @@ const TeacherHomeStackNavigator = () => {
       <TeacherHomeStack.Screen
         name="AssessmentDetailScreen"
         component={AssessmentDetailScreen}
-      />
-      <TeacherHomeStack.Screen
-        name="ScoreDetailTeacherScreen"
-        component={ScoreDetailTeacherScreen}
       />
       <TeacherHomeStack.Screen
         name="FeedbackTeacherScreen"
