@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import AntDesign from 'react-native-vector-icons/AntDesign';
@@ -7,10 +8,11 @@ import { TestCaseIcon } from '../../assets/icons/icon';
 import { AppColors } from '../../styles/color';
 import CourseCardItem from '../courses/CourseCardItem';
 import AppText from '../texts/AppText';
+import { Question } from '../../screens/ApprovalScreen';
 import CriteriaBottomSheet from '../assessments/CriteriaBottomSheet';
 
 interface ApprovalQuestionItemProps {
-  question: { id: number; title: string; content: string; imageUrl: string };
+  question: Question;
   index: number;
   isExpanded: boolean;
   onToggle: () => void;
@@ -23,6 +25,11 @@ const ApprovalQuestionItem = ({
   onToggle,
 }: ApprovalQuestionItemProps) => {
   const [isCriteriaVisible, setCriteriaVisible] = useState(false);
+  const { control } = useForm({
+    defaultValues: {
+      questions: [{ criteria: (question as any).criteria || [] }],
+    },
+  });
 
   return (
     <>
@@ -59,6 +66,9 @@ const ApprovalQuestionItem = ({
         visible={isCriteriaVisible}
         onClose={() => setCriteriaVisible(false)}
         questionNumber={index + 1}
+        questionIndex={0}
+        control={control}
+        isEditable={false}
       />
     </>
   );

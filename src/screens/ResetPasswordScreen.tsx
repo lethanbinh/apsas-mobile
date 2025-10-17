@@ -1,23 +1,47 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import AuthenticationHeader from '../components/authentication/AuthenticationHeader';
 import ForgotPasswordForm from '../components/authentication/ForgotPasswordForm';
+import AppSafeView from '../components/views/AppSafeView';
 import { globalStyles } from '../styles/shareStyles';
 
 const ResetPasswordScreen = () => {
   return (
-    <View style={styles.container}>
-      <AuthenticationHeader
-        title="Forgot Password"
-        description="Recover your account password"
-      />
-      <ForgotPasswordForm />
-    </View>
+    <AppSafeView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingContainer}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <AuthenticationHeader
+            title="Forgot Password"
+            description="Recover your account password"
+          />
+          <ForgotPasswordForm />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </AppSafeView>
   );
 };
 
 export default ResetPasswordScreen;
 
 const styles = StyleSheet.create({
-  container: globalStyles.authenticationContainer,
+  keyboardAvoidingContainer: {
+    flex: 1,
+  },
+  scrollContainer: {
+    ...globalStyles.authenticationContainer,
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
 });

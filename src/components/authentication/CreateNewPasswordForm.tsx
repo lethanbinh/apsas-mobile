@@ -1,14 +1,13 @@
-import { StyleSheet, Text, View } from 'react-native';
-import React from 'react';
-import * as yup from 'yup';
-import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { useNavigation } from '@react-navigation/native';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { StyleSheet, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
-import AppTextInputController from '../inputs/AppTextInputController';
+import * as yup from 'yup';
 import { PasswordInputIcon } from '../../assets/icons/input-icon';
 import AppButton from '../buttons/AppButton';
-import { useNavigation } from '@react-navigation/native';
-import { showSuccessToast } from '../toasts/AppToast';
+import AppTextInputController from '../inputs/AppTextInputController';
 
 const CreateNewPasswordForm = () => {
   const navigation = useNavigation();

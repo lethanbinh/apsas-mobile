@@ -25,6 +25,8 @@
     "@react-navigation/stack": "^7.4.8",
     "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.11.0",
+    "buffer": "^6.0.3",
+    "docx": "^9.5.1",
     "gifted-charts-core": "^0.1.66",
     "react": "19.1.0",
     "react-hook-form": "^7.62.0",

@@ -1,27 +1,52 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { vs } from 'react-native-size-matters';
 import AuthenticationHeader from '../components/authentication/AuthenticationHeader';
 import OtpForm from '../components/authentication/OtpForm';
+import AppSafeView from '../components/views/AppSafeView';
 import { globalStyles } from '../styles/shareStyles';
-import { vs } from 'react-native-size-matters';
 
 const VerifyOTPScreen = () => {
   return (
-    <View style={styles.container}>
-      <AuthenticationHeader
-        title="Verify OTP code"
-        description="Code has been sent to let....@gmail.com"
-        isLongDescription={false}
-      />
-      <View style={{ marginTop: vs(20) }}>
-        <OtpForm />
-      </View>
-    </View>
+    <AppSafeView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingContainer}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <AuthenticationHeader
+            title="Verify OTP code"
+            description="Code has been sent to let....@gmail.com"
+            isLongDescription={false}
+          />
+          <View style={{ marginTop: vs(20) }}>
+            <OtpForm />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </AppSafeView>
   );
 };
 
 export default VerifyOTPScreen;
 
 const styles = StyleSheet.create({
-  container: globalStyles.authenticationContainer,
+  keyboardAvoidingContainer: {
+    flex: 1,
+  },
+  scrollContainer: {
+    ...globalStyles.authenticationContainer,
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
 });

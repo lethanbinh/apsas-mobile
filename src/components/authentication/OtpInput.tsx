@@ -1,11 +1,11 @@
 import React, { useRef } from 'react';
 import {
-  View,
-  TextInput,
+  NativeSyntheticEvent,
   StyleSheet,
   Text,
-  NativeSyntheticEvent,
+  TextInput,
   TextInputKeyPressEventData,
+  View,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 
@@ -15,7 +15,7 @@ interface OtpInputProps {
   error?: string;
 }
 
-const LENGTH = 4;
+const LENGTH = 6;
 
 export default function OtpInput({
   otpValue,
@@ -29,44 +29,26 @@ export default function OtpInput({
   const inputRefs = useRef<Array<TextInput | null>>([]);
 
   const focusInput = (idx: number) => {
+    if (idx < 0 || idx >= LENGTH) return;
+    // Dùng setTimeout để đảm bảo focus được thực hiện sau các event khác
     setTimeout(() => {
       inputRefs.current[idx]?.focus();
-    }, 50);
+    }, 10);
   };
 
   const handleChange = (text: string, index: number) => {
-    // ✅ Nếu paste nhiều ký tự (vd "1234")
-    if (text.length > 1) {
-      const chars = text.replace(/\D/g, '').split('').slice(0, LENGTH);
-      if (chars.length === 0) return;
+    // Chỉ xử lý khi có ký tự mới được nhập (không xử lý xóa)
+    // Lọc bỏ ký tự không phải số
+    const newText = text.replace(/\D/g, '');
 
+    if (newText.length > 0) {
       const newOtp = [...otpArray];
-      for (let i = 0; i < chars.length; i++) {
-        newOtp[i] = chars[i];
-      }
+      newOtp[index] = newText.charAt(0); // Chỉ lấy ký tự đầu tiên
       onOtpChange(newOtp.join(''));
 
-      // focus vào ô cuối cùng
-      focusInput(Math.min(chars.length, LENGTH - 1));
-      return;
-    }
-
-    // ✅ nhập 1 ký tự
-    if (text) {
-      const newOtp = [...otpArray];
-      newOtp[index] = text;
-      onOtpChange(newOtp.join(''));
+      // Tự động nhảy tới ô tiếp theo
       if (index < LENGTH - 1) {
         focusInput(index + 1);
-      }
-    } else {
-      // ✅ xóa trong ô hiện tại → nếu Android thì cũng tự back
-      const newOtp = [...otpArray];
-      newOtp[index] = '';
-      onOtpChange(newOtp.join(''));
-
-      if (index > 0) {
-        focusInput(index - 1);
       }
     }
   };
@@ -75,8 +57,19 @@ export default function OtpInput({
     e: NativeSyntheticEvent<TextInputKeyPressEventData>,
     index: number,
   ) => {
-    if (e.nativeEvent.key === 'Backspace' && otpArray[index] === '' && index > 0) {
-      focusInput(index - 1);
+    if (e.nativeEvent.key === 'Backspace') {
+      const newOtp = [...otpArray];
+      
+      // Nếu ô hiện tại có ký tự, chỉ cần xóa nó đi.
+      // Dù onChangeText cũng có thể xử lý, nhưng onKeyPress sẽ đảm bảo lùi về ô trước ngay lập tức.
+      if (newOtp[index]) {
+        newOtp[index] = '';
+        onOtpChange(newOtp.join(''));
+      }
+      // Luôn lùi về ô trước đó nếu không phải ô đầu tiên
+      else if (index > 0) {
+        focusInput(index - 1);
+      }
     }
   };
 
@@ -86,13 +79,15 @@ export default function OtpInput({
         {otpArray.map((value, index) => (
           <TextInput
             key={index}
-            ref={el => (inputRefs.current[index] = el)}
+            ref={el => {
+              inputRefs.current[index] = el;
+            }}
             style={[styles.input, error ? { borderColor: 'red' } : null]}
             value={value}
             onChangeText={text => handleChange(text, index)}
             onKeyPress={e => handleKeyPress(e, index)}
             keyboardType="number-pad"
-            maxLength={LENGTH} // vẫn cho 4 để detect paste
+            maxLength={1} // Quan trọng: Chỉ cho phép nhập 1 ký tự mỗi ô
           />
         ))}
       </View>
@@ -113,9 +108,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 22,
     textAlign: 'center',
-    width: s(50),
+    width: s(40),
     height: vs(40),
-    marginHorizontal: s(8),
+    marginHorizontal: s(4),
   },
   errorText: {
     color: 'red',

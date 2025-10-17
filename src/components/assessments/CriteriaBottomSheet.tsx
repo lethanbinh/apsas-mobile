@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Control, Controller, useFieldArray } from 'react-hook-form';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { AppColors } from '../../styles/color';
@@ -9,132 +9,144 @@ import RadioWithTitle from '../inputs/RadioWithTitle';
 import AppText from '../texts/AppText';
 import BottomSheet from '../common/BottomSheet';
 
-interface CriteriaItem {
-  id: number;
-}
-
 interface CriteriaBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   questionNumber: number;
+  questionIndex: number;
+  control: Control<any>;
+  isEditable?: boolean;
 }
 
 const CriteriaBottomSheet = ({
   visible,
   onClose,
   questionNumber,
+  questionIndex,
+  control,
+  isEditable = true,
 }: CriteriaBottomSheetProps) => {
-  const [criteriaList, setCriteriaList] = useState<CriteriaItem[]>([
-    { id: 1 },
-  ]);
-  const [expandedCriteriaId, setExpandedCriteriaId] = useState<number | null>(
-    1
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `questions.${questionIndex}.criteria`,
+  });
+
+  const [expandedCriteriaId, setExpandedCriteriaId] = useState<string | null>(
+    fields.length > 0 ? fields[0].id : null,
   );
-  const [selectedDataType, setSelectedDataType] = useState('Numeric');
-  const { control } = useForm();
+
   const DATA_TYPES = ['Numeric', 'Boolean', 'String', 'Special'];
 
   const handleAddCriteria = () => {
-    const newId = (criteriaList[criteriaList.length - 1]?.id || 0) + 1;
-    setCriteriaList([...criteriaList, { id: newId }]);
-    setExpandedCriteriaId(newId);
+    append({ input: '', output: '', dataType: 'Numeric', description: '', score: '' });
   };
 
-  const handleRemoveCriteria = (idToRemove: number) => {
-    if (criteriaList.length > 1) {
-      setCriteriaList(prevList =>
-        prevList.filter(item => item.id !== idToRemove)
-      );
-    }
-  };
-
-  const renderCriteriaItem = (item: CriteriaItem, index: number) => {
-    const isExpanded = expandedCriteriaId === item.id;
-    return (
-      <View key={item.id} style={styles.criteriaContainer}>
-        <TouchableOpacity
-          style={styles.criteriaHeader}
-          onPress={() =>
-            setExpandedCriteriaId(prevId => (prevId === item.id ? null : item.id))
-          }
-        >
-          <AppText variant="body16pxBold" style={{ color: AppColors.n900 }}>
-            Criteria {index + 1}
-          </AppText>
-
-          <View style={styles.headerActions}>
-            {criteriaList.length > 1 && (
-              <TouchableOpacity onPress={() => handleRemoveCriteria(item.id)}>
-                <AppText style={styles.removeButtonText}>Remove</AppText>
-              </TouchableOpacity>
-            )}
-            <AppText style={{ color: AppColors.n700, fontSize: 18 }}>
-              {isExpanded ? '−' : '+'}
-            </AppText>
-          </View>
-        </TouchableOpacity>
-        {isExpanded && (
-          <View style={styles.criteriaBody}>
-            <AppTextInputController
-              control={control}
-              name={`criteria_input_${item.id}`}
-              label={`Criteria ${index + 1} input`}
-              placeholder="5, 5"
-            />
-            <AppTextInputController
-              control={control}
-              name={`criteria_output_${item.id}`}
-              label={`Criteria ${index + 1} output`}
-              placeholder="10"
-            />
-            <AppText
-              variant="body16pxBold"
-              style={{ color: AppColors.n700 }}
-            >
-              Data type
-            </AppText>
-            {DATA_TYPES.map(type => (
-              <RadioWithTitle
-                key={type}
-                title={type}
-                selected={selectedDataType === type}
-                onPress={() => setSelectedDataType(type)}
-              />
-            ))}
-            <View style={{ height: vs(8) }}></View>
-            <AppTextInputController
-              control={control}
-              name={`description_${item.id}`}
-              label="Description"
-              placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sapien ornare vitae amet."
-              multiline
-              numberOfLines={4}
-            />
-            <AppTextInputController
-              control={control}
-              name={`score_${item.id}`}
-              label="Score"
-              placeholder="2"
-              keyboardType="numeric"
-            />
-            <AppButton title="Confirm" onPress={() => {}} />
-          </View>
-        )}
-      </View>
-    );
-  };
   return (
     <BottomSheet visible={visible} onClose={onClose}>
       <View style={styles.header}>
         <AppText variant="h3">Criteria (Q{questionNumber})</AppText>
-        <TouchableOpacity onPress={handleAddCriteria}>
-          <AppText variant="body14pxBold" style={{ color: AppColors.pr500 }}>
-            Add
-          </AppText>
-        </TouchableOpacity>
+        {isEditable && (
+          <TouchableOpacity onPress={handleAddCriteria}>
+            <AppText variant="body14pxBold" style={{ color: AppColors.pr500 }}>
+              Add
+            </AppText>
+          </TouchableOpacity>
+        )}
       </View>
       <View style={styles.contentContainer}>
-        {criteriaList.map(renderCriteriaItem)}
+        {fields.map((field, index) => {
+          const isExpanded = expandedCriteriaId === field.id;
+          return (
+            <View key={field.id} style={styles.criteriaContainer}>
+              <TouchableOpacity
+                style={styles.criteriaHeader}
+                onPress={() =>
+                  setExpandedCriteriaId(prevId =>
+                    prevId === field.id ? null : field.id,
+                  )
+                }
+              >
+                <AppText
+                  variant="body16pxBold"
+                  style={{ color: AppColors.n900 }}
+                >
+                  Criteria {index + 1}
+                </AppText>
+                <View style={styles.headerActions}>
+                  {isEditable && fields.length > 1 && (
+                    <TouchableOpacity onPress={() => remove(index)}>
+                      <AppText style={styles.removeButtonText}>Remove</AppText>
+                    </TouchableOpacity>
+                  )}
+                  <AppText style={{ color: AppColors.n700, fontSize: 18 }}>
+                    {isExpanded ? '−' : '+'}
+                  </AppText>
+                </View>
+              </TouchableOpacity>
+              {isExpanded && (
+                <View style={styles.criteriaBody}>
+                  <AppTextInputController
+                    control={control}
+                    name={`questions.${questionIndex}.criteria.${index}.input`}
+                    label={`Criteria ${index + 1} input`}
+                    placeholder="5, 5"
+                    editable={isEditable}
+                  />
+                  <AppTextInputController
+                    control={control}
+                    name={`questions.${questionIndex}.criteria.${index}.output`}
+                    label={`Criteria ${index + 1} output`}
+                    placeholder="10"
+                    editable={isEditable}
+                  />
+                  <AppText
+                    variant="body16pxBold"
+                    style={{ color: AppColors.n700, marginTop: vs(10) }}
+                  >
+                    Data type
+                  </AppText>
+
+                  <Controller
+                    control={control}
+                    name={`questions.${questionIndex}.criteria.${index}.dataType`}
+                    render={({ field: { onChange, value } }) => (
+                      <View>
+                        {DATA_TYPES.map(type => (
+                          <RadioWithTitle
+                            key={type}
+                            title={type}
+                            selected={value === type}
+                            onPress={() => isEditable && onChange(type)}
+                          />
+                        ))}
+                      </View>
+                    )}
+                  />
+
+                  <View style={{ height: vs(8) }}></View>
+                  <AppTextInputController
+                    control={control}
+                    name={`questions.${questionIndex}.criteria.${index}.description`}
+                    label="Description"
+                    placeholder="Description text..."
+                    multiline
+                    numberOfLines={4}
+                    editable={isEditable}
+                  />
+                  <AppTextInputController
+                    control={control}
+                    name={`questions.${questionIndex}.criteria.${index}.score`}
+                    label="Score"
+                    placeholder="2"
+                    keyboardType="numeric"
+                    editable={isEditable}
+                  />
+                  {isEditable && <AppButton title="Confirm" onPress={onClose} />}
+                </View>
+              )}
+            </View>
+          );
+        })}
       </View>
     </BottomSheet>
   );

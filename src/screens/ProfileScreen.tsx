@@ -1,5 +1,10 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import { s } from 'react-native-size-matters';
 import SectionHeader from '../components/common/SectionHeader';
 import ProfileForm from '../components/forms/ProfileForm';
@@ -7,11 +12,20 @@ import AppSafeView from '../components/views/AppSafeView';
 
 const ProfileScreen = () => {
   return (
-    <AppSafeView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SectionHeader title="Profile" textVariant="h3" />
-        <ProfileForm />
-      </ScrollView>
+    <AppSafeView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingContainer}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <SectionHeader title="Profile" textVariant="h3" />
+          <ProfileForm />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </AppSafeView>
   );
 };
@@ -19,7 +33,11 @@ const ProfileScreen = () => {
 export default ProfileScreen;
 
 const styles = StyleSheet.create({
-  container: {
+  keyboardAvoidingContainer: {
+    flex: 1,
+  },
+  scrollContainer: {
     paddingHorizontal: s(25),
+    flexGrow: 1,
   },
 });

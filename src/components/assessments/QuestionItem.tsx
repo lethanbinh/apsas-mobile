@@ -12,7 +12,7 @@ import AppText from '../texts/AppText';
 import CriteriaBottomSheet from './CriteriaBottomSheet';
 
 interface QuestionItemProps {
-  question: { id: number; fileUri: string | null };
+  question: { id: string; fileUri: string | null; };
   index: number;
   isExpanded: boolean;
   control: Control<any>;
@@ -64,15 +64,15 @@ const QuestionItem = ({
           <View style={styles.questionBody}>
             <AppTextInputController
               control={control}
-              name={`title_${question.id}`}
+              name={`questions.${index}.title`}
               label="Title"
-              placeholder="Lorem ipsum"
+              placeholder="Enter question title..."
             />
             <AppTextInputController
               control={control}
-              name={`content_${question.id}`}
+              name={`questions.${index}.content`}
               label="Content"
-              placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sapien ornare vitae amet."
+              placeholder="Enter question content..."
               multiline
               numberOfLines={4}
             />
@@ -109,66 +109,67 @@ const QuestionItem = ({
           </View>
         )}
       </View>
-
       <CriteriaBottomSheet
         visible={isCriteriaSheetVisible}
         onClose={() => setCriteriaSheetVisible(false)}
         questionNumber={index + 1}
+        questionIndex={index}
+        control={control}
       />
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  questionContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: AppColors.n200,
-    marginBottom: vs(16),
-  },
-  questionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: vs(4),
-    paddingBottom: vs(16),
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  questionTitle: {
-    color: AppColors.n900,
-  },
-  questionBody: {
-    paddingBottom: vs(16),
-  },
-  removeButtonText: {
-    color: AppColors.errorColor,
-    fontSize: s(12),
-  },
-  expandIcon: {
-    marginLeft: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  uploadBox: {
-    borderWidth: 1,
-    borderColor: AppColors.n200,
-    borderRadius: 10,
-    padding: vs(20),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: vs(16),
-    overflow: 'hidden',
-  },
-  criteriaCard: {
-    marginTop: vs(16),
-  },
-  previewImage: {
-    width: '100%',
-    height: vs(150),
-    borderRadius: 10,
-  },
-});
-
+    questionContainer: {
+      borderBottomWidth: 1,
+      borderBottomColor: AppColors.n200,
+      marginBottom: vs(16),
+    },
+    questionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: vs(4),
+      paddingBottom: vs(16),
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    questionTitle: {
+      color: AppColors.n900,
+    },
+    questionBody: {
+      paddingBottom: vs(16),
+    },
+    removeButtonText: {
+      color: AppColors.errorColor,
+      fontSize: s(12),
+    },
+    expandIcon: {
+      marginLeft: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    uploadBox: {
+      borderWidth: 1,
+      borderColor: AppColors.n200,
+      borderRadius: 10,
+      padding: vs(20),
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: vs(16),
+      overflow: 'hidden',
+    },
+    criteriaCard: {
+      marginTop: vs(16),
+    },
+    previewImage: {
+      width: '100%',
+      height: vs(150),
+      borderRadius: 10,
+    },
+  });
+  
 export default QuestionItem;

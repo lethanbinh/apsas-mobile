@@ -1,5 +1,11 @@
 import React, { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { Portal } from 'react-native-paper';
 import { s, vs } from 'react-native-size-matters';
 import AppText from '../texts/AppText';
@@ -23,25 +29,34 @@ const CustomModal: React.FC<CustomModalProps> = ({
   icon,
 }) => {
   if (!visible) return null;
+
   return (
     <Portal>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.modalContainer}>
-          <View
-            style={{
-              alignItems: 'center',
-              marginBottom: vs(20),
-            }}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            {icon}
-          </View>
-          <AppText style={styles.title} variant="h3">
-            {title}
-          </AppText>
-          <AppText style={styles.description}>{description}</AppText>
-          <View style={styles.content}>{children}</View>
+            <View
+              style={{
+                alignItems: 'center',
+                marginBottom: vs(20),
+              }}
+            >
+              {icon}
+            </View>
+            <AppText style={styles.title} variant="h3">
+              {title}
+            </AppText>
+            <AppText style={styles.description}>{description}</AppText>
+            <View style={styles.content}>{children}</View>
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Portal>
   );
 };
@@ -64,6 +79,7 @@ const styles = StyleSheet.create({
     paddingVertical: vs(40),
     paddingHorizontal: s(20),
     elevation: 5,
+    maxHeight: '90%', // Giới hạn chiều cao để modal không quá lớn
   },
   title: {
     textAlign: 'center',

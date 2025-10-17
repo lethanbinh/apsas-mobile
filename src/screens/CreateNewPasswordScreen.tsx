@@ -1,23 +1,47 @@
-import React from 'react'
-import { StyleSheet, View } from 'react-native'
-import AuthenticationHeader from '../components/authentication/AuthenticationHeader'
-import CreateNewPasswordForm from '../components/authentication/CreateNewPasswordForm'
-import { globalStyles } from '../styles/shareStyles'
+import React from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
+import AuthenticationHeader from '../components/authentication/AuthenticationHeader';
+import CreateNewPasswordForm from '../components/authentication/CreateNewPasswordForm';
+import AppSafeView from '../components/views/AppSafeView';
+import { globalStyles } from '../styles/shareStyles';
 
 const CreateNewPasswordScreen = () => {
   return (
-    <View style={styles.container}>
-      <AuthenticationHeader
-        title="Create new Password"
-        description="Type your new password"
-      />
-      <CreateNewPasswordForm />
-    </View>
-  )
-}
+    <AppSafeView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingContainer}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <AuthenticationHeader
+            title="Create new Password"
+            description="Type your new password"
+          />
+          <CreateNewPasswordForm />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </AppSafeView>
+  );
+};
 
-export default CreateNewPasswordScreen
+export default CreateNewPasswordScreen;
 
 const styles = StyleSheet.create({
-  container: globalStyles.authenticationContainer,
-})
+  keyboardAvoidingContainer: {
+    flex: 1,
+  },
+  scrollContainer: {
+    ...globalStyles.authenticationContainer,
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+});
