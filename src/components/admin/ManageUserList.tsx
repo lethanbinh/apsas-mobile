@@ -1,78 +1,142 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   TextInput,
   View,
   Text,
   TouchableOpacity,
-  Alert,
+  Platform, // Import Platform
+  PermissionsAndroid, // Import PermissionsAndroid
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AppColors } from '../../styles/color';
 import AppButton from '../buttons/AppButton';
 import { DashboardIcon } from '../../assets/icons/courses';
-import { Modal, Portal, SegmentedButtons } from 'react-native-paper'; // Import SegmentedButtons
+import { Modal, Portal } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import CustomModal from '../modals/CustomModal';
-import { QuestionMarkIcon } from '../../assets/icons/input-icon';
 import UserTable from './UserTable';
 import {
   RoleNameToIdMap,
-  exportAccounts,
-  banAccount,
-  reactivateAccount,
+  AccountData,
+  RoleMap,
+  fetchAccounts,
+  GenderIdToNameMap,
 } from '../../api/account';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
-import _debounce from 'lodash/debounce';
+import _debounce from 'lodash/debounce'; // Import debounce
+import * as XLSX from 'xlsx'; // Import xlsx
+import RNBlobUtil from 'react-native-blob-util'; // Import blob-util
 import AddEditUserModal from '../modals/AddEditUserModal';
-
+import dayjs from 'dayjs';
 const ManageUserList = () => {
   const navigation = useNavigation<any>();
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
   const [selectedRoleName, setSelectedRoleName] = useState<string>('All');
   const [roleModalVisible, setRoleModalVisible] = useState(false);
-  const [bannedModalVisible, setBannedModalVisible] = useState(false);
-  const [reactiveModalVisible, setReactiveModalVisible] = useState(false);
-  const [addModalVisible, setAddModalVisible] = useState(false); // State for Add Modal
-  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [addEditModalVisible, setAddEditModalVisible] = useState(false);
+  const [editingUser, setEditingUser] = useState<AccountData | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const roles = ['All', 'Admin', 'HOD', 'Lecturer', 'Student'];
+  const [allUsers, setAllUsers] = useState<AccountData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const debouncedSearch = useCallback(
-    _debounce((text: string) => {
-      setDebouncedSearchText(text);
-      setRefreshKey(prev => prev + 1); // Trigger refresh on search change
-    }, 500),
-    [],
-  );
+  const roles = Object.keys(RoleNameToIdMap);
 
   useEffect(() => {
-    debouncedSearch(searchText);
-    return () => {
-      debouncedSearch.cancel();
-    };
-  }, [searchText, debouncedSearch]);
+    const handler = setTimeout(() => {
+      setDebouncedSearchText(searchText);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchText]);
+
+  const loadAllUsers = async () => {
+    setIsLoading(true);
+    try {
+      const result = await fetchAccounts(1, 9999, undefined, undefined);
+      setAllUsers(result.items || []);
+    } catch (error: any) {
+      showErrorToast('Error', 'Failed to load user list.');
+      setAllUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllUsers();
+  }, [refreshKey]);
 
   const handleSelectRole = (role: string) => {
     setSelectedRoleName(role);
     setRoleModalVisible(false);
-    setRefreshKey(prev => prev + 1); // Trigger refresh on role change
   };
 
+  // Hàm xin quyền (Android)
+  const requestStoragePermission = async () => {
+    if (Platform.OS !== 'android') return true; // Bỏ qua nếu là iOS
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission Required',
+          message: 'App needs access to your storage to download files.',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
+
+  // Hàm Export (Client-side)
   const handleExport = async () => {
     setIsActionLoading(true);
     try {
-      const roleId = RoleNameToIdMap[selectedRoleName];
-      await exportAccounts(roleId, debouncedSearchText);
+      const hasPermission = await requestStoragePermission();
+      if (!hasPermission) {
+        showErrorToast(
+          'Permission Denied',
+          'Storage permission is required to export.',
+        );
+        setIsActionLoading(false);
+        return;
+      }
+
+      const dataToExport = filteredUsers.map(user => ({
+        'Account Code': user.accountCode,
+        Username: user.username,
+        Email: user.email,
+        'Full Name': user.fullName,
+        Phone: user.phoneNumber,
+        Address: user.address,
+        Gender: user.gender !== null ? GenderIdToNameMap[user.gender] : '',
+        'Date of Birth': user.dateOfBirth
+          ? dayjs(user.dateOfBirth).format('DD/MM/YYYY')
+          : '',
+        Role: RoleMap[user.role],
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Users');
+      const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+
+      const path = `${
+        RNBlobUtil.fs.dirs.DownloadDir
+      }/users_export_${dayjs().format('YYYYMMDDHHmmss')}.xlsx`;
+
+      await RNBlobUtil.fs.writeFile(path, wbout, 'base64');
       showSuccessToast(
-        'Export Started',
-        'Check your downloads or device notifications.',
+        'Export Successful',
+        `File saved to Downloads folder as users_export_...xlsx`,
       );
     } catch (error: any) {
+      console.error('Export Failed:', error);
       showErrorToast(
         'Export Failed',
         error.message || 'Could not export data.',
@@ -82,58 +146,18 @@ const ManageUserList = () => {
     }
   };
 
-  const handleAddUser = () => {
-    setAddModalVisible(true); // Open the add user modal
+  const handleOpenAddModal = () => {
+    setEditingUser(null);
+    setAddEditModalVisible(true);
   };
 
-  const handleConfirmBan = async () => {
-    if (selectedUserIds.length === 0) {
-      showErrorToast('Error', 'Please select at least one user to ban.');
-      setBannedModalVisible(false);
-      return;
-    }
-    setIsActionLoading(true);
-    try {
-      await Promise.all(selectedUserIds.map(id => banAccount(id)));
-      showSuccessToast(
-        'Success',
-        `${selectedUserIds.length} user(s) have been banned.`,
-      );
-      setRefreshKey(prev => prev + 1);
-      setSelectedUserIds([]);
-    } catch (error: any) {
-      showErrorToast('Error', error.message || 'Failed to ban users.');
-    } finally {
-      setIsActionLoading(false);
-      setBannedModalVisible(false);
-    }
+  const handleOpenEditModal = (user: AccountData) => {
+    setEditingUser(user);
+    setAddEditModalVisible(true);
   };
 
-  const handleConfirmReactivate = async () => {
-    if (selectedUserIds.length === 0) {
-      showErrorToast('Error', 'Please select at least one user to reactivate.');
-      setReactiveModalVisible(false);
-      return;
-    }
-    setIsActionLoading(true);
-    try {
-      await Promise.all(selectedUserIds.map(id => reactivateAccount(id)));
-      showSuccessToast(
-        'Success',
-        `${selectedUserIds.length} user(s) have been reactivated.`,
-      );
-      setRefreshKey(prev => prev + 1);
-      setSelectedUserIds([]);
-    } catch (error: any) {
-      showErrorToast('Error', error.message || 'Failed to reactivate users.');
-    } finally {
-      setIsActionLoading(false);
-      setReactiveModalVisible(false);
-    }
-  };
-
-  const handleAddSuccess = () => {
-    setRefreshKey(prev => prev + 1); // Refresh table after adding user
+  const handleModalSuccess = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   const displayRole = selectedRoleName
@@ -142,10 +166,22 @@ const ManageUserList = () => {
       : selectedRoleName
     : 'All Roles';
 
-  const tableFilters = {
-    roleId: RoleNameToIdMap[selectedRoleName],
-    searchTerm: debouncedSearchText,
-  };
+  const filteredUsers = useMemo(() => {
+    const roleIdToFilter = RoleNameToIdMap[selectedRoleName];
+    const searchTermLower = debouncedSearchText.toLowerCase();
+
+    return allUsers.filter(user => {
+      const roleMatch = roleIdToFilter === null || user.role === roleIdToFilter;
+      const searchMatch =
+        !searchTermLower ||
+        (user.fullName &&
+          user.fullName.toLowerCase().includes(searchTermLower)) ||
+        (user.email && user.email.toLowerCase().includes(searchTermLower)) ||
+        (user.accountCode &&
+          user.accountCode.toLowerCase().includes(searchTermLower));
+      return roleMatch && searchMatch;
+    });
+  }, [allUsers, selectedRoleName, debouncedSearchText]);
 
   return (
     <View style={styles.container}>
@@ -195,26 +231,10 @@ const ManageUserList = () => {
         <AppButton
           style={{ width: s(90) }}
           title="Add"
-          onPress={handleAddUser} // Updated handler
+          onPress={handleOpenAddModal}
           size="small"
           leftIcon={<Ionicons name="add" size={16} color={AppColors.white} />}
           disabled={isActionLoading}
-        />
-        <AppButton
-          style={{ width: s(90) }}
-          title="Banned"
-          onPress={() => setBannedModalVisible(true)}
-          backgroundColor={AppColors.r500}
-          size="small"
-          disabled={isActionLoading || selectedUserIds.length === 0}
-        />
-        <AppButton
-          style={{ width: s(100) }}
-          title="Reactivated"
-          onPress={() => setReactiveModalVisible(true)}
-          backgroundColor={AppColors.g500}
-          size="small"
-          disabled={isActionLoading || selectedUserIds.length === 0}
         />
       </View>
 
@@ -229,9 +249,9 @@ const ManageUserList = () => {
       </View>
 
       <UserTable
-        filters={tableFilters}
-        onSelectionChange={setSelectedUserIds}
-        refreshKey={refreshKey}
+        isLoading={isLoading}
+        data={filteredUsers}
+        onEdit={handleOpenEditModal}
       />
 
       <Portal>
@@ -253,7 +273,9 @@ const ManageUserList = () => {
                   selectedRoleName === role && styles.roleTextSelected,
                 ]}
               >
-                {role}
+                {role === 'All'
+                  ? 'All Roles'
+                  : role.charAt(0) + role.slice(1).toLowerCase()}
               </Text>
             </TouchableOpacity>
           ))}
@@ -266,67 +288,11 @@ const ManageUserList = () => {
         </Modal>
       </Portal>
 
-      <CustomModal
-        visible={bannedModalVisible}
-        onClose={() => setBannedModalVisible(false)}
-        title="Confirm Ban"
-        description={`Do you want to ban ${selectedUserIds.length} selected user(s)?`}
-        icon={<QuestionMarkIcon />}
-      >
-        <View style={styles.modalButtonRow}>
-          <AppButton
-            size="small"
-            title="Yes, Ban"
-            onPress={handleConfirmBan}
-            backgroundColor={AppColors.r500}
-            style={{ width: s(100) }}
-            loading={isActionLoading}
-          />
-          <AppButton
-            size="small"
-            title="Cancel"
-            variant="secondary"
-            onPress={() => setBannedModalVisible(false)}
-            textColor={AppColors.pr500}
-            style={{ width: s(90), borderColor: AppColors.pr500 }}
-            disabled={isActionLoading}
-          />
-        </View>
-      </CustomModal>
-
-      <CustomModal
-        visible={reactiveModalVisible}
-        onClose={() => setReactiveModalVisible(false)}
-        title="Confirm Reactivation"
-        description={`Do you want to reactivate ${selectedUserIds.length} selected user(s)?`}
-        icon={<QuestionMarkIcon />}
-      >
-        <View style={styles.modalButtonRow}>
-          <AppButton
-            size="small"
-            title="Yes, Reactivate"
-            onPress={handleConfirmReactivate}
-            backgroundColor={AppColors.g500}
-            style={{ width: s(130) }}
-            loading={isActionLoading}
-          />
-          <AppButton
-            size="small"
-            title="Cancel"
-            variant="secondary"
-            onPress={() => setReactiveModalVisible(false)}
-            textColor={AppColors.pr500}
-            style={{ width: s(90), borderColor: AppColors.pr500 }}
-            disabled={isActionLoading}
-          />
-        </View>
-      </CustomModal>
-
-      {/* Add User Modal */}
       <AddEditUserModal
-        visible={addModalVisible}
-        onClose={() => setAddModalVisible(false)}
-        onSuccess={handleAddSuccess}
+        visible={addEditModalVisible}
+        onClose={() => setAddEditModalVisible(false)}
+        onSuccess={handleModalSuccess}
+        initialData={editingUser}
       />
     </View>
   );

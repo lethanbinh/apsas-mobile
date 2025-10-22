@@ -1171,13 +1171,7 @@ export const SearchIcon = ({
 );
 
 export const CloseSearchIcon = (props: SvgProps) => (
-  <Svg
-    width={20}
-    height={20}
-    viewBox="0 0 20 20"
-    fill="none"
-    {...props}
-  >
+  <Svg width={20} height={20} viewBox="0 0 20 20" fill="none" {...props}>
     <G clipPath="url(#clip0_144_3388)">
       <Path
         d="M10.0003 18.3337C14.6027 18.3337 18.3337 14.6027 18.3337 10.0003C18.3337 5.39795 14.6027 1.66699 10.0003 1.66699C5.39795 1.66699 1.66699 5.39795 1.66699 10.0003C1.66699 14.6027 5.39795 18.3337 10.0003 18.3337Z"
@@ -1241,6 +1235,18 @@ export const CloneIcon = (props: SvgProps) => (
     <Path
       d="M18.5629 14.0566H10.3379"
       stroke="black"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+export const CalendarIcon = (props: SvgProps) => (
+  <Svg width={16} height={16} viewBox="0 0 48 48" fill="none" {...props}>
+    <Path
+      d="M32 4V12M16 4V12M6 20H42M10 8H38C40.2091 8 42 9.79086 42 12V40C42 42.2091 40.2091 44 38 44H10C7.79086 44 6 42.2091 6 40V12C6 9.79086 7.79086 8 10 8Z"
+      stroke="#1E1E1E"
+      strokeWidth={4}
       strokeLinecap="round"
       strokeLinejoin="round"
     />

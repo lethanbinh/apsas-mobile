@@ -322,7 +322,6 @@ const ProfileForm = () => {
             onPress={handleSaveAvatar}
             style={{ width: s(120), marginTop: vs(20), alignSelf: 'center' }} // Added alignSelf center
             title="Save" // Reverted title
-            disabled={!tempAvatarUri || tempAvatarUri === avatarUri}
           />
         </View>
       </CustomModal>

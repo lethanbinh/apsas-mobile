@@ -1,5 +1,9 @@
 import { BACKEND_API_URL } from '@env';
 import { ApiResponse, ApiService } from '../utils/ApiService';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 export interface AccountData {
   id: number;
@@ -14,6 +18,8 @@ export interface AccountData {
   dateOfBirth: string | null;
   role: number;
   status?: string;
+  department?: string | null;
+  specialization?: string | null;
 }
 
 export interface AccountPaginatedResult {
@@ -24,7 +30,6 @@ export interface AccountPaginatedResult {
   items: AccountData[];
 }
 
-// Updated Role ID mapping
 export const RoleMap: { [key: number]: string } = {
   0: 'ADMIN',
   1: 'LECTURER',
@@ -51,6 +56,7 @@ export const GenderIdToNameMap: { [key: number]: string } = {
   1: 'Female',
 };
 
+
 export const fetchAccounts = async (
   pageNumber: number = 1,
   pageSize: number = 10,
@@ -59,7 +65,7 @@ export const fetchAccounts = async (
 ): Promise<AccountPaginatedResult> => {
   try {
     let endpoint = `/api/Account/page?pageNumber=${pageNumber}&pageSize=${pageSize}`;
-    if (roleId !== undefined && roleId !== null) {
+    if (typeof roleId === 'number') {
       endpoint += `&role=${roleId}`;
     }
     if (searchTerm && searchTerm.trim() !== '') {
@@ -78,64 +84,67 @@ export const fetchAccounts = async (
 };
 
 export const getAccountById = async (
-  accountId: number | string,
+    accountId: number | string
 ): Promise<AccountData> => {
-  try {
-    const response = await ApiService.get<AccountData>(
-      `/api/Account/${accountId}`,
-    );
-    if (response.result) {
-      return response.result;
-    } else {
-      throw new Error('Account data not found.');
+    try {
+        const response = await ApiService.get<AccountData>(`/api/Account/${accountId}`);
+        if (response.result) {
+            return response.result;
+        } else {
+            throw new Error('Account data not found.');
+        }
+    } catch (error) {
+        console.error(`Failed to fetch account ${accountId}:`, error);
+        throw error;
     }
-  } catch (error) {
-    console.error(`Failed to fetch account ${accountId}:`, error);
-    throw error;
-  }
 };
 
-export const createAccount = async (
-  accountData: any,
-): Promise<ApiResponse<any>> => {
-  return ApiService.post('/api/Account/create', accountData);
+interface BaseCreatePayload {
+  username: string;
+  password?: string;
+  email: string;
+  phoneNumber: string | null;
+  fullName: string | null;
+  avatar: string | null;
+  address: string;
+  gender: number | null;
+  dateOfBirth: string | null;
+}
+
+interface LecturerCreatePayload extends BaseCreatePayload {
+    department: string | null;
+    specialization: string | null;
+}
+
+interface UpdateAccountPayload {
+    username: string;
+    email: string;
+    phoneNumber: string | null;
+    fullName: string | null;
+    avatar: string | null;
+    address: string;
+    gender: number | null;
+    dateOfBirth: string | null;
+    role: number;
+}
+
+
+export const createAdmin = async (data: BaseCreatePayload): Promise<ApiResponse<any>> => {
+  return ApiService.post('/api/Admin/create', data);
+};
+export const createHoD = async (data: BaseCreatePayload): Promise<ApiResponse<any>> => {
+  return ApiService.post('/api/HoD/create', data);
+};
+export const createLecturer = async (data: LecturerCreatePayload): Promise<ApiResponse<any>> => {
+  return ApiService.post('/api/Lecturer/create', data);
+};
+export const createStudent = async (data: BaseCreatePayload): Promise<ApiResponse<any>> => {
+  return ApiService.post('/api/Student/create', data);
 };
 
 export const updateAccount = async (
   accountId: number | string,
-  accountData: any,
+  accountData: UpdateAccountPayload,
 ): Promise<ApiResponse<any>> => {
   return ApiService.put(`/api/Account/${accountId}`, accountData);
-};
-
-export const banAccount = async (
-  accountId: number | string,
-): Promise<ApiResponse<any>> => {
-  return ApiService.put(`/api/Account/${accountId}`, { status: 'Banned' });
-};
-
-export const reactivateAccount = async (
-  accountId: number | string,
-): Promise<ApiResponse<any>> => {
-  return ApiService.put(`/api/Account/${accountId}`, { status: 'Active' });
-};
-
-export const exportAccounts = async (
-  roleId?: number | null,
-  searchTerm?: string,
-): Promise<void> => {
-  try {
-    let url = `${BACKEND_API_URL}/api/Account/export?fileType=excel`;
-    if (roleId !== undefined && roleId !== null) {
-      url += `&role=${roleId}`;
-    }
-    if (searchTerm && searchTerm.trim() !== '') {
-      url += `&searchTerm=${encodeURIComponent(searchTerm.trim())}`;
-    }
-    console.log('Attempting to export:', url);
-    throw new Error('Export not fully implemented on native yet.');
-  } catch (error) {
-    console.error('Failed to export accounts:', error);
-    throw error;
-  }
 };

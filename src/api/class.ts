@@ -1,4 +1,4 @@
-import { ApiResponse, ApiService } from '../utils/ApiService';
+import { ApiService, ApiResponse } from '../utils/ApiService';
 
 export interface ClassData {
   id: string;
@@ -18,11 +18,15 @@ export interface ClassData {
   studentCount: number;
 }
 
-interface ClassListResult {
-  result: ClassData[];
+export interface SemesterData {
+  id: string;
+  semesterCode: string;
+  academicYear: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
 }
-
-type ClassListApiResponse = ApiResponse<ClassData[]>;
 
 export const fetchClassList = async (): Promise<ClassData[]> => {
   try {
@@ -34,6 +38,20 @@ export const fetchClassList = async (): Promise<ClassData[]> => {
     }
   } catch (error: any) {
     console.error('Failed to fetch class list:', error);
+    throw error;
+  }
+};
+
+export const fetchSemesterList = async (): Promise<SemesterData[]> => {
+  try {
+    const response = await ApiService.get<SemesterData[]>('/api/Semester');
+    if (response.result) {
+      return response.result;
+    } else {
+      throw new Error('No semester list data found in the response result.');
+    }
+  } catch (error: any) {
+    console.error('Failed to fetch semester list:', error);
     throw error;
   }
 };

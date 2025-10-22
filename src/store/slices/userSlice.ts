@@ -5,6 +5,7 @@ interface UserProfile {
   name?: string;
   email?: string;
   role?: string | string[];
+  accountCode?: string; // Add accountCode
   [key: string]: any;
 }
 

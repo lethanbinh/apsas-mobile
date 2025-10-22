@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,72 +12,28 @@ import {
 import { s, vs } from 'react-native-size-matters';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AppColors } from '../../styles/color';
-import { fetchAccounts, AccountData, RoleMap } from '../../api/account'; // Adjust path
-import { showErrorToast } from '../toasts/AppToast'; // Adjust path
+import { AccountData, RoleMap } from '../../api/account';
+import AppButton from '../buttons/AppButton';
 
 interface UserTableProps {
-  filters: {
-    roleId?: number | null;
-    searchTerm?: string;
-  };
-  onSelectionChange: (selectedIds: number[]) => void; // Callback for parent
-  refreshKey: number; // Prop to trigger refetch
+  isLoading: boolean; // Nhận isLoading từ component cha
+  data: AccountData[]; // Nhận data đã được lọc
+  onEdit: (user: AccountData) => void;
 }
 
-const UserTable = ({
-  filters,
-  onSelectionChange,
-  refreshKey,
-}: UserTableProps) => {
-  const [users, setUsers] = useState<AccountData[]>([]);
+const UserTable = ({ isLoading, data, onEdit }: UserTableProps) => {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [isAllSelected, setIsAllSelected] = useState(false);
+  const pageSize = 10; // Giữ pageSize để phân trang
+  const total = data.length; // Tổng số item sau khi lọc
+  const totalPages = Math.ceil(total / pageSize);
 
-  const loadUsers = useCallback(
-    async (resetPage: boolean = false) => {
-      setIsLoading(true);
-      const currentPage = resetPage ? 1 : page;
-      if (resetPage) setPage(1); // Reset page state if requested
-      try {
-        const result = await fetchAccounts(
-          currentPage,
-          pageSize,
-          filters.roleId,
-          filters.searchTerm,
-        );
-        setUsers(result.items);
-        setTotal(result.totalCount);
-        setTotalPages(result.totalPages);
-        // Reset selection when data reloads
-        setSelectedIds([]);
-        setIsAllSelected(false);
-        onSelectionChange([]);
-      } catch (error: any) {
-        showErrorToast('Error', 'Failed to load users.');
-        setUsers([]);
-        setTotal(0);
-        setTotalPages(1);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [page, pageSize, filters.roleId, filters.searchTerm, onSelectionChange],
-  ); // Include dependencies
+  // Phân trang dữ liệu đã lọc
+  const pagedData = data.slice((page - 1) * pageSize, page * pageSize);
 
+  // Reset về trang 1 khi data thay đổi
   useEffect(() => {
-    loadUsers(true); // Initial load and reload on filter change (reset page)
-  }, [filters.roleId, filters.searchTerm, refreshKey]); // Depend on filters and refreshKey
-
-  useEffect(() => {
-    if (page > 1) {
-      loadUsers(false); // Load specific page if not page 1
-    }
-  }, [page]); // Reload only when page changes manually (after initial load)
+    setPage(1);
+  }, [data]);
 
   const handleNext = () => {
     if (page < totalPages) setPage(prev => prev + 1);
@@ -86,50 +42,12 @@ const UserTable = ({
     if (page > 1) setPage(prev => prev - 1);
   };
 
-  const handleSelectUser = (id: number) => {
-    let newSelectedIds: number[];
-    if (selectedIds.includes(id)) {
-      newSelectedIds = selectedIds.filter(selectedId => selectedId !== id);
-    } else {
-      newSelectedIds = [...selectedIds, id];
-    }
-    setSelectedIds(newSelectedIds);
-    setIsAllSelected(
-      newSelectedIds.length === users.length && users.length > 0,
-    );
-    onSelectionChange(newSelectedIds);
-  };
-
-  const handleSelectAll = () => {
-    let newSelectedIds: number[];
-    if (isAllSelected) {
-      newSelectedIds = [];
-    } else {
-      newSelectedIds = users.map(user => user.id);
-    }
-    setSelectedIds(newSelectedIds);
-    setIsAllSelected(!isAllSelected);
-    onSelectionChange(newSelectedIds);
-  };
-
-  const getStatus = (user: AccountData): 'Active' | 'Banned' | 'Inactive' => {
-    // Derive status based on your API's logic or a dedicated field if available
-    // Example: Assuming a field like `isActive` or similar might exist
-    // if (user.isBanned) return 'Banned';
-    // if (user.isActive) return 'Active';
-    return 'Active'; // Placeholder - Adjust based on actual data
+  const getStatus = (user: AccountData): 'Active' | 'Inactive' => {
+    return 'Active';
   };
 
   const renderHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
-      <TouchableOpacity onPress={handleSelectAll} style={styles.cellIcon}>
-        <Ionicons
-          name={isAllSelected ? 'checkbox' : 'checkbox-outline'}
-          size={18}
-          color={isAllSelected ? AppColors.pr500 : AppColors.n500}
-        />
-      </TouchableOpacity>
-      <View style={styles.starCol} />
       <Text style={[styles.headerText, styles.nameCol]}>Client Name</Text>
       <Text style={[styles.headerText, styles.emailCol]}>Email</Text>
       <Text style={[styles.headerText, styles.genderCol]}>Gender</Text>
@@ -138,30 +56,14 @@ const UserTable = ({
       <Text style={[styles.headerText, styles.dateCol]}>Date of Birth</Text>
       <Text style={[styles.headerText, styles.phoneCol]}>Phone</Text>
       <Text style={[styles.headerText, styles.roleCol]}>Role</Text>
+      <Text style={[styles.headerText, styles.actionCol]}>Actions</Text>
     </View>
   );
 
   const renderItem = ({ item }: { item: AccountData }) => {
-    const isSelected = selectedIds.includes(item.id);
     const status = getStatus(item);
     return (
-      <View style={[styles.row, isSelected && styles.selectedRow]}>
-        <TouchableOpacity
-          onPress={() => handleSelectUser(item.id)}
-          style={styles.cellIcon}
-        >
-          <Ionicons
-            name={isSelected ? 'checkbox' : 'square-outline'}
-            size={18}
-            color={isSelected ? AppColors.pr500 : AppColors.n400}
-          />
-        </TouchableOpacity>
-        <Ionicons
-          name="star-outline"
-          size={16}
-          color={AppColors.n400}
-          style={styles.starCol}
-        />
+      <View style={styles.row}>
         <View style={[styles.nameCol, styles.userInfo]}>
           <Image
             source={{
@@ -196,6 +98,16 @@ const UserTable = ({
         <Text style={[styles.text, styles.roleCol]}>
           {RoleMap[item.role] || 'Unknown'}
         </Text>
+        <View style={styles.actionCol}>
+          <AppButton
+            title="Edit"
+            onPress={() => onEdit(item)}
+            size="small"
+            variant="secondary"
+            style={styles.editButton}
+            textVariant="label12pxRegular"
+          />
+        </View>
       </View>
     );
   };
@@ -205,11 +117,11 @@ const UserTable = ({
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.tableContainer}>
           {renderHeader()}
-          {isLoading && users.length === 0 ? (
+          {isLoading ? (
             <ActivityIndicator size="large" style={styles.loadingIndicator} />
           ) : (
             <FlatList
-              data={users}
+              data={pagedData} // Sử dụng dữ liệu đã phân trang
               renderItem={renderItem}
               keyExtractor={item => item.id.toString()}
               showsVerticalScrollIndicator={true}
@@ -217,7 +129,6 @@ const UserTable = ({
               ListEmptyComponent={
                 <Text style={styles.emptyText}>No users found</Text>
               }
-              extraData={selectedIds} // Ensure re-render on selection change
             />
           )}
         </View>
@@ -274,22 +185,12 @@ const UserTable = ({
 };
 
 const getStatusBadgeStyle = (status: string) => ({
-  backgroundColor:
-    status === 'Active'
-      ? AppColors.g100
-      : status === 'Banned'
-      ? AppColors.r100
-      : AppColors.n100,
+  backgroundColor: status === 'Active' ? AppColors.g100 : AppColors.n100,
 });
 const getStatusTextStyle = (status: string) => ({
   fontSize: s(12),
   fontWeight: '600' as const,
-  color:
-    status === 'Active'
-      ? AppColors.g500
-      : status === 'Banned'
-      ? AppColors.r500
-      : AppColors.n500,
+  color: status === 'Active' ? AppColors.g500 : AppColors.n500,
 });
 
 const styles = StyleSheet.create({
@@ -302,13 +203,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AppColors.n200,
     borderRadius: s(8),
-    minWidth: s(1100),
+    minWidth: s(1150),
     backgroundColor: AppColors.white,
     flexGrow: 1,
   },
   loadingIndicator: {
     marginTop: vs(50),
     alignSelf: 'center',
+    height: vs(300), // Cho chiều cao cố định khi loading
   },
   emptyText: {
     textAlign: 'center',
@@ -323,9 +225,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: AppColors.n100,
   },
-  selectedRow: {
-    backgroundColor: AppColors.pr300, // Highlight selected row
-  },
   headerRow: {
     backgroundColor: AppColors.n100,
   },
@@ -338,8 +237,6 @@ const styles = StyleSheet.create({
     fontSize: s(13),
     color: AppColors.n800,
   },
-  cellIcon: { width: s(30), justifyContent: 'center', alignItems: 'center' },
-  starCol: { width: s(30), alignItems: 'center' },
   nameCol: { width: s(150) },
   emailCol: { width: s(200) },
   genderCol: { width: s(70) },
@@ -357,6 +254,14 @@ const styles = StyleSheet.create({
   dateCol: { width: s(100) },
   phoneCol: { width: s(110) },
   roleCol: { width: s(100) },
+  actionCol: { width: s(80), alignItems: 'center' },
+  editButton: {
+    paddingHorizontal: s(10),
+    paddingVertical: vs(4),
+    minWidth: s(60),
+    borderColor: AppColors.pr500,
+    borderWidth: 1,
+  },
   userInfo: { flexDirection: 'row', alignItems: 'center' },
   avatar: {
     width: s(22),

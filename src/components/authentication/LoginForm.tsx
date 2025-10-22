@@ -54,12 +54,14 @@ const LoginForm = () => {
     expiresAt: string | null,
   ) => {
     const decodedProfile = ApiService.decodeToken(token);
-    if (decodedProfile && decodedProfile.nameid) {
+    if (decodedProfile && decodedProfile.nameid && decodedProfile.accountCode) {
+      // Check for accountCode
       const userProfileForRedux = {
         id: decodedProfile.nameid,
         name: decodedProfile.name,
         email: decodedProfile.email,
         role: decodedProfile.role,
+        accountCode: decodedProfile.accountCode, // Add accountCode
       };
       await SecureStorage.saveCredentials('authToken', token);
       if (expiresAt) {
@@ -79,7 +81,9 @@ const LoginForm = () => {
         `Welcome ${userProfileForRedux.name || ''}!`,
       );
     } else {
-      throw new Error('Invalid user data received from backend token.');
+      throw new Error(
+        'Invalid user data received from backend token (missing id or accountCode).',
+      );
     }
   };
 
@@ -87,7 +91,7 @@ const LoginForm = () => {
     setIsGoogleLoading(true);
     try {
       const googleIdToken = await signInWithGoogle();
-      console.log(googleIdToken)
+      console.log(googleIdToken);
       type GoogleLoginResult = {
         token: string;
         refreshToken: string;
@@ -169,7 +173,7 @@ const LoginForm = () => {
         name="password"
         control={control}
         placeholder="Enter password"
-        securityTextEntry
+        secureTextEntry
         label="Password"
         icon={<PasswordInputIcon />}
       />
