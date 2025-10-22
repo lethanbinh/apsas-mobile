@@ -1,5 +1,11 @@
 import React from 'react';
-import { StyleSheet, TextStyle, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  TextStyle,
+  TouchableOpacity,
+  ActivityIndicator, // Import ActivityIndicator
+  View,             // Import View for layout
+} from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import AppText from '../texts/AppText';
 import { AppColors } from '../../styles/color';
@@ -20,6 +26,7 @@ interface AppButtonProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   size?: 'large' | 'medium' | 'small';
+  loading?: boolean; // Add loading prop
 }
 
 const AppButton = ({
@@ -35,6 +42,7 @@ const AppButton = ({
   leftIcon,
   rightIcon,
   size = 'medium',
+  loading = false, // Default loading to false
 }: AppButtonProps) => {
   let sizeStyle = styles.medium;
   if (size === 'large') {
@@ -42,6 +50,27 @@ const AppButton = ({
   } else if (size === 'small') {
     sizeStyle = styles.small;
   }
+
+  // Determine effective background and text color based on variant
+  let effectiveBackgroundColor = backgroundColor;
+  let effectiveTextColor = textColor;
+  let effectiveBorderColor = 'transparent'; // Default no border
+
+  if (variant === 'secondary') {
+    effectiveBackgroundColor = AppColors.white;
+    effectiveTextColor = AppColors.n800; // Use a default text color for secondary
+    effectiveBorderColor = AppColors.n800;
+  } else if (variant === 'danger') {
+    effectiveBackgroundColor = AppColors.white;
+    effectiveTextColor = AppColors.errorColor; // Use error color for text
+    effectiveBorderColor = AppColors.errorColor;
+  }
+
+  // Apply disabled styles
+  const isDisabled = disabled || loading;
+  const disabledStyle = isDisabled ? styles.disabled : {};
+  const disabledTextStyle = isDisabled ? styles.disabledText : {};
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -49,35 +78,42 @@ const AppButton = ({
       style={[
         styles.button,
         {
-          backgroundColor: backgroundColor,
+          backgroundColor: effectiveBackgroundColor,
+          borderColor: effectiveBorderColor, // Apply border color
+          borderWidth: variant !== 'primary' ? 1 : 0, // Add border for non-primary
         },
-        styles[variant],
+        styles[variant], // Apply base variant styles (might override border/bg)
         sizeStyle,
         style,
+        disabledStyle, // Apply disabled style last
       ]}
-      disabled={disabled}
+      disabled={isDisabled} // Disable if loading or explicitly disabled
     >
-      {leftIcon}
-      {title && (
-        <AppText
-          style={[
-            styles.textTitle,
-            {
-              color: textColor,
-            },
-            ...(styleTitle
-              ? Array.isArray(styleTitle)
-                ? styleTitle
-                : [styleTitle]
-              : []),
-          ]}
-          variant={textVariant}
-        >
-          {title}
-        </AppText>
+      {loading ? (
+        <ActivityIndicator color={effectiveTextColor} size="small" />
+      ) : (
+        <>
+          {leftIcon && <View style={styles.iconWrapper}>{leftIcon}</View>}
+          {title && (
+            <AppText
+              style={[
+                styles.textTitle,
+                { color: effectiveTextColor },
+                ...(styleTitle
+                  ? Array.isArray(styleTitle)
+                    ? styleTitle
+                    : [styleTitle]
+                  : []),
+                disabledTextStyle, // Apply disabled text style
+              ]}
+              variant={textVariant}
+            >
+              {title}
+            </AppText>
+          )}
+          {rightIcon && <View style={styles.iconWrapper}>{rightIcon}</View>}
+        </>
       )}
-
-      {rightIcon}
     </TouchableOpacity>
   );
 };
@@ -93,18 +129,25 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     gap: s(8),
+    borderWidth: 1, // Add default border width
+    borderColor: 'transparent', // Default transparent
   },
-
-  textTitle: {},
-  primary: {},
+  textTitle: {
+    textAlign: 'center', // Ensure text is centered
+  },
+  iconWrapper: {
+    // Add if you need specific styling around icons
+  },
+  primary: {
+    // Keep primary background color defined by prop or default
+    borderColor: AppColors.pr500, // Ensure border matches background if needed
+  },
   secondary: {
     backgroundColor: AppColors.white,
-    borderWidth: 1,
     borderColor: AppColors.n800,
   },
   danger: {
     backgroundColor: AppColors.white,
-    borderWidth: 1,
     borderColor: AppColors.errorColor,
   },
   large: {
@@ -121,5 +164,13 @@ const styles = StyleSheet.create({
     paddingVertical: vs(6),
     paddingHorizontal: s(8),
     minWidth: s(100),
+  },
+  disabled: {
+    backgroundColor: AppColors.n200, // Example disabled background
+    borderColor: AppColors.n300, // Example disabled border
+    opacity: 0.6,
+  },
+  disabledText: {
+    color: AppColors.n500, // Example disabled text color
   },
 });

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "187957217621",
+    "project_id": "aspas-1cd60",
+    "storage_bucket": "aspas-1cd60.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:187957217621:android:5bda42c84d6a3e881947dc",
+        "android_client_info": {
+          "package_name": "com.apsas_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "187957217621-kvm91jilshdoomjfj1ufk5crf189bjfu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCINTV_tdGdFvU_nl4KweM3wym_R0lpefk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "187957217621-kvm91jilshdoomjfj1ufk5crf189bjfu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

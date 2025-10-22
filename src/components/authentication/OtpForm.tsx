@@ -1,6 +1,7 @@
+// Tên file: components/authentication/OtpForm.tsx
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigation } from '@react-navigation/native';
-import React from 'react';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
@@ -9,6 +10,7 @@ import AppButton from '../buttons/AppButton';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 import AuthenticationFooter from './AuthenticationFooter';
 import OtpInput from './OtpInput';
+import { verifyOtp } from '../../api/Authentication';
 
 const schema = yup.object({
   otp: yup
@@ -19,26 +21,53 @@ const schema = yup.object({
 });
 
 type FormData = yup.InferType<typeof schema>;
-const OtpForm = () => {
-  const navigation = useNavigation();
+
+interface OtpFormProps {
+  email: string;
+}
+
+const OtpForm = ({ email }: OtpFormProps) => {
+  const navigation = useNavigation<any>();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleNavigateToLoginScreen = () => {
-    navigation.navigate('LoginScreen' as never);
+    navigation.navigate('LoginScreen');
   };
   const { control, handleSubmit } = useForm<FormData>({
     resolver: yupResolver(schema),
     defaultValues: { otp: '' },
   });
 
-  const handleVerifyOtp = (formData: FormData) => {
-    if (formData.otp === '123456') { // Cập nhật mã OTP mẫu
-      showSuccessToast(
-        'OTP verified',
-        'OTP is correct. You can create new password now',
+  const handleVerifyOtp = async (formData: FormData) => {
+    setIsLoading(true);
+    try {
+      console.log(email);
+      const response = await verifyOtp(email, formData.otp);
+      if (response.result?.verified === true) {
+        showSuccessToast(
+          'OTP Verified',
+          response.result.message ||
+            'OTP is correct. You can create a new password now.',
+        );
+
+        navigation.navigate('CreateNewPasswordScreen', {
+          email: email,
+          otp: formData.otp,
+        });
+      } else {
+        // This case might occur if isSuccess is true but verified is false (unlikely based on API docs)
+        throw new Error(
+          response.errorMessages?.join(', ') || 'OTP verification failed.',
+        );
+      }
+    } catch (error: any) {
+      // Handles isSuccess: false (e.g., "Invalid OTP") and network errors
+      showErrorToast(
+        'OTP Incorrect',
+        error.message || 'OTP verification failed, please try again!',
       );
-      navigation.navigate('CreateNewPasswordScreen' as never);
-    } else {
-      showErrorToast('OTP Incorrect', 'OTP incorrect, please try again!');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -63,11 +92,13 @@ const OtpForm = () => {
         title="Continue"
         style={{ width: s(200), marginTop: vs(20) }}
         textVariant="label16pxRegular"
+        loading={isLoading}
+        disabled={isLoading}
       />
 
       <View style={{ alignItems: 'center', marginTop: vs(10) }}>
         <AuthenticationFooter
-          text="Have another account?"
+          text="Remembered your password?"
           onPress={handleNavigateToLoginScreen}
           buttonText="Back to login"
         />
@@ -81,5 +112,6 @@ export default OtpForm;
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    alignItems: 'center',
   },
 });

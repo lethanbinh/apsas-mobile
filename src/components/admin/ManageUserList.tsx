@@ -1,47 +1,154 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   TextInput,
   View,
   Text,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AppColors } from '../../styles/color';
 import AppButton from '../buttons/AppButton';
 import { DashboardIcon } from '../../assets/icons/courses';
-import { Modal, Portal } from 'react-native-paper';
+import { Modal, Portal, SegmentedButtons } from 'react-native-paper'; // Import SegmentedButtons
 import { useNavigation } from '@react-navigation/native';
 import CustomModal from '../modals/CustomModal';
 import { QuestionMarkIcon } from '../../assets/icons/input-icon';
 import UserTable from './UserTable';
+import {
+  RoleNameToIdMap,
+  exportAccounts,
+  banAccount,
+  reactivateAccount,
+} from '../../api/account';
+import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
+import _debounce from 'lodash/debounce';
+import AddEditUserModal from '../modals/AddEditUserModal';
 
 const ManageUserList = () => {
   const navigation = useNavigation<any>();
   const [searchText, setSearchText] = useState('');
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [debouncedSearchText, setDebouncedSearchText] = useState('');
+  const [selectedRoleName, setSelectedRoleName] = useState<string>('All');
   const [roleModalVisible, setRoleModalVisible] = useState(false);
-
-  // 🔹 Modal trạng thái
   const [bannedModalVisible, setBannedModalVisible] = useState(false);
   const [reactiveModalVisible, setReactiveModalVisible] = useState(false);
+  const [addModalVisible, setAddModalVisible] = useState(false); // State for Add Modal
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const roles = ['All', 'Admin', 'Student', 'Lecturer', 'Head of Department'];
+  const roles = ['All', 'Admin', 'HOD', 'Lecturer', 'Student'];
+
+  const debouncedSearch = useCallback(
+    _debounce((text: string) => {
+      setDebouncedSearchText(text);
+      setRefreshKey(prev => prev + 1); // Trigger refresh on search change
+    }, 500),
+    [],
+  );
+
+  useEffect(() => {
+    debouncedSearch(searchText);
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [searchText, debouncedSearch]);
+
   const handleSelectRole = (role: string) => {
-    setSelectedRole(role);
+    setSelectedRoleName(role);
     setRoleModalVisible(false);
+    setRefreshKey(prev => prev + 1); // Trigger refresh on role change
   };
 
-  const displayRole = selectedRole
-    ? selectedRole.length > 12
-      ? selectedRole.slice(0, 12) + '...'
-      : selectedRole
-    : 'Select role (4)';
+  const handleExport = async () => {
+    setIsActionLoading(true);
+    try {
+      const roleId = RoleNameToIdMap[selectedRoleName];
+      await exportAccounts(roleId, debouncedSearchText);
+      showSuccessToast(
+        'Export Started',
+        'Check your downloads or device notifications.',
+      );
+    } catch (error: any) {
+      showErrorToast(
+        'Export Failed',
+        error.message || 'Could not export data.',
+      );
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleAddUser = () => {
+    setAddModalVisible(true); // Open the add user modal
+  };
+
+  const handleConfirmBan = async () => {
+    if (selectedUserIds.length === 0) {
+      showErrorToast('Error', 'Please select at least one user to ban.');
+      setBannedModalVisible(false);
+      return;
+    }
+    setIsActionLoading(true);
+    try {
+      await Promise.all(selectedUserIds.map(id => banAccount(id)));
+      showSuccessToast(
+        'Success',
+        `${selectedUserIds.length} user(s) have been banned.`,
+      );
+      setRefreshKey(prev => prev + 1);
+      setSelectedUserIds([]);
+    } catch (error: any) {
+      showErrorToast('Error', error.message || 'Failed to ban users.');
+    } finally {
+      setIsActionLoading(false);
+      setBannedModalVisible(false);
+    }
+  };
+
+  const handleConfirmReactivate = async () => {
+    if (selectedUserIds.length === 0) {
+      showErrorToast('Error', 'Please select at least one user to reactivate.');
+      setReactiveModalVisible(false);
+      return;
+    }
+    setIsActionLoading(true);
+    try {
+      await Promise.all(selectedUserIds.map(id => reactivateAccount(id)));
+      showSuccessToast(
+        'Success',
+        `${selectedUserIds.length} user(s) have been reactivated.`,
+      );
+      setRefreshKey(prev => prev + 1);
+      setSelectedUserIds([]);
+    } catch (error: any) {
+      showErrorToast('Error', error.message || 'Failed to reactivate users.');
+    } finally {
+      setIsActionLoading(false);
+      setReactiveModalVisible(false);
+    }
+  };
+
+  const handleAddSuccess = () => {
+    setRefreshKey(prev => prev + 1); // Refresh table after adding user
+  };
+
+  const displayRole = selectedRoleName
+    ? selectedRoleName.length > 12
+      ? selectedRoleName.slice(0, 12) + '...'
+      : selectedRoleName
+    : 'All Roles';
+
+  const tableFilters = {
+    roleId: RoleNameToIdMap[selectedRoleName],
+    searchTerm: debouncedSearchText,
+  };
 
   return (
     <View style={styles.container}>
-      {/* ===== Button Row 1 ===== */}
       <View style={styles.buttonRow}>
         <AppButton
           style={{ width: s(140), borderColor: AppColors.n300 }}
@@ -54,11 +161,12 @@ const ManageUserList = () => {
           leftIcon={
             <Ionicons name="options-outline" size={16} color={AppColors.n700} />
           }
+          disabled={isActionLoading}
         />
         <AppButton
           style={{ width: s(90), borderColor: AppColors.n300 }}
           title="Export"
-          onPress={() => console.log('Export')}
+          onPress={handleExport}
           backgroundColor={AppColors.white}
           textColor={AppColors.n700}
           variant="secondary"
@@ -70,6 +178,7 @@ const ManageUserList = () => {
               color={AppColors.n700}
             />
           }
+          disabled={isActionLoading}
         />
         <AppButton
           style={{ width: s(40), minWidth: 0, borderColor: AppColors.n300 }}
@@ -78,17 +187,18 @@ const ManageUserList = () => {
           variant="secondary"
           size="small"
           leftIcon={<DashboardIcon />}
+          disabled={isActionLoading}
         />
       </View>
 
-      {/* ===== Button Row 2 ===== */}
       <View style={styles.buttonRow}>
         <AppButton
           style={{ width: s(90) }}
           title="Add"
-          onPress={() => console.log('Add')}
+          onPress={handleAddUser} // Updated handler
           size="small"
           leftIcon={<Ionicons name="add" size={16} color={AppColors.white} />}
+          disabled={isActionLoading}
         />
         <AppButton
           style={{ width: s(90) }}
@@ -96,6 +206,7 @@ const ManageUserList = () => {
           onPress={() => setBannedModalVisible(true)}
           backgroundColor={AppColors.r500}
           size="small"
+          disabled={isActionLoading || selectedUserIds.length === 0}
         />
         <AppButton
           style={{ width: s(100) }}
@@ -103,23 +214,26 @@ const ManageUserList = () => {
           onPress={() => setReactiveModalVisible(true)}
           backgroundColor={AppColors.g500}
           size="small"
+          disabled={isActionLoading || selectedUserIds.length === 0}
         />
       </View>
 
-      {/* ===== Search Box ===== */}
       <View style={styles.searchBox}>
         <Ionicons name="search-outline" size={18} color={AppColors.n500} />
         <TextInput
           style={styles.input}
-          placeholder="Search"
+          placeholder="Search by name, email or code..."
           value={searchText}
           onChangeText={setSearchText}
         />
       </View>
 
-      <UserTable />
+      <UserTable
+        filters={tableFilters}
+        onSelectionChange={setSelectedUserIds}
+        refreshKey={refreshKey}
+      />
 
-      {/* ===== Role Selection Modal ===== */}
       <Portal>
         <Modal
           visible={roleModalVisible}
@@ -136,14 +250,13 @@ const ManageUserList = () => {
               <Text
                 style={[
                   styles.roleText,
-                  selectedRole === role && styles.roleTextSelected,
+                  selectedRoleName === role && styles.roleTextSelected,
                 ]}
               >
                 {role}
               </Text>
             </TouchableOpacity>
           ))}
-
           <TouchableOpacity
             style={styles.cancelBtn}
             onPress={() => setRoleModalVisible(false)}
@@ -153,23 +266,21 @@ const ManageUserList = () => {
         </Modal>
       </Portal>
 
-      {/* ===== Banned Modal ===== */}
       <CustomModal
         visible={bannedModalVisible}
         onClose={() => setBannedModalVisible(false)}
-        title="Are You Sure?"
-        description="Do you want to banned those users"
+        title="Confirm Ban"
+        description={`Do you want to ban ${selectedUserIds.length} selected user(s)?`}
         icon={<QuestionMarkIcon />}
       >
         <View style={styles.modalButtonRow}>
           <AppButton
             size="small"
-            title="Yes"
-            onPress={() => {
-              console.log('Users banned');
-              setBannedModalVisible(false);
-            }}
-            style={{ width: s(80) }}
+            title="Yes, Ban"
+            onPress={handleConfirmBan}
+            backgroundColor={AppColors.r500}
+            style={{ width: s(100) }}
+            loading={isActionLoading}
           />
           <AppButton
             size="small"
@@ -178,27 +289,26 @@ const ManageUserList = () => {
             onPress={() => setBannedModalVisible(false)}
             textColor={AppColors.pr500}
             style={{ width: s(90), borderColor: AppColors.pr500 }}
+            disabled={isActionLoading}
           />
         </View>
       </CustomModal>
 
-      {/* ===== Reactivated Modal ===== */}
       <CustomModal
         visible={reactiveModalVisible}
         onClose={() => setReactiveModalVisible(false)}
-        title="Are You Sure?"
-        description="Do you want to reactive those users"
+        title="Confirm Reactivation"
+        description={`Do you want to reactivate ${selectedUserIds.length} selected user(s)?`}
         icon={<QuestionMarkIcon />}
       >
         <View style={styles.modalButtonRow}>
           <AppButton
             size="small"
-            title="Yes"
-            onPress={() => {
-              console.log('Users reactivated');
-              setReactiveModalVisible(false);
-            }}
-            style={{ width: s(80) }}
+            title="Yes, Reactivate"
+            onPress={handleConfirmReactivate}
+            backgroundColor={AppColors.g500}
+            style={{ width: s(130) }}
+            loading={isActionLoading}
           />
           <AppButton
             size="small"
@@ -207,9 +317,17 @@ const ManageUserList = () => {
             onPress={() => setReactiveModalVisible(false)}
             textColor={AppColors.pr500}
             style={{ width: s(90), borderColor: AppColors.pr500 }}
+            disabled={isActionLoading}
           />
         </View>
       </CustomModal>
+
+      {/* Add User Modal */}
+      <AddEditUserModal
+        visible={addModalVisible}
+        onClose={() => setAddModalVisible(false)}
+        onSuccess={handleAddSuccess}
+      />
     </View>
   );
 };
@@ -226,6 +344,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: s(8),
     marginBottom: vs(8),
+    flexWrap: 'wrap',
   },
   searchBox: {
     flexDirection: 'row',
@@ -240,6 +359,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: vs(8),
     paddingHorizontal: s(6),
+    fontSize: s(14),
   },
   modalContainer: {
     backgroundColor: AppColors.white,
@@ -280,5 +400,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: s(10),
+    marginTop: vs(10),
   },
 });

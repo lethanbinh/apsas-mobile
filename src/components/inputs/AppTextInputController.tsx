@@ -1,6 +1,6 @@
 import React from 'react';
 import { Control, Controller, FieldValues, Path } from 'react-hook-form';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, TextInputProps } from 'react-native'; // Import TextInputProps
 import { s, vs } from 'react-native-size-matters';
 import { AppColors } from '../../styles/color';
 import AppText from '../texts/AppText';
@@ -11,13 +11,14 @@ interface AppTextInputControllerProps<T extends FieldValues> {
   name: Path<T>;
   rules?: object;
   placeholder?: string;
-  securityTextEntry?: boolean;
-  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
+  securityTextEntry?: boolean; // Renamed for consistency
+  keyboardType?: TextInputProps['keyboardType']; // Use standard type
   label?: string;
   icon?: React.ReactNode;
   editable?: boolean;
-  multiline?: boolean; // ✅ thêm mới
-  numberOfLines?: number; // ✅ thêm mới
+  multiline?: boolean;
+  numberOfLines?: number;
+  autoCapitalize?: TextInputProps['autoCapitalize']; // Add autoCapitalize prop
 }
 
 const AppTextInputController = <T extends FieldValues>({
@@ -32,6 +33,7 @@ const AppTextInputController = <T extends FieldValues>({
   editable,
   multiline,
   numberOfLines,
+  autoCapitalize = 'sentences', // Default to 'sentences'
 }: AppTextInputControllerProps<T>) => {
   return (
     <Controller
@@ -45,13 +47,14 @@ const AppTextInputController = <T extends FieldValues>({
             value={value}
             onChangeText={onChange}
             placeholder={placeholder}
-            securityTextEntry={securityTextEntry}
+            secureTextEntry={securityTextEntry} // Use renamed prop
             keyboardType={keyboardType}
             style={error && styles.errorInput}
             icon={icon}
             editable={editable}
-            multiline={multiline} // ✅ truyền xuống
+            multiline={multiline}
             numberOfLines={numberOfLines}
+            autoCapitalize={autoCapitalize} // Pass down autoCapitalize
           />
           {error && <AppText style={styles.textError}>{error.message}</AppText>}
         </>

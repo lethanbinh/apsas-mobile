@@ -1,56 +1,55 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  NativeSyntheticEvent,
-  StyleSheet,
-  Text,
   TextInput,
-  TextInputKeyPressEventData,
   View,
+  StyleSheet,
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
 } from 'react-native';
-import { s, vs } from 'react-native-size-matters';
 
 interface OtpInputProps {
   otpValue: string;
-  onOtpChange: (otp: string) => void;
+  onOtpChange: (value: string) => void;
   error?: string;
 }
-
-const LENGTH = 6;
 
 export default function OtpInput({
   otpValue,
   onOtpChange,
   error,
 }: OtpInputProps) {
+  const numInputs = 6;
+  const inputsRef = useRef<Array<TextInput | null>>([]);
+  const [lastValue, setLastValue] = useState(otpValue);
+
   const otpArray = otpValue
     .split('')
-    .concat(Array(LENGTH - otpValue.length).fill(''));
+    .concat(Array(numInputs - otpValue.length).fill(''));
 
-  const inputRefs = useRef<Array<TextInput | null>>([]);
-
-  const focusInput = (idx: number) => {
-    if (idx < 0 || idx >= LENGTH) return;
-    // Dùng setTimeout để đảm bảo focus được thực hiện sau các event khác
-    setTimeout(() => {
-      inputRefs.current[idx]?.focus();
-    }, 10);
+  const focusInput = (index: number) => {
+    if (index >= 0 && index < numInputs) {
+      setTimeout(() => inputsRef.current[index]?.focus(), 10);
+    }
   };
 
-  const handleChange = (text: string, index: number) => {
-    // Chỉ xử lý khi có ký tự mới được nhập (không xử lý xóa)
-    // Lọc bỏ ký tự không phải số
-    const newText = text.replace(/\D/g, '');
+  const handleChangeText = (text: string, index: number) => {
+    const cleanText = text.replace(/[^0-9]/g, ''); // chỉ cho phép số
+    const newOtp = [...otpArray];
 
-    if (newText.length > 0) {
-      const newOtp = [...otpArray];
-      newOtp[index] = newText.charAt(0); // Chỉ lấy ký tự đầu tiên
+    // 🟢 Khi người dùng nhập số
+    if (cleanText.length === 1) {
+      newOtp[index] = cleanText;
       onOtpChange(newOtp.join(''));
-
-      // Tự động nhảy tới ô tiếp theo
-      if (index < LENGTH - 1) {
-        focusInput(index + 1);
-      }
+      if (index < numInputs - 1) focusInput(index + 1);
     }
+
+    // 🔴 Khi người dùng xóa trong cùng ô
+    if (cleanText.length === 0 && otpArray[index] !== '') {
+      newOtp[index] = '';
+      onOtpChange(newOtp.join(''));
+    }
+
+    setLastValue(newOtp.join(''));
   };
 
   const handleKeyPress = (
@@ -59,62 +58,56 @@ export default function OtpInput({
   ) => {
     if (e.nativeEvent.key === 'Backspace') {
       const newOtp = [...otpArray];
-      
-      // Nếu ô hiện tại có ký tự, chỉ cần xóa nó đi.
-      // Dù onChangeText cũng có thể xử lý, nhưng onKeyPress sẽ đảm bảo lùi về ô trước ngay lập tức.
-      if (newOtp[index]) {
-        newOtp[index] = '';
+      if (otpArray[index] === '' && index > 0) {
+        // Xóa ký tự trước nếu ô hiện tại trống
+        newOtp[index - 1] = '';
         onOtpChange(newOtp.join(''));
-      }
-      // Luôn lùi về ô trước đó nếu không phải ô đầu tiên
-      else if (index > 0) {
         focusInput(index - 1);
       }
     }
   };
 
   return (
-    <View style={{ alignItems: 'center' }}>
-      <View style={styles.inputContainer}>
-        {otpArray.map((value, index) => (
-          <TextInput
-            key={index}
-            ref={el => {
-              inputRefs.current[index] = el;
-            }}
-            style={[styles.input, error ? { borderColor: 'red' } : null]}
-            value={value}
-            onChangeText={text => handleChange(text, index)}
-            onKeyPress={e => handleKeyPress(e, index)}
-            keyboardType="number-pad"
-            maxLength={1} // Quan trọng: Chỉ cho phép nhập 1 ký tự mỗi ô
-          />
-        ))}
-      </View>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    <View style={styles.container}>
+      {otpArray.map((digit, index) => (
+        <TextInput
+          key={index}
+          ref={(ref: TextInput | null) => {
+            inputsRef.current[index] = ref;
+          }}
+          style={[styles.input, error ? styles.inputError : null]}
+          keyboardType="default" // 👈 Để backspace hoạt động trên Android thật
+          maxLength={1}
+          value={digit}
+          onChangeText={text => handleChangeText(text, index)}
+          onKeyPress={e => handleKeyPress(e, index)}
+          textContentType="oneTimeCode"
+          importantForAutofill="no"
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="done"
+        />
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  inputContainer: {
+  container: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 10,
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 8,
-    fontSize: 22,
+    width: 45,
+    height: 55,
     textAlign: 'center',
-    width: s(40),
-    height: vs(40),
-    marginHorizontal: s(4),
+    fontSize: 22,
+    borderRadius: 8,
+    marginHorizontal: 5,
   },
-  errorText: {
-    color: 'red',
-    marginTop: 5,
-    fontSize: 12,
+  inputError: {
+    borderColor: 'red',
   },
 });

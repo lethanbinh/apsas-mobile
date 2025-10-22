@@ -84,7 +84,7 @@ const CourseItem = ({
       >
         <AppTextInput
           placeholder="Enter class password"
-          securityTextEntry
+          secureTextEntry
           label="Password"
           icon={<PasswordInputIcon />}
           value={classPassword}
@@ -116,7 +116,7 @@ export default CourseItem;
 
 const styles = StyleSheet.create({
   container: {
-    width: s(160),
+    width: s(140),
     borderRadius: s(10),
   },
   image: {

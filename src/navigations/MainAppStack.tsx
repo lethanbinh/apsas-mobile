@@ -1,9 +1,9 @@
 import { createStackNavigator } from '@react-navigation/stack';
-import React, { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import React from 'react';
+import { useSelector } from 'react-redux';
 import IntroScreen from '../screens/IntroScreen';
-import AuthStackNavigator from './AuthStack';
 
+import { RootState } from '../store/store';
 import AdminStackNavigator from './AdminStack';
 import HeadDeptBottomTabs from './HeadDeptBottomTabs';
 import LecturerBottomTabs from './LecturerBottomTabs';
@@ -12,66 +12,36 @@ import StudentBottomTabs from './StudentBottomTabs';
 const Stack = createStackNavigator();
 
 const MainAppStack = () => {
-  const [userData, setUserData] = useState<{ id: number; role: string } | null>(
-    {
-      id: 1,
-      role: 'student', // "student" | "lecturer" | "head"
-    },
+  const userProfile = useSelector(
+    (state: RootState) => state.userSlice.profile,
   );
-  const [isFirstUseApp, setIsFirstUseApp] = useState<boolean | null>(false);
-
-  useEffect(() => {
-    const loadData = async () => {
-      // const value = await AsyncStorage.getItem('isFirstUseApp');
-      // setIsFirstUseApp(value === 'true');
-    };
-    loadData();
-  }, []);
-
-  let initRoute = '';
-  if (!isFirstUseApp && userData) {
-    initRoute = 'MainAppBottomTabs';
-  } else if (!userData && !isFirstUseApp) {
-    initRoute = 'AuthStack';
-  } else {
-    initRoute = 'IntroScreen';
-  }
-
-  console.log(initRoute, isFirstUseApp, userData)
-
-  const getBottomTabsByRole = (role: string) => {
-    switch (role) {
-      case 'lecturer':
+  const getComponentByRole = (role: string | string[] | undefined) => {
+    const userRole = Array.isArray(role) ? role[0] : role;
+    switch (userRole?.toUpperCase()) {
+      case 'LECTURER':
         return LecturerBottomTabs;
-      case 'head':
+      case 'HOD':
         return HeadDeptBottomTabs;
-      case 'student':
+      case 'STUDENT':
         return StudentBottomTabs;
-      case 'admin':
+      case 'ADMIN':
         return AdminStackNavigator;
       default:
+        console.warn('Unknown role in MainAppStack:', userRole);
         return StudentBottomTabs;
     }
   };
 
-  const BottomTabsComponent = userData
-    ? getBottomTabsByRole(userData.role)
-    : StudentBottomTabs;
-
+  const MainAppComponent = getComponentByRole(userProfile?.role);
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
       }}
-      initialRouteName={initRoute}
     >
-      <Stack.Screen name="AuthStack" component={AuthStackNavigator} />
-      <Stack.Screen name="MainAppBottomTabs" component={BottomTabsComponent} />
-      <Stack.Screen name="IntroScreen" component={IntroScreen} />
+      <Stack.Screen name="MainAppBottomTabs" component={MainAppComponent} />
     </Stack.Navigator>
   );
 };
 
 export default MainAppStack;
-
-const styles = StyleSheet.create({});

@@ -11,8 +11,26 @@ import AuthenticationHeader from '../components/authentication/AuthenticationHea
 import OtpForm from '../components/authentication/OtpForm';
 import AppSafeView from '../components/views/AppSafeView';
 import { globalStyles } from '../styles/shareStyles';
+import { useRoute } from '@react-navigation/native'; // Import useRoute
 
 const VerifyOTPScreen = () => {
+  const route = useRoute(); // Get route object
+  const email = (route.params as { email?: string })?.email ?? ''; // Safely get email param
+
+  // Mask the email for display
+  const maskEmail = (emailAddr: string) => {
+    if (!emailAddr || !emailAddr.includes('@')) {
+      return 'your email'; // Fallback
+    }
+    const [name, domain] = emailAddr.split('@');
+    if (name.length <= 3) {
+      return `${name.slice(0, 1)}***@${domain}`;
+    }
+    return `${name.slice(0, 3)}****@${domain}`;
+  };
+
+  const maskedEmail = maskEmail(email);
+
   return (
     <AppSafeView>
       <KeyboardAvoidingView
@@ -26,11 +44,11 @@ const VerifyOTPScreen = () => {
         >
           <AuthenticationHeader
             title="Verify OTP code"
-            description="Code has been sent to let....@gmail.com"
+            description={`Code has been sent to ${maskedEmail}`} // Use masked email
             isLongDescription={false}
           />
           <View style={{ marginTop: vs(20) }}>
-            <OtpForm />
+            <OtpForm email={email} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
