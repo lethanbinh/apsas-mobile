@@ -8,12 +8,22 @@ import { s } from 'react-native-size-matters';
 import LearningCard from '../components/common/LearningCard';
 import { AppColors } from '../styles/color';
 import { useNavigation } from '@react-navigation/native';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
 
 const LecturerHomeScreen = () => {
   const navigation = useNavigation<any>();
+  const profile = useSelector((state: RootState) => state.userSlice.profile);
+  const userName = profile?.name || 'User';
+  const userRole =
+    typeof profile?.role === 'string'
+      ? profile.role
+      : Array.isArray(profile?.role)
+      ? profile.role.join(', ')
+      : 'Role not set';
   return (
     <AppSafeView>
-      <LecturerHeader title="Hi, Binh" role="Lecturer" />
+      <LecturerHeader title={`Hi, ${userName}`} role={userRole} />
       <View style={{ paddingHorizontal: s(25) }}>
         <SemesterCard
           title="Current Semester"

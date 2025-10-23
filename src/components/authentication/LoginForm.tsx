@@ -58,7 +58,7 @@ const LoginForm = () => {
       // Check for accountCode
       const userProfileForRedux = {
         id: decodedProfile.nameid,
-        name: decodedProfile.name,
+        name: decodedProfile.fullName,
         email: decodedProfile.email,
         role: decodedProfile.role,
         accountCode: decodedProfile.accountCode, // Add accountCode

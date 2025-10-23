@@ -8,11 +8,21 @@ import SemesterCard from '../components/common/SemesterCard';
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
 
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
 const HeadDeptHomeScreen = () => {
   const navigation = useNavigation<any>();
+  const profile = useSelector((state: RootState) => state.userSlice.profile);
+  const userName = profile?.name || 'User';
+  const userRole =
+    typeof profile?.role === 'string'
+      ? profile.role
+      : Array.isArray(profile?.role)
+      ? profile.role.join(', ')
+      : 'Role not set';
   return (
     <AppSafeView>
-      <LecturerHeader title="Hi, Binh" role="Head of Department" />
+      <LecturerHeader title={`Hi, ${userName}`} role={userRole} />
 
       <View style={{ paddingHorizontal: s(25) }}>
         <SemesterCard
@@ -26,7 +36,9 @@ const HeadDeptHomeScreen = () => {
         <LearningCard
           title="You want to create a new semester learning plan?"
           buttonLabel="Create plan"
-          onPress={() => navigation.navigate('ChooseSemesterScreen')}
+          onPress={() => {
+            navigation.navigate('ImportExcelScreen' as never);
+          }}
           backgroundColor={AppColors.pr100}
           imageSource={require('../assets/images/illu1.png')}
         />
