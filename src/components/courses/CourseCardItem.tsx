@@ -38,15 +38,12 @@ const CourseCardItem = ({
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);
 
-  // Tạo một hàm xử lý trung gian
   const handlePress = () => {
-    // Ưu tiên chạy onPress được truyền từ bên ngoài
     if (onPress) {
       onPress();
       return;
     }
 
-    // Nếu không có onPress, chạy logic cũ
     if (onDownload) {
       onDownload();
       return;

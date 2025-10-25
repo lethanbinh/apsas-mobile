@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { Modal, Portal } from 'react-native-paper';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, Control } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { s, vs } from 'react-native-size-matters';
@@ -14,8 +14,9 @@ import {
   updateAssignRequest,
   AssignRequestData,
   CourseElementData,
+  fetchLecturerList,
+  LecturerListData,
 } from '../../api/semester';
-import { AccountData, fetchAccounts, RoleNameToIdMap } from '../../api/account';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 import RNPickerSelect from 'react-native-picker-select';
 
@@ -39,7 +40,7 @@ interface AssignRequestCrudModalProps {
   onSuccess: () => void;
   initialData?: AssignRequestData | null;
   courseElements: CourseElementData[];
-  hodId: string; // HOD ID (e.g., "1"), NOT accountId
+  hodId: string;
 }
 
 const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
@@ -51,7 +52,7 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
   hodId,
 }) => {
   const isEditMode = !!initialData;
-  const [lecturers, setLecturers] = useState<AccountData[]>([]);
+  const [lecturers, setLecturers] = useState<LecturerListData[]>([]);
 
   const {
     control,
@@ -72,8 +73,8 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      fetchAccounts(1, 999, RoleNameToIdMap.LECTURER)
-        .then(data => setLecturers(data.items))
+      fetchLecturerList()
+        .then(data => setLecturers(data))
         .catch(err => showErrorToast('Error', 'Failed to load lecturers.'));
 
       reset({
@@ -90,19 +91,34 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
         ? 'Assignment updated'
         : 'Assignment created';
 
+      // Chuyển đổi ID sang kiểu số
+      const assignedLecturerIdNum = Number(data.assignedLecturerId);
+      const courseElementIdNum = Number(data.courseElementId);
+      const assignedByHODIdNum = Number(hodId);
+      console.log('HOD ID Number:', assignedByHODIdNum);
+
+      if (isNaN(assignedLecturerIdNum) || isNaN(courseElementIdNum)) {
+        throw new Error('Invalid Lecturer or Course Element ID.');
+      }
+
       if (isEditMode && initialData) {
+        if (isNaN(Number(initialData.id))) {
+          throw new Error('Invalid Assignment Request ID.');
+        }
         const payload = {
-          message: data.message,
-          assignedLecturerId: String(data.assignedLecturerId),
+          message: data.message || '',
+          assignedLecturerId: assignedLecturerIdNum,
         };
         await updateAssignRequest(initialData.id, payload);
       } else {
+        if (isNaN(assignedByHODIdNum)) {
+          throw new Error('Invalid HOD ID.');
+        }
         const payload = {
-          ...data,
-          message: data.message || '', // API có thể yêu cầu string
-          assignedLecturerId: String(data.assignedLecturerId),
-          courseElementId: String(data.courseElementId),
-          assignedByHODId: String(hodId),
+          message: data.message || '',
+          assignedLecturerId: assignedLecturerIdNum,
+          courseElementId: courseElementIdNum,
+          assignedByHODId: assignedByHODIdNum, // Gửi dưới dạng SỐ
         };
         await createAssignRequest(payload);
       }
@@ -120,11 +136,12 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
 
   const elementOptions = courseElements.map(el => ({
     label: `${el.name} (Weight: ${el.weight}%)`,
-    value: el.id,
+    value: String(el.id), // RNPickerSelect dùng string
   }));
+
   const lecturerOptions = lecturers.map(l => ({
     label: `${l.fullName} (${l.accountCode})`,
-    value: String(l.id),
+    value: l.lecturerId, // Giữ string cho RNPickerSelect
   }));
 
   return (
@@ -157,7 +174,7 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
                   value={value}
                   style={pickerSelectStyles}
                   placeholder={{ label: 'Select an element...', value: null }}
-                  disabled={isEditMode} // Không cho sửa course element khi edit
+                  disabled={isEditMode}
                 />
                 {error && (
                   <AppText style={styles.textError}>{error.message}</AppText>
@@ -190,7 +207,7 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
 
           <AppTextInputController
             name="message"
-            control={control}
+            control={control as any}
             label="Message (Optional)"
             placeholder="Enter a message"
             multiline

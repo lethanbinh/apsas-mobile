@@ -14,6 +14,7 @@ import { RootState } from '../store/store';
 const LecturerHomeScreen = () => {
   const navigation = useNavigation<any>();
   const profile = useSelector((state: RootState) => state.userSlice.profile);
+  console.log('Lecturer profile:', profile);
   const userName = profile?.name || 'User';
   const userRole =
     typeof profile?.role === 'string'

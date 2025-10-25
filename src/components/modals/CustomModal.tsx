@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     paddingVertical: vs(40),
-    paddingHorizontal: s(20),
+    paddingHorizontal: s(25),
     elevation: 5,
     maxHeight: '90%', // Giữ giới hạn chiều cao
   },

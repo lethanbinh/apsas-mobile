@@ -1,16 +1,16 @@
-import React, { useEffect, useState, useMemo } from 'react'; // Import useMemo
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
+import { ClassData, fetchClassList } from '../api/class';
 import AppHeader from '../components/common/AppHeader';
 import SearchModal from '../components/common/SearchModal';
 import SectionHeader from '../components/common/SectionHeader';
-import CourseList from '../components/courses/CourseList';
 import { CourseItemProps } from '../components/courses/CourseItem';
+import CourseList from '../components/courses/CourseList';
+import SemesterFilterModal from '../components/courses/SemesterFilterModal';
+import { showErrorToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
-import { showErrorToast } from '../components/toasts/AppToast';
-import { ClassData, fetchClassList } from '../api/class';
-import SemesterFilterModal from '../components/courses/SemesterFilterModal';
 
 const sampleCourses = [
   { image: require('../assets/images/course1.png'), color: AppColors.pr100 },
@@ -25,7 +25,6 @@ const mapApiDataToCourseItemProps = (
   return apiData.map((item, index) => {
     const sampleIndex = index % sampleCourses.length;
     const randomSample = sampleCourses[sampleIndex];
-
     return {
       item: {
         id: item.id,
@@ -33,14 +32,10 @@ const mapApiDataToCourseItemProps = (
         description: item.lecturerName,
         image: randomSample.image,
         color: randomSample.color,
-        // Add semesterName here if CourseItem needs it for display/filtering
         semesterName: item.semesterName,
       },
       onPress: () => {
         console.log('Class pressed:', item.id);
-        // if (navigation) {
-        //   navigation.navigate('ClassDetailScreen', { classId: item.id });
-        // }
       },
     };
   });

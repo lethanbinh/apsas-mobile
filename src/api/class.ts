@@ -55,3 +55,18 @@ export const fetchSemesterList = async (): Promise<SemesterData[]> => {
     throw error;
   }
 };
+
+// --- Function Added ---
+export const fetchClassById = async (classId: string): Promise<ClassData> => {
+  try {
+    const response = await ApiService.get<ClassData>(`/api/Class/${classId}`);
+    if (response.result) {
+      return response.result;
+    } else {
+      throw new Error('Class data not found.');
+    }
+  } catch (error: any) {
+    console.error(`Failed to fetch class ${classId}:`, error);
+    throw error;
+  }
+};

@@ -36,7 +36,7 @@ const CourseItem = ({
     setJoinCourseModal(true);
   };
   const handleNavigateCourse = () => {
-    navigation.navigate('CourseDetailScreen' as never);
+    onPress();
   };
   const handleJoinCourse = () => {
     setJoinCourseModal(false);

@@ -118,9 +118,6 @@ const AssignmentCardInfo = ({
       <View style={styles.descriptionContainer}>
         <AppText>
           {description}{' '}
-          <AppText variant="body14pxBold" style={{ color: AppColors.pr500 }}>
-            Read More
-          </AppText>
         </AppText>
       </View>
 
@@ -193,7 +190,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: vs(100),
     width: s(300),
-    height: s(300),
+    height: s(200),
     borderRadius: s(30),
     backgroundColor: AppColors.white,
     alignSelf: 'center',

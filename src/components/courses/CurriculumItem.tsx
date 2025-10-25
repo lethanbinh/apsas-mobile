@@ -4,7 +4,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import AppText from '../texts/AppText';
 export interface CurriculumItemProps {
-  id: number;
+  id: number | string; // Sửa: Cho phép cả string (từ API)
   number: string;
   title: string;
   linkFile: string;
@@ -13,7 +13,7 @@ export interface CurriculumItemProps {
   onAction: () => void;
 }
 const CurriculumItem = ({
-  id,
+  id, // id này là elementId
   number,
   title,
   linkFile,
@@ -21,7 +21,7 @@ const CurriculumItem = ({
   detailNavigation,
   onAction,
 }: CurriculumItemProps) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   return (
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
@@ -30,7 +30,9 @@ const CurriculumItem = ({
         </View>
         <TouchableOpacity
           onPress={() =>
-            detailNavigation && navigation.navigate(detailNavigation as never)
+            // Sửa logic ở đây:
+            detailNavigation &&
+            navigation.navigate(detailNavigation as never, { elementId: id })
           }
         >
           <AppText variant="label16pxBold" style={{ color: '#202244' }}>

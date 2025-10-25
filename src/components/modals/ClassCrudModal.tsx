@@ -9,8 +9,13 @@ import AppButton from '../buttons/AppButton';
 import AppTextInputController from '../inputs/AppTextInputController';
 import AppText from '../texts/AppText';
 import { AppColors } from '../../styles/color';
-import { createClass, updateClass, ClassData } from '../../api/semester';
-import { AccountData, fetchAccounts, RoleNameToIdMap } from '../../api/account';
+import {
+  createClass,
+  updateClass,
+  ClassData,
+  fetchLecturerList,
+  LecturerListData,
+} from '../../api/semester';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 import RNPickerSelect from 'react-native-picker-select';
 
@@ -52,7 +57,7 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
   semesterCourses,
 }) => {
   const isEditMode = !!initialData;
-  const [lecturers, setLecturers] = useState<AccountData[]>([]);
+  const [lecturers, setLecturers] = useState<LecturerListData[]>([]);
 
   const {
     control,
@@ -75,8 +80,8 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      fetchAccounts(1, 999, RoleNameToIdMap.LECTURER)
-        .then(data => setLecturers(data.items))
+      fetchLecturerList()
+        .then(data => setLecturers(data))
         .catch(err => showErrorToast('Error', 'Failed to load lecturers.'));
 
       reset({
@@ -122,7 +127,7 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
   }));
   const lecturerOptions = lecturers.map(l => ({
     label: `${l.fullName} (${l.accountCode})`,
-    value: String(l.id),
+    value: l.lecturerId, // Dùng lecturerId (ví dụ: "1")
   }));
 
   return (
@@ -162,6 +167,7 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
                   value={value}
                   style={pickerSelectStyles}
                   placeholder={{ label: 'Select a course...', value: null }}
+                  disabled={isEditMode}
                 />
                 {error && (
                   <AppText style={styles.textError}>{error.message}</AppText>

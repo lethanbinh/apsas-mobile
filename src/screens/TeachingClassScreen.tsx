@@ -45,6 +45,8 @@ const TeachingClassScreen = () => {
           fetchSemesterList(),
         ]);
 
+        console.log(classList, semesterList, lecturerAccountCode);
+
         const filteredByLecturer = classList.filter(
           cls => cls.lecturerCode === lecturerAccountCode,
         );

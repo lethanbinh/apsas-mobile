@@ -1,11 +1,24 @@
-import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  View,
+  ActivityIndicator,
+} from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import AssignmentCardInfo from '../components/courses/AssignmentCardInfo';
 import CurriculumList from '../components/courses/CurriculumList';
 import { DocumentList, SubmissionList } from '../data/coursesData';
 import { AppColors } from '../styles/color';
+import AppSafeView from '../components/views/AppSafeView'; // Import AppSafeView
+import ScreenHeader from '../components/common/ScreenHeader'; // Import ScreenHeader
+import { fetchCourseElementById, CourseElementData } from '../api/semester'; // Import API
+import { showErrorToast } from '../components/toasts/AppToast'; // Import toast
+import { useSelector } from 'react-redux'; // Import useSelector
+import { RootState } from '../store/store'; // Import RootState
+import AppText from '../components/texts/AppText'; // Import AppText
 
 const sections = [
   { title: 'Documents', data: DocumentList },
@@ -15,42 +28,94 @@ const sections = [
 const PracticalExamDetailScreen = () => {
   const [listHeight, setListHeight] = useState(0);
   const navigation = useNavigation<any>();
+  const route = useRoute();
+  const elementId = (route.params as { elementId?: string })?.elementId; // Lấy elementId
+
+  const [elementData, setElementData] = useState<CourseElementData | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const userProfile = useSelector(
+    (state: RootState) => state.userSlice.profile,
+  );
+
+  useEffect(() => {
+    if (!elementId) {
+      showErrorToast('Error', 'No Exam ID provided.');
+      setIsLoading(false);
+      return;
+    }
+    const loadElementDetails = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchCourseElementById(elementId); // Fetch
+        setElementData(data);
+      } catch (error: any) {
+        showErrorToast('Error', 'Failed to load exam details.');
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadElementDetails();
+  }, [elementId]);
+
+  if (isLoading) {
+    return (
+      <AppSafeView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </AppSafeView>
+    );
+  }
+
+  if (!elementData) {
+    return (
+      <AppSafeView style={styles.loadingContainer}>
+        <ScreenHeader title="Practical Exam" />
+        <AppText style={styles.errorText}>Failed to load exam data.</AppText>
+      </AppSafeView>
+    );
+  }
+
   return (
-    <ScrollView
-      style={styles.container}
-      nestedScrollEnabled
-      contentContainerStyle={{ paddingBottom: listHeight }}
-    >
-      <Image
-        style={styles.image}
-        source={require('../assets/images/assignment.png')}
-      />
-      <AssignmentCardInfo
-        assignmentType="Basic PE"
-        assignmentTitle="PE 1"
-        dueDate="18/10/2025"
-        lecturerName="NguyenNT"
-        description="Graphic Design now a popular profession graphic design by off your carrer about tantas regiones barbarorum pedibus obiit Graphic Design now a popular profession graphic design by off your carrer about tantas regiones barbarorum pedibus obiit"
-        isSubmitted={false}
-        onSubmitPress={() => {
-          navigation.navigate('SubmissionScreen');
-        }}
-        isAssessment={true}
-        onDashboardPress={() =>
-          navigation.navigate('DashboardTeacherScreen' as never)
-        }
-      />
-      <View />
-      <View
-        style={{ position: 'absolute', top: s(430), width: '100%' }}
-        onLayout={e => setListHeight(e.nativeEvent.layout.height + s(100))} // 👈 đo chiều cao
+    <AppSafeView style={styles.container}>
+      <ScreenHeader title={elementData.name} />
+      <ScrollView
+        style={styles.scrollView}
+        nestedScrollEnabled
+        contentContainerStyle={{ paddingBottom: listHeight }}
       >
-        <CurriculumList
-          sections={sections}
-          buttonText="Download All Submissions"
+        <Image
+          style={styles.image}
+          source={require('../assets/images/assignment.png')}
         />
-      </View>
-    </ScrollView>
+        <AssignmentCardInfo
+          assignmentType="Practical Exam" // Cập nhật loại
+          assignmentTitle={elementData.name} // Dùng data fetch
+          dueDate="N/A"
+          lecturerName={userProfile?.name || 'Lecturer'}
+          description={elementData.description} // Dùng data fetch
+          isSubmitted={false}
+          onSubmitPress={() => {
+            navigation.navigate('SubmissionScreen');
+          }}
+          isAssessment={true}
+          onDashboardPress={() =>
+            navigation.navigate('DashboardTeacherScreen' as never)
+          }
+        />
+        <View />
+        <View
+          style={{ position: 'absolute', top: s(320), width: '100%' }}
+          onLayout={e => setListHeight(e.nativeEvent.layout.height + s(100))}
+        >
+          <CurriculumList
+            sections={sections}
+            buttonText="Download All Submissions"
+          />
+        </View>
+      </ScrollView>
+    </AppSafeView>
   );
 };
 
@@ -60,6 +125,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: AppColors.white,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: AppColors.white,
+  },
+  errorText: {
+    color: AppColors.n500,
+    marginTop: vs(20),
   },
   image: {
     width: '100%',

@@ -1,5 +1,12 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { useState } from 'react';
+import {
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import React, { useState, useEffect } from 'react';
 import { AppColors } from '../styles/color';
 import { s, vs } from 'react-native-size-matters';
 import {
@@ -14,16 +21,64 @@ import { navigationList } from '../data/coursesData';
 import CustomModal from '../components/modals/CustomModal';
 import { QuestionMarkIcon } from '../assets/icons/input-icon';
 import AppButton from '../components/buttons/AppButton';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { ClassData, fetchClassById } from '../api/class';
+import { showErrorToast } from '../components/toasts/AppToast';
+import AppSafeView from '../components/views/AppSafeView';
 
 const CourseDetailScreen = () => {
   const [unEnrollModalVisible, setUnEnrollModalVisible] =
     useState<boolean>(false);
+  const navigation = useNavigation<any>();
+  const route = useRoute(); // Get route object
+  const classId = (route.params as { classId?: string })?.classId; // Get classId
+
+  const [classData, setClassData] = useState<ClassData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!classId) {
+      showErrorToast('Error', 'No Class ID provided.');
+      setIsLoading(false);
+      return;
+    }
+    const loadClassDetails = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchClassById(classId); // Call API
+        setClassData(data);
+      } catch (error: any) {
+        showErrorToast('Error', 'Failed to load class details.');
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadClassDetails();
+  }, [classId]);
 
   const handleUnEnrollCourse = () => {
     setUnEnrollModalVisible(false);
   };
+
+  if (isLoading) {
+    return (
+      <AppSafeView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </AppSafeView>
+    );
+  }
+
+  if (!classData) {
+    return (
+      <AppSafeView style={styles.loadingContainer}>
+        <AppText>Failed to load class data.</AppText>
+      </AppSafeView>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Image
         style={styles.image}
         source={require('../assets/images/classimage.png')}
@@ -45,10 +100,10 @@ const CourseDetailScreen = () => {
             style={{ color: AppColors.tagColor, marginBottom: vs(3) }}
             variant="label12pxBold"
           >
-            C# Course
+            {classData.courseCode}
           </AppText>
           <AppText variant="h4" style={{ marginBottom: vs(10) }}>
-            Group SE1720 - Summer2025
+            {classData.courseName} - {classData.classCode}
           </AppText>
           <View style={styles.tagContainer}>
             <View style={styles.tagWrapper}>
@@ -57,7 +112,7 @@ const CourseDetailScreen = () => {
                 style={{ color: '#202244', marginLeft: vs(5) }}
                 variant="label12pxBold"
               >
-                Semester 9
+                {classData.semesterName}
               </AppText>
             </View>
             <View style={styles.tagWrapper}>
@@ -66,7 +121,7 @@ const CourseDetailScreen = () => {
                 style={{ color: '#202244', marginLeft: vs(5) }}
                 variant="label12pxBold"
               >
-                NguyenNT
+                {classData.lecturerName}
               </AppText>
             </View>
           </View>
@@ -81,7 +136,7 @@ const CourseDetailScreen = () => {
             ]}
           >
             <AppText style={{ color: '#202244' }} variant="body14pxBold">
-              SEP490
+              {classData.courseCode}
             </AppText>
           </View>
           <View
@@ -89,32 +144,32 @@ const CourseDetailScreen = () => {
               styles.infoButton,
               {
                 backgroundColor: '',
+                alignItems: 'center', // Added for centering
+                justifyContent: 'center', // Added for centering
               },
             ]}
           >
-            <AppText style={{ color: '#202244' }} variant="body14pxBold">
-              Capstone Project
+            <AppText
+              style={{ color: '#202244', textAlign: 'center' }}
+              variant="body14pxBold"
+            >
+              {classData.courseName}
             </AppText>
           </View>
         </View>
         <View style={styles.descriptionContainer}>
           <AppText>
-            Graphic Design now a popular profession graphic design by off your
-            carrer about tantas regiones barbarorum pedibus obiit Graphic Design
-            now a popular profession graphic design by off your carrer about
-            tantas regiones barbarorum pedibus obiit...{' '}
-            <AppText variant="body14pxBold" style={{ color: AppColors.pr500 }}>
-              Read More
-            </AppText>
+            {classData.description ||
+              'No description available for this class.'}{' '}
           </AppText>
         </View>
       </View>
       <View
         style={{
-          position: 'absolute',
-          top: s(430),
+          marginTop: vs(170),
           width: s(300),
           alignSelf: 'center',
+          paddingBottom: vs(50),
         }}
       >
         {navigationList.map(item => (
@@ -129,7 +184,14 @@ const CourseDetailScreen = () => {
               leftIcon={<item.leftIcon />}
               backGroundColor={item.backGroundColor}
               rightIcon={<NavigationIcon color={item.rightIconColor} />}
-              linkTo={item.linkTo}
+              onPress={() => {
+                if (item.linkTo) {
+                  navigation.navigate(item.linkTo as never, {
+                    classId: classData.id,
+                    semesterCourseId: classData.semesterCourseId,
+                  });
+                }
+              }}
             />
           </View>
         ))}
@@ -139,8 +201,9 @@ const CourseDetailScreen = () => {
         visible={unEnrollModalVisible}
         onClose={() => setUnEnrollModalVisible(false)}
         title="Are You Sure?"
-        description="Do you want to leave Capstone project by NguyenNT"
+        description={`Do you want to leave ${classData.courseName} by ${classData.lecturerName}?`}
         icon={<QuestionMarkIcon />}
+        disableScrollView={true}
       >
         <View
           style={{
@@ -153,23 +216,23 @@ const CourseDetailScreen = () => {
             size="small"
             title="Yes"
             onPress={handleUnEnrollCourse}
-            style={{ minWidth: 'none', width: s(80) }}
+            style={{ minWidth: 'auto', width: s(80) }} // Use 'auto'
+            variant="danger" // Make 'Yes' the danger action
+            textColor={AppColors.errorColor}
           />
           <AppButton
             size="small"
             title="Cancel"
-            variant="secondary"
+            variant="primary" // Make 'Cancel' primary
             onPress={() => setUnEnrollModalVisible(false)}
-            textColor={AppColors.pr500}
             style={{
-              minWidth: 'none',
+              minWidth: 'auto', // Use 'auto'
               width: s(90),
-              borderColor: AppColors.pr500,
             }}
           />
         </View>
       </CustomModal>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -180,31 +243,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.white,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: AppColors.white,
+  },
   image: {
     width: '100%',
+    height: vs(150), // Adjust height
   },
   classInfoContainer: {
     position: 'absolute',
     top: vs(100),
     width: s(300),
-    height: s(300),
     borderRadius: s(30),
     backgroundColor: AppColors.white,
     alignSelf: 'center',
-
-    // iOS shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
-
-    // Android shadow
     elevation: 2,
   },
   courseUnEnrollIcon: {
     position: 'absolute',
-    top: s(-20),
+    top: s(-30),
     right: s(0),
+    zIndex: 1,
   },
   tagContainer: {
     flexDirection: 'row',

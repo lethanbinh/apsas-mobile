@@ -24,6 +24,7 @@ import {
   fetchClassList,
   fetchCourseById,
   fetchCourseElements,
+  fetchHoDList,
   fetchSemesterCourses,
   fetchSemesters,
   fetchStudentGroupList,
@@ -44,6 +45,8 @@ import { AppColors } from '../styles/color';
 import { globalStyles } from '../styles/shareStyles';
 import ClassCrudModal from '../components/modals/ClassCrudModal';
 import AssignRequestCrudModal from '../components/modals/AssignRequestCrudModal';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
 
 interface PlanCourse extends CourseData {
   semesterCourseId: string;
@@ -53,6 +56,10 @@ interface PlanCourse extends CourseData {
 const PublishPlansScreen = () => {
   const route = useRoute();
   const semesterId = (route.params as { semesterId?: string })?.semesterId;
+  const userAccountId = useSelector(
+    (state: RootState) => state.userSlice.profile?.id,
+  );
+
   const [planElements, setPlanElements] = useState<CourseElementData[]>([]); // State cho elements
   const [currentHodId, setCurrentHodId] = useState<string | null>(null); // State cho HoD ID
   const [isLoading, setIsLoading] = useState(true);
@@ -110,6 +117,7 @@ const PublishPlansScreen = () => {
         allClasses,
         allStudentGroups,
         allAssignRequests,
+        allHoDs,
       ] = await Promise.all([
         fetchSemesters(),
         fetchSemesterCourses(),
@@ -117,6 +125,7 @@ const PublishPlansScreen = () => {
         fetchClassList(),
         fetchStudentGroupList(),
         fetchAssignRequestList(),
+        fetchHoDList(),
       ]);
 
       const currentSemester = allSemesters.find(sem => sem.id === semesterId);
@@ -131,6 +140,15 @@ const PublishPlansScreen = () => {
         ...new Set(planSemesterCourses.map(sc => sc.courseId)),
       ];
 
+      const currentUserHod = allHoDs.find(
+        h => String(h.accountId) === String(userAccountId),
+      );
+      if (currentUserHod) {
+        setCurrentHodId(currentUserHod.hoDId); // Lưu HOD ID (ví dụ: "1")
+      } else {
+        throw new Error('Current user is not a registered HOD.');
+      }
+
       const courseDetailsPromises = uniqueCourseIds.map(id =>
         fetchCourseById(id).catch(e => null),
       );
@@ -142,6 +160,7 @@ const PublishPlansScreen = () => {
       const planElements = allElements.filter(el =>
         planSemesterCourseIds.includes(el.semesterCourseId),
       );
+      setPlanElements(planElements);
 
       const combinedData: PlanCourse[] = courseDetailsResults.map(course => {
         const relevantSemesterCourse = planSemesterCourses.find(
@@ -173,7 +192,6 @@ const PublishPlansScreen = () => {
         planClassIds.includes(sg.classId),
       );
       setStudentGroups(planStudents);
-
       const planElementIds = planElements.map(el => el.id.toString());
 
       const planAssignRequests = allAssignRequests.filter(req =>
@@ -699,7 +717,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlignVertical: 'center',
     color: AppColors.n800,
-    alignItems: 'center', // Align text center vertically
+    alignItems: 'center',
   },
   headerText: {
     fontWeight: 'bold',

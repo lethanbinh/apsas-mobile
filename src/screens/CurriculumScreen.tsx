@@ -1,17 +1,64 @@
-import React from 'react';
-import { StyleSheet, PermissionsAndroid, Platform, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  StyleSheet,
+  PermissionsAndroid,
+  Platform,
+  Alert,
+  View,
+  ActivityIndicator,
+} from 'react-native';
 import ScreenHeader from '../components/common/ScreenHeader';
 import CurriculumList from '../components/courses/CurriculumList';
 import AppSafeView from '../components/views/AppSafeView';
-import { AssignmentList, PEList, SyllabusList } from '../data/coursesData';
 import ReactNativeBlobUtil from 'react-native-blob-util';
+import { useRoute } from '@react-navigation/native';
+import { fetchCourseElements, CourseElementData } from '../api/semester';
+import { showErrorToast } from '../components/toasts/AppToast';
+import { DownloadIcon, ViewIcon } from '../assets/icons/courses'; // Import Icon
+import AppText from '../components/texts/AppText';
+import { AppColors } from '../styles/color';
 
 const CurriculumScreen = () => {
+  const route = useRoute();
+  const semesterCourseId = (route.params as { semesterCourseId?: string })
+    ?.semesterCourseId;
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [courseElements, setCourseElements] = useState<CourseElementData[]>([]);
+
+  useEffect(() => {
+    if (!semesterCourseId) {
+      showErrorToast('Error', 'No Semester Course ID provided.');
+      setIsLoading(false);
+      return;
+    }
+
+    const loadElements = async () => {
+      setIsLoading(true);
+      try {
+        const allElements = await fetchCourseElements();
+        console.log(allElements, semesterCourseId);
+        const relevantElements = allElements.filter(
+          el => el.semesterCourseId.toString() === semesterCourseId,
+        );
+        setCourseElements(relevantElements);
+      } catch (error: any) {
+        showErrorToast('Error', 'Failed to load curriculum elements.');
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadElements();
+  }, [semesterCourseId]);
+
   const requestStoragePermission = async () => {
     if (Platform.OS !== 'android') return true;
     try {
       const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+        // Sửa: Dùng WRITE_EXTERNAL_STORAGE (mặc dù READ có thể đủ cho một số trường hợp)
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
         {
           title: 'Storage Permission Required',
           message: 'This app needs access to your storage to download files.',
@@ -35,6 +82,7 @@ const CurriculumScreen = () => {
       return;
     }
     const sampleFileUrl =
+      fileUrl ||
       'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
     const { dirs } = ReactNativeBlobUtil.fs;
     const dirToSave =
@@ -70,28 +118,86 @@ const CurriculumScreen = () => {
       });
   };
 
-  // 4. Gắn hàm download vào dữ liệu SyllabusList
-  const syllabusWithActions = SyllabusList.map(item => ({
-    ...item,
-    // Ghi đè hàm onAction để gọi handleDownload
-    onAction: () => handleDownload(item.linkFile, item.linkFile),
-  }));
+  // Map dữ liệu fetch được sang định dạng sections
+  const assignments = courseElements
+    .filter(el => el.name.toLowerCase().includes('assignment'))
+    .map((item, index) => ({
+      id: item.id,
+      number: `0${index + 1}`,
+      title: item.name,
+      linkFile: item.description,
+      rightIcon: ViewIcon,
+      detailNavigation: 'AssignmentDetailScreen', // Điều hướng đến trang của học sinh
+      onAction: () => {
+        console.log('Navigate to AssignmentDetailScreen with ID:', item.id);
+      },
+    }));
 
-  // 5. Sử dụng dữ liệu đã được cập nhật
+  const practicalExams = courseElements
+    .filter(
+      el =>
+        el.name.toLowerCase().includes('pe') ||
+        el.name.toLowerCase().includes('exam'),
+    )
+    .map((item, index) => ({
+      id: item.id,
+      number: `0${index + 1}`,
+      title: item.name,
+      linkFile: item.description,
+      rightIcon: ViewIcon,
+      detailNavigation: 'AssignmentDetailScreen',
+      onAction: () => {
+        console.log('Navigate to PracticalExamDetailScreen with ID:', item.id);
+      },
+    }));
+
   const sections = [
-    { title: 'Slides', data: syllabusWithActions },
-    { title: 'Assignments', data: AssignmentList },
-    { title: 'PE', data: PEList },
+    { title: 'Assignments', data: assignments },
+    { title: 'PE', data: practicalExams },
   ];
 
+  if (isLoading) {
+    return (
+      <AppSafeView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </AppSafeView>
+    );
+  }
+
   return (
-    <AppSafeView>
+    <AppSafeView style={styles.container}>
       <ScreenHeader title="Curriculum" />
-      <CurriculumList sections={sections} scrollEnabled={true} />
+      {courseElements.length > 0 || syllabusWithActions.length > 0 ? (
+        <CurriculumList
+          sections={sections.filter(sec => sec.data.length > 0)}
+          scrollEnabled={true}
+        />
+      ) : (
+        <View style={styles.loadingContainer}>
+          <AppText style={styles.emptyText}>
+            No curriculum elements found for this class.
+          </AppText>
+        </View>
+      )}
     </AppSafeView>
   );
 };
 
 export default CurriculumScreen;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: AppColors.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: AppColors.white,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: AppColors.n500,
+  },
+});

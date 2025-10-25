@@ -1,7 +1,5 @@
 import { ApiService, ApiResponse } from '../utils/ApiService';
-import { AccountData } from './account';
 
-// --- EXISTING INTERFACES ---
 export interface SemesterData {
   id: string;
   semesterCode: string;
@@ -182,13 +180,32 @@ export const fetchCourseById = async (
 
 export const fetchCourseElements = async (): Promise<CourseElementData[]> => {
   try {
-    const response = await ApiService.get<CourseElementData[]>('/api/courseElements?pageNumber=1&pageSize=5000');
+    const response = await ApiService.get<CourseElementData[]>(
+      '/api/courseElements?pageNumber=1&pageSize=5000',
+    );
     if (response.result) {
       return response.result;
     }
     throw new Error('No course elements data found.');
   } catch (error: any) {
     console.error('Failed to fetch course elements:', error);
+    throw error;
+  }
+};
+
+export const fetchCourseElementById = async (
+  elementId: string,
+): Promise<CourseElementData> => {
+  try {
+    const response = await ApiService.get<CourseElementData>(
+      `/api/CourseElements/${elementId}`,
+    );
+    if (response.result) {
+      return response.result;
+    }
+    throw new Error(`Course element data not found for ID ${elementId}.`);
+  } catch (error: any) {
+    console.error(`Failed to fetch course element ${elementId}:`, error);
     throw error;
   }
 };
@@ -341,33 +358,63 @@ export const deleteClass = async (
   return ApiService.delete(`/api/Class/${classId}`);
 };
 export interface AssignRequestCreatePayload {
-    message: string | null;
-    courseElementId: string | number;
-    assignedLecturerId: string | number;
-    assignedByHODId: string | number;
+  message: string | null;
+  courseElementId: string | number;
+  assignedLecturerId: string | number;
+  assignedByHODId: string | number;
 }
 
 export interface AssignRequestUpdatePayload {
-    message: string | null;
-    assignedLecturerId: string | number;
+  message: string | null;
+  assignedLecturerId: string | number;
 }
 
 // --- NEW ASSIGN REQUEST CRUD FUNCTIONS ---
 export const createAssignRequest = async (
-    data: AssignRequestCreatePayload
+  data: AssignRequestCreatePayload,
 ): Promise<ApiResponse<AssignRequestData>> => {
-    return ApiService.post<AssignRequestData>('/api/AssignRequest/create', data);
+  return ApiService.post<AssignRequestData>('/api/AssignRequest/create', data);
 };
 
 export const updateAssignRequest = async (
-    assignRequestId: string | number,
-    data: AssignRequestUpdatePayload
+  assignRequestId: string | number,
+  data: AssignRequestUpdatePayload,
 ): Promise<ApiResponse<any>> => {
-    return ApiService.put(`/api/AssignRequest/${assignRequestId}`, data);
+  return ApiService.put(`/api/AssignRequest/${assignRequestId}`, data);
 };
 
 export const deleteAssignRequest = async (
-    assignRequestId: string | number
+  assignRequestId: string | number,
 ): Promise<ApiResponse<any>> => {
-    return ApiService.delete(`/api/AssignRequest/${assignRequestId}`);
+  return ApiService.delete(`/api/AssignRequest/${assignRequestId}`);
+};
+
+export interface LecturerListData {
+  accountId: number;
+  lecturerId: string; // Đây là ID ("1", "2")
+  accountCode: string;
+  username: string;
+  email: string;
+  phoneNumber: string | null;
+  fullName: string | null;
+  avatar: string | null;
+  address: string | null;
+  gender: number | null;
+  dateOfBirth: string | null;
+  role: number;
+  department: string;
+  specialization: string;
+}
+
+export const fetchLecturerList = async (): Promise<LecturerListData[]> => {
+  try {
+    const response = await ApiService.get<LecturerListData[]>(
+      '/api/Lecturer/list',
+    );
+    if (response.result) return response.result;
+    throw new Error('No Lecturer list data found.');
+  } catch (error: any) {
+    console.error('Failed to fetch Lecturer list:', error);
+    throw error;
+  }
 };

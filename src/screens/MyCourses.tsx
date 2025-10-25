@@ -9,8 +9,9 @@ import { CourseItemProps } from '../components/courses/CourseItem';
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
 import { showErrorToast } from '../components/toasts/AppToast';
-import { ClassData, fetchClassList } from '../api/class'; // Assuming API fetch function
+import { ClassData, fetchClassList } from '../api/class';
 import SemesterFilterModal from '../components/courses/SemesterFilterModal';
+import { useNavigation } from '@react-navigation/native'; // Import useNavigation
 
 const sampleCourses = [
   { image: require('../assets/images/course1.png'), color: AppColors.pr100 },
@@ -20,6 +21,7 @@ const sampleCourses = [
 
 const mapApiDataToMyCourseItemProps = (
   apiData: ClassData[],
+  navigation: any, // Nhận navigation
 ): CourseItemProps[] => {
   return apiData.map((item, index) => {
     const sampleIndex = index % sampleCourses.length;
@@ -34,14 +36,15 @@ const mapApiDataToMyCourseItemProps = (
         color: randomSample.color,
       },
       onPress: () => {
-        console.log('My Class pressed:', item.id);
+        navigation.navigate('CourseDetailScreen', { classId: item.id });
       },
-      isMyCourse: true, // Set this prop to true
+      isMyCourse: true,
     };
   });
 };
 
 const MyCoursesScreen = () => {
+  const navigation = useNavigation<any>(); // Khởi tạo navigation
   const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
   const [allApiData, setAllApiData] = useState<ClassData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,9 +56,7 @@ const MyCoursesScreen = () => {
     const loadMyClasses = async () => {
       setIsLoading(true);
       try {
-        // NOTE: You might need a DIFFERENT API endpoint for "My Classes"
-        // Using fetchClassList for now as an example
-        const apiData = await fetchClassList(); // Replace if needed
+        const apiData = await fetchClassList();
         setAllApiData(apiData);
 
         const uniqueSemesters = [
@@ -75,8 +76,8 @@ const MyCoursesScreen = () => {
     const filteredApiData = selectedSemester
       ? allApiData.filter(item => item.semesterName === selectedSemester)
       : allApiData;
-    return mapApiDataToMyCourseItemProps(filteredApiData); // Use the correct mapping function
-  }, [allApiData, selectedSemester]);
+    return mapApiDataToMyCourseItemProps(filteredApiData, navigation);
+  }, [allApiData, selectedSemester, navigation]); // Thêm navigation vào dependencies
 
   const handleChooseSemester = () => {
     setIsSemesterModalVisible(true);
@@ -99,7 +100,7 @@ const MyCoursesScreen = () => {
       <AppHeader onSearch={handleOpenSearch} />
 
       <SectionHeader
-        title="My Classes" // Changed title
+        title="My Classes"
         buttonText={selectedSemester ?? 'Choose semester'}
         onPress={handleChooseSemester}
         style={{
@@ -112,7 +113,7 @@ const MyCoursesScreen = () => {
       {isLoading ? (
         <ActivityIndicator size="large" style={{ flex: 1 }} />
       ) : (
-        <CourseList items={filteredAndMappedList} /> // Display the grid
+        <CourseList items={filteredAndMappedList} />
       )}
 
       <SearchModal visible={isSearchModalVisible} onClose={handleCloseSearch} />

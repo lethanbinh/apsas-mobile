@@ -1,19 +1,29 @@
 import { yupResolver } from '@hookform/resolvers/yup';
-import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
+  ActivityIndicator,
   Image,
   StyleSheet,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import {
   ImageLibraryOptions,
-  launchImageLibrary,
+  launchImageLibrary
 } from 'react-native-image-picker';
 import { s, vs } from 'react-native-size-matters';
+import { useDispatch, useSelector } from 'react-redux';
 import * as yup from 'yup';
+import {
+  GenderIdToNameMap,
+  GenderMap,
+  getAccountById,
+  RoleNameToIdMap,
+  updateAccount,
+  uploadAvatar,
+} from '../../api/account';
 import {
   EmailInputIcon,
   ImageUploadIcon,
@@ -24,24 +34,16 @@ import {
   UploadProfileIcon,
   UserIcon,
 } from '../../assets/icons/input-icon';
+import { clearUser } from '../../store/slices/userSlice';
+import { RootState } from '../../store/store';
 import { AppColors } from '../../styles/color';
+import { SecureStorage } from '../../utils/SecureStorage';
 import AppButton from '../buttons/AppButton';
 import AppTextInput from '../inputs/AppTextInput';
 import AppTextInputController from '../inputs/AppTextInputController';
 import RadioWithTitle from '../inputs/RadioWithTitle';
 import CustomModal from '../modals/CustomModal';
 import AppText from '../texts/AppText';
-import { SecureStorage } from '../../utils/SecureStorage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useDispatch, useSelector } from 'react-redux';
-import { clearUser } from '../../store/slices/userSlice';
-import { RootState } from '../../store/store';
-import {
-  getAccountById,
-  updateAccount,
-  GenderMap,
-  GenderIdToNameMap,
-} from '../../api/account';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 
 const GENDER_OPTIONS = ['Male', 'Female'];
@@ -73,12 +75,20 @@ const schema = yup.object({
 
 type FormData = yup.InferType<typeof schema>;
 
+// Store the selected file object from image picker
+type SelectedFile = {
+  uri: string;
+  name: string;
+  type: string;
+} | null;
+
 const ProfileForm = () => {
   const [selectedGender, setSelectedGender] = useState<string>('Male');
   const [uploadAvatarModal, setUploadAvatarModal] = useState<boolean>(false);
   const [logoutModal, setLogoutModal] = useState<boolean>(false);
-  const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [tempAvatarUri, setTempAvatarUri] = useState<string | null>(null);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null); // The *current* saved avatar URL
+  const [tempFile, setTempFile] = useState<SelectedFile>(null); // The *newly picked* file
+  const [isUploading, setIsUploading] = useState(false); // Loading for avatar upload
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [accountCode, setAccountCode] = useState<string>('');
@@ -86,7 +96,7 @@ const ProfileForm = () => {
   const dispatch = useDispatch();
   const userProfile = useSelector(
     (state: RootState) => state.userSlice.profile,
-  ); // Corrected state access
+  );
   const userId = userProfile?.id;
 
   const { control, handleSubmit, reset } = useForm<FormData>({
@@ -119,7 +129,7 @@ const ProfileForm = () => {
             ? GenderIdToNameMap[data.gender] || 'Others'
             : 'Others',
         );
-        setAvatarUri(data.avatar);
+        setAvatarUri(data.avatar); // Set initial avatar
       } catch (error: any) {
         showErrorToast('Error', 'Failed to load profile data.');
       } finally {
@@ -144,17 +154,39 @@ const ProfileForm = () => {
         showErrorToast('Error', response.errorMessage || 'Image picker error');
         return;
       }
-      const uri = response.assets?.[0]?.uri;
-      if (uri) {
-        setTempAvatarUri(uri);
+      const asset = response.assets?.[0];
+      if (asset && asset.uri && asset.fileName && asset.type) {
+        setTempFile({
+          // Store the full file object
+          uri: asset.uri,
+          name: asset.fileName,
+          type: asset.type,
+        });
       }
     });
   };
 
-  const handleSaveAvatar = () => {
-    setAvatarUri(tempAvatarUri);
-    setUploadAvatarModal(false);
-    // API call to update avatar should happen here or in handleSaveProfile
+  const handleSaveAvatar = async () => {
+    if (!tempFile) {
+      showErrorToast('Error', 'No new image selected.');
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const newUrl = await uploadAvatar(tempFile);
+      setAvatarUri(newUrl);
+      setUploadAvatarModal(false);
+      setTempFile(null);
+      showSuccessToast(
+        'Success',
+        'Avatar updated. Save profile to make it permanent.',
+      );
+    } catch (error: any) {
+      showErrorToast('Upload Failed', error.message);
+    } finally {
+      setIsUploading(false);
+      setUploadAvatarModal(false);
+    }
   };
 
   const handleSaveProfile = async (formData: FormData) => {
@@ -165,13 +197,32 @@ const ProfileForm = () => {
     setIsSaving(true);
     try {
       const genderValue = GenderMap[selectedGender];
+
+      const roleId =
+        userProfile?.role
+          ? RoleNameToIdMap[
+              Array.isArray(userProfile.role)
+                ? userProfile.role[0]
+                : userProfile.role
+            ]
+          : undefined;
+
+      if (roleId === null || roleId === undefined) {
+        throw new Error('User role is unknown.');
+      }
+
       const updateData = {
         email: formData.email,
         fullName: formData.fullName,
         phoneNumber: formData.phoneNumber,
         gender: genderValue,
-        avatar: avatarUri, // Send the current/updated avatar URI
+        avatar: avatarUri, // Send the new (or existing) avatar URL
+        username: userProfile?.username, // Assuming username is needed but not editable
+        role: roleId,
+        dateOfBirth: userProfile?.dateOfBirth || null, // Send existing DoB
+        address: userProfile?.address || null, // Send existing Address
       };
+
       await updateAccount(userId, updateData);
       showSuccessToast('Success', 'Profile updated successfully.');
     } catch (error: any) {
@@ -200,7 +251,7 @@ const ProfileForm = () => {
         size="large"
         style={{ flex: 1, alignSelf: 'center' }}
       />
-    ); // Center loader
+    );
   }
 
   return (
@@ -209,7 +260,7 @@ const ProfileForm = () => {
         {avatarUri ? (
           <Image
             source={{ uri: avatarUri }}
-            style={{ width: 73, height: 73, borderRadius: 36.5 }} // Original inline style
+            style={{ width: 73, height: 73, borderRadius: 36.5 }}
           />
         ) : (
           <ProfileIcon />
@@ -217,7 +268,7 @@ const ProfileForm = () => {
         <TouchableOpacity
           style={styles.uploadWrapper}
           onPress={() => {
-            setTempAvatarUri(avatarUri);
+            setTempFile(null); // Reset temp file when opening
             setUploadAvatarModal(true);
           }}
         >
@@ -270,17 +321,17 @@ const ProfileForm = () => {
         </View>
 
         <AppTextInput
-          placeholder="Account Code" // Reverted placeholder
-          label="Account code" // Reverted label
+          placeholder="Account Code"
+          label="Account code"
           value={accountCode}
           editable={false}
         />
 
         <AppButton
           onPress={handleSubmit(handleSaveProfile)}
-          title="Save" // Reverted title
-          style={{ width: s(200), marginTop: vs(10), alignSelf: 'center' }} // Added alignSelf center
-          textVariant="label16pxRegular" // Reverted variant
+          title="Save"
+          style={{ width: s(200), marginTop: vs(10), alignSelf: 'center' }}
+          textVariant="label16pxRegular"
           loading={isSaving}
           disabled={isSaving}
         />
@@ -305,13 +356,13 @@ const ProfileForm = () => {
       >
         <View style={styles.modalContentCenter}>
           <TouchableOpacity
-            style={styles.imagePickerArea} // Reverted style
+            style={styles.imagePickerArea}
             onPress={handlePickImage}
           >
-            {tempAvatarUri ? (
+            {tempFile?.uri ? (
               <Image
-                source={{ uri: tempAvatarUri }}
-                style={{ width: 100, height: 100, borderRadius: 50 }} // Original inline style
+                source={{ uri: tempFile.uri }}
+                style={{ width: 100, height: 100, borderRadius: 50 }}
               />
             ) : (
               <ImageUploadIcon />
@@ -320,8 +371,9 @@ const ProfileForm = () => {
 
           <AppButton
             onPress={handleSaveAvatar}
-            style={{ width: s(120), marginTop: vs(20), alignSelf: 'center' }} // Added alignSelf center
-            title="Save" // Reverted title
+            style={{ width: s(120), marginTop: vs(20), alignSelf: 'center' }}
+            title="Save Avatar"
+            loading={isUploading}
           />
         </View>
       </CustomModal>
@@ -329,8 +381,8 @@ const ProfileForm = () => {
       <CustomModal
         visible={logoutModal}
         onClose={() => setLogoutModal(false)}
-        title="Are You Sure?" // Reverted title
-        description="Do you want to log out?" // Reverted description
+        title="Are You Sure?"
+        description="Do you want to log out?"
         icon={<QuestionMarkIcon />}
         disableScrollView={true}
       >
@@ -340,15 +392,15 @@ const ProfileForm = () => {
             variant="danger"
             onPress={handleLogout}
             textColor={AppColors.errorColor}
-            style={{ minWidth: 'auto', width: s(80) }} // Reverted style (auto not valid)
-            size="small" // Reverted size
+            style={{ minWidth: 'auto', width: s(80) }}
+            size="small"
           />
           <AppButton
             title="Cancel"
             onPress={() => setLogoutModal(false)}
-            style={{ minWidth: 'auto', width: s(80) }} // Reverted style (auto not valid)
-            size="small" // Reverted size
-            variant="primary" // Reverted variant
+            style={{ minWidth: 'auto', width: s(80) }}
+            size="small"
+            variant="primary"
           />
         </View>
       </CustomModal>
@@ -364,6 +416,8 @@ const styles = StyleSheet.create({
   },
   profileWrapper: {
     width: 73,
+    height: 73,
+    borderRadius: 36.5,
   },
   uploadWrapper: {
     position: 'absolute',
@@ -381,9 +435,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   imagePickerArea: {
-    width: s(100), // Original size
-    height: vs(100), // Original size
-    borderRadius: s(50), // Original radius
+    width: s(100),
+    height: vs(100),
+    borderRadius: s(50),
     backgroundColor: AppColors.n100,
     justifyContent: 'center',
     alignItems: 'center',
@@ -398,8 +452,8 @@ const styles = StyleSheet.create({
     marginTop: vs(20),
   },
   avatarImage: {
-    width: 73,
-    height: 73,
+    width: '100%', // Use 100% of wrapper
+    height: '100%',
     borderRadius: 36.5,
   },
   genderSection: {

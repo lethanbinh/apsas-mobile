@@ -36,9 +36,10 @@ export const useAuthInitializer = (): boolean => {
           if (decodedProfileData && decodedProfileData.nameid) {
             const userProfileForRedux = {
               id: decodedProfileData.nameid,
-              name: decodedProfileData.name,
+              name: decodedProfileData.fullName,
               email: decodedProfileData.email,
               role: decodedProfileData.role,
+              accountCode: decodedProfileData.accountCode,
             };
             dispatch(
               setUserAndToken({
