@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { s, vs } from 'react-native-size-matters';
+import { AppColors } from '../../styles/color';
 import AppText from '../texts/AppText';
 import CriteriaResultItem from './CriteriaResultItem';
-import { AppColors } from '../../styles/color';
-import { s, vs } from 'react-native-size-matters';
 const data = [
   {
     id: 1,

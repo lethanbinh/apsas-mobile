@@ -9,16 +9,16 @@ interface AppTextInputProps {
   value?: string;
   onChangeText?: (text: string) => void;
   placeholder?: string;
-  keyboardType?: TextInputProps['keyboardType']; // Use standard type
+  keyboardType?: TextInputProps['keyboardType'];
   style?: object;
-  secureTextEntry?: boolean; // Renamed for consistency
+  secureTextEntry?: boolean;
   label?: string;
   icon?: React.ReactNode;
   editable?: boolean;
   multiline?: boolean;
   numberOfLines?: number;
   searchType?: boolean;
-  autoCapitalize?: TextInputProps['autoCapitalize']; // Add autoCapitalize prop
+  autoCapitalize?: TextInputProps['autoCapitalize'];
 }
 
 const AppTextInput = ({
@@ -26,7 +26,7 @@ const AppTextInput = ({
   onChangeText,
   placeholder,
   keyboardType,
-  secureTextEntry, // Use renamed prop
+  secureTextEntry,
   style,
   label,
   icon,
@@ -34,7 +34,7 @@ const AppTextInput = ({
   multiline = false,
   numberOfLines = 4,
   searchType = false,
-  autoCapitalize = 'sentences', // Default to 'sentences'
+  autoCapitalize = 'sentences',
 }: AppTextInputProps) => {
   return (
     <View style={styles.container}>

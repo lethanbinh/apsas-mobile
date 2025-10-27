@@ -1,7 +1,7 @@
-import { StyleSheet, View } from 'react-native';
 import React from 'react';
-import AppText from '../texts/AppText';
+import { StyleSheet, View } from 'react-native';
 import { s } from 'react-native-size-matters';
+import AppText from '../texts/AppText';
 
 type FeedbackItemProps = {
   title: string;

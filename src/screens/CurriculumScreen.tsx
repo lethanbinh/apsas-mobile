@@ -12,11 +12,11 @@ import CurriculumList from '../components/courses/CurriculumList';
 import AppSafeView from '../components/views/AppSafeView';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import { useRoute } from '@react-navigation/native';
-import { fetchCourseElements, CourseElementData } from '../api/semester';
 import { showErrorToast } from '../components/toasts/AppToast';
 import { DownloadIcon, ViewIcon } from '../assets/icons/courses'; // Import Icon
 import AppText from '../components/texts/AppText';
 import { AppColors } from '../styles/color';
+import { fetchCourseElements } from '../api/courseElementService';
 
 const CurriculumScreen = () => {
   const route = useRoute();
@@ -167,7 +167,7 @@ const CurriculumScreen = () => {
   return (
     <AppSafeView style={styles.container}>
       <ScreenHeader title="Curriculum" />
-      {courseElements.length > 0 || syllabusWithActions.length > 0 ? (
+      {courseElements.length > 0 ? (
         <CurriculumList
           sections={sections.filter(sec => sec.data.length > 0)}
           scrollEnabled={true}

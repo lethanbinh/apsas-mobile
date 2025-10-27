@@ -6,8 +6,7 @@ export const useLoadSplashScreen = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 1000);
-
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
   return { isLoading };

@@ -4,13 +4,16 @@ import AppSafeView from '../components/views/AppSafeView';
 import ScreenHeader from '../components/common/ScreenHeader';
 import ParticipantItem from '../components/courses/ParticipantItem';
 import { useRoute } from '@react-navigation/native';
-import { fetchStudentGroupList, StudentGroupData } from '../api/semester'; // Import API
 import { showErrorToast } from '../components/toasts/AppToast';
 import { AppColors } from '../styles/color'; // Import AppColors
 import AppText from '../components/texts/AppText'; // Import AppText
 import dayjs from 'dayjs'; // Import dayjs
 import relativeTime from 'dayjs/plugin/relativeTime'; // Import relativeTime
 import { s, vs } from 'react-native-size-matters';
+import {
+  fetchStudentGroupList,
+  StudentGroupData,
+} from '../api/studentGroupService';
 dayjs.extend(relativeTime); // Extend dayjs
 const ParticipantsScreen = () => {
   const route = useRoute();

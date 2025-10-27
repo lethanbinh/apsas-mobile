@@ -172,7 +172,6 @@ const AssignmentCardInfo = ({
         </View>
       )}
 
-      {/* Date Picker */}
       <DateTimePickerModal
         isVisible={isDatePickerVisible}
         mode="date"

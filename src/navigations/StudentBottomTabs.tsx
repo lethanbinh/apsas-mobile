@@ -31,7 +31,7 @@ const StudentBottomTabs = () => {
         },
       }}
     >
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Home"
         component={HomeStackNavigator}
         options={{
@@ -40,15 +40,15 @@ const StudentBottomTabs = () => {
           ),
           tabBarLabel: 'Home',
         }}
-      />
+      /> */}
       <Tab.Screen
-        name="Courses"
+        name="My Classes"
         component={MyCourseStackNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Feather name="book" size={size} color={color} />
           ),
-          tabBarLabel: 'Courses',
+          tabBarLabel: 'My Classes',
         }}
       />
       <Tab.Screen

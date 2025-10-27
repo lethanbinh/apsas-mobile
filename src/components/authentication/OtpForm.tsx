@@ -1,4 +1,3 @@
-// Tên file: components/authentication/OtpForm.tsx
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
@@ -21,7 +20,6 @@ const schema = yup.object({
 });
 
 type FormData = yup.InferType<typeof schema>;
-
 interface OtpFormProps {
   email: string;
 }
@@ -55,13 +53,11 @@ const OtpForm = ({ email }: OtpFormProps) => {
           otp: formData.otp,
         });
       } else {
-        // This case might occur if isSuccess is true but verified is false (unlikely based on API docs)
         throw new Error(
           response.errorMessages?.join(', ') || 'OTP verification failed.',
         );
       }
     } catch (error: any) {
-      // Handles isSuccess: false (e.g., "Invalid OTP") and network errors
       showErrorToast(
         'OTP Incorrect',
         error.message || 'OTP verification failed, please try again!',
@@ -70,7 +66,6 @@ const OtpForm = ({ email }: OtpFormProps) => {
       setIsLoading(false);
     }
   };
-
   return (
     <View>
       <View style={styles.container}>

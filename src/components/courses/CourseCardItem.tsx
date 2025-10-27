@@ -21,7 +21,7 @@ interface CourseCardItemProps {
   hasTestCase?: boolean;
   onDownload?: () => void;
   style?: ViewStyle;
-  onPress?: () => void; // Thêm prop onPress mới
+  onPress?: () => void;
 }
 
 const CourseCardItem = ({
@@ -33,7 +33,7 @@ const CourseCardItem = ({
   hasTestCase = false,
   onDownload,
   style,
-  onPress, // Destructure prop mới
+  onPress,
 }: CourseCardItemProps) => {
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);

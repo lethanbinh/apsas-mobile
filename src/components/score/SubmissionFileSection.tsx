@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
-import { s } from 'react-native-size-matters';
-import AppText from '../texts/AppText';
-import { SubmissionIcon } from '../../assets/icons/icon';
 import { pick } from '@react-native-documents/picker';
+import React, { useState } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { s } from 'react-native-size-matters';
+import { SubmissionIcon } from '../../assets/icons/icon';
+import AppText from '../texts/AppText';
 
 type SubmissionFileSectionProps = {
   title?: string;
   onFilePicked: (file: { name: string; uri: string; type: string }) => void;
-  fileType?: 'zip' | 'excel'; // ✅ thêm loại file
+  fileType?: 'zip' | 'excel';
 };
 
 const SubmissionFileSection: React.FC<SubmissionFileSectionProps> = ({
   title = 'Add Zip File',
   onFilePicked,
-  fileType = 'zip', // ✅ mặc định zip
+  fileType = 'zip',
 }) => {
   const [fileName, setFileName] = useState<string | null>(null);
 
@@ -27,10 +27,9 @@ const SubmissionFileSection: React.FC<SubmissionFileSectionProps> = ({
       } else if (fileType === 'excel') {
         allowedTypes = [
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-          'application/vnd.ms-excel', // .xls
+          'application/vnd.ms-excel',
         ];
       }
-
       const result = await pick({
         type: allowedTypes,
       });

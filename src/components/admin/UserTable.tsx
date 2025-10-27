@@ -1,40 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
   FlatList,
   Image,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
-  ActivityIndicator,
+  View,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { AppColors } from '../../styles/color';
 import { AccountData, RoleMap } from '../../api/account';
+import { AppColors } from '../../styles/color';
 import AppButton from '../buttons/AppButton';
 
 interface UserTableProps {
-  isLoading: boolean; // Nhận isLoading từ component cha
-  data: AccountData[]; // Nhận data đã được lọc
+  isLoading: boolean;
+  data: AccountData[];
   onEdit: (user: AccountData) => void;
 }
 
 const UserTable = ({ isLoading, data, onEdit }: UserTableProps) => {
   const [page, setPage] = useState(1);
-  const pageSize = 10; // Giữ pageSize để phân trang
-  const total = data.length; // Tổng số item sau khi lọc
+  const pageSize = 10;
+  const total = data.length;
   const totalPages = Math.ceil(total / pageSize);
-
-  // Phân trang dữ liệu đã lọc
   const pagedData = data.slice((page - 1) * pageSize, page * pageSize);
-
-  // Reset về trang 1 khi data thay đổi
   useEffect(() => {
     setPage(1);
   }, [data]);
-
   const handleNext = () => {
     if (page < totalPages) setPage(prev => prev + 1);
   };
@@ -45,7 +39,6 @@ const UserTable = ({ isLoading, data, onEdit }: UserTableProps) => {
   const getStatus = (user: AccountData): 'Active' | 'Inactive' => {
     return 'Active';
   };
-
   const renderHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
       <Text style={[styles.headerText, styles.nameCol]}>Client Name</Text>

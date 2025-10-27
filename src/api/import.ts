@@ -31,7 +31,7 @@ export const importSemesterCourse = async (file: {
       },
       [
         {
-          name: 'file', // Must match API key
+          name: 'file',
           filename: file.name,
           type: file.type,
           data: RNBlobUtil.wrap(

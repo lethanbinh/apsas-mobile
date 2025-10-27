@@ -1,5 +1,3 @@
-// --- INTERFACES ---
-
 import { ApiResponse, ApiService } from '../utils/ApiService';
 
 export interface StudentGroupData {
@@ -19,13 +17,11 @@ export interface StudentGroupCreatePayload {
   classId: string | number;
   studentId: string | number;
   description: string | null;
-  enrollmentDate: string; // ISO String
+  enrollmentDate: string;
 }
 export interface StudentGroupUpdatePayload {
   description: string | null;
 }
-
-// --- FUNCTIONS ---
 
 export const fetchStudentGroupList = async (): Promise<StudentGroupData[]> => {
   try {

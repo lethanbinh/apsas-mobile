@@ -1,6 +1,6 @@
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react'; // Import useState
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
@@ -17,8 +17,7 @@ interface CreateNewPasswordFormProps {
 }
 
 const CreateNewPasswordForm = ({ email, otp }: CreateNewPasswordFormProps) => {
-  // Receive props
-  const navigation = useNavigation<any>(); // Use any or define types
+  const navigation = useNavigation<any>();
   type FormData = yup.InferType<typeof schema>;
 
   const schema = yup.object({
@@ -40,7 +39,7 @@ const CreateNewPasswordForm = ({ email, otp }: CreateNewPasswordFormProps) => {
     },
   });
 
-  const [isLoading, setIsLoading] = useState(false); // Add loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleCreateNewPassword = async (formData: FormData) => {
     setIsLoading(true);
@@ -68,7 +67,7 @@ const CreateNewPasswordForm = ({ email, otp }: CreateNewPasswordFormProps) => {
         name="password"
         control={control}
         placeholder="Enter password"
-        securityTextEntry
+        secureTextEntry
         label="Password"
         icon={<PasswordInputIcon />}
       />
@@ -78,7 +77,7 @@ const CreateNewPasswordForm = ({ email, otp }: CreateNewPasswordFormProps) => {
         name="retypePassword"
         control={control}
         placeholder="Retype Password"
-        securityTextEntry
+        secureTextEntry
         label="Retype Password" // Changed label
         icon={<PasswordInputIcon />}
       />

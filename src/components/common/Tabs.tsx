@@ -3,7 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { AppColors } from '../../styles/color';
 
-export type TabType = string; // cho phép linh hoạt
+export type TabType = string;
 
 interface TabItem {
   key: TabType;
@@ -13,7 +13,7 @@ interface TabItem {
 interface TabsProps {
   activeTab: TabType;
   onChange: (tab: TabType) => void;
-  tabs?: TabItem[]; // danh sách tab có thể truyền từ ngoài vào
+  tabs?: TabItem[];
 }
 
 const defaultTabs: TabItem[] = [

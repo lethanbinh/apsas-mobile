@@ -1,15 +1,15 @@
 import React from 'react';
 import {
+  ActivityIndicator,
   StyleSheet,
   TextStyle,
   TouchableOpacity,
-  ActivityIndicator, // Import ActivityIndicator
-  View,             // Import View for layout
+  View,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
-import AppText from '../texts/AppText';
 import { AppColors } from '../../styles/color';
 import { textStyles } from '../../styles/shareStyles';
+import AppText from '../texts/AppText';
 
 type TextVariant = keyof typeof textStyles;
 

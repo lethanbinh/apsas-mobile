@@ -25,8 +25,6 @@ export interface ClassCrudPayload {
   semesterCourseId: string | number;
 }
 
-// --- FUNCTIONS ---
-
 export const fetchClassList = async (): Promise<ClassData[]> => {
   try {
     const response = await ApiService.get<ClassData[]>('/api/Class/list');

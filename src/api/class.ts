@@ -1,5 +1,13 @@
 import { ApiService, ApiResponse } from '../utils/ApiService';
 
+export interface ClassResponse {
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  items: ClassData[];
+}
+
 export interface ClassData {
   id: string;
   classCode: string;
@@ -29,52 +37,52 @@ export interface SemesterData {
 }
 
 export interface ClassDetailLecturerAccount {
-  id: number;
-  accountCode: string;
-  username: string;
-  email: string;
-  phoneNumber: string;
-  fullName: string;
-  avatar: string;
+  id: number;
+  accountCode: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  fullName: string;
+  avatar: string;
 }
 
 export interface ClassDetailLecturer {
-  id: number;
-  department: string;
-  specialization: string;
-  account: ClassDetailLecturerAccount;
+  id: number;
+  department: string;
+  specialization: string;
+  account: ClassDetailLecturerAccount;
 }
 
 export interface ClassDetailStudentAccount {
-  id: number;
-  accountCode: string;
-  username: string;
-  email: string;
-  phoneNumber: string;
-  fullName: string;
-  avatar: string;
+  id: number;
+  accountCode: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  fullName: string;
+  avatar: string;
 }
 
 export interface ClassDetailStudent {
-  id: number;
-  account: ClassDetailStudentAccount;
-  enrollmentDate: string;
+  id: number;
+  account: ClassDetailStudentAccount;
+  enrollmentDate: string;
 }
 
 export interface ClassDetailData {
-  id: number;
-  classCode: string;
-  totalStudent: number;
-  description: string;
-  lecturer: ClassDetailLecturer;
-  students: ClassDetailStudent[];
+  id: number;
+  classCode: string;
+  totalStudent: number;
+  description: string;
+  lecturer: ClassDetailLecturer;
+  students: ClassDetailStudent[];
 }
 
 export const fetchClassList = async (): Promise<ClassData[]> => {
   try {
-    const response = await ApiService.get<ClassData[]>('/api/Class/list');
+    const response = await ApiService.get<ClassResponse>('/api/Class/list');
     if (response.result) {
-      return response.result;
+      return response.result.items;
     } else {
       throw new Error('No class list data found in the response result.');
     }
@@ -98,7 +106,6 @@ export const fetchSemesterList = async (): Promise<SemesterData[]> => {
   }
 };
 
-// --- Function Added ---
 export const fetchClassById = async (classId: string): Promise<ClassData> => {
   try {
     const response = await ApiService.get<ClassData>(`/api/Class/${classId}`);

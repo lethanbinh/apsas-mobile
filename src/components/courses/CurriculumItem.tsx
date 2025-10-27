@@ -4,7 +4,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import AppText from '../texts/AppText';
 export interface CurriculumItemProps {
-  id: number | string; // Sửa: Cho phép cả string (từ API)
+  id: number | string;
   number: string;
   title: string;
   linkFile: string;
@@ -13,7 +13,7 @@ export interface CurriculumItemProps {
   onAction: () => void;
 }
 const CurriculumItem = ({
-  id, // id này là elementId
+  id,
   number,
   title,
   linkFile,

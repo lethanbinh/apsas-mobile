@@ -118,6 +118,8 @@ const styles = StyleSheet.create({
   container: {
     width: s(140),
     borderRadius: s(10),
+    flexDirection: 'column',
+    minHeight: vs(200),
   },
   image: {
     width: '100%',
@@ -126,6 +128,8 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: s(10),
     paddingVertical: vs(15),
+    flex: 1,
+    justifyContent: 'space-between',
   },
   buttonContainer: {
     flexDirection: 'row',

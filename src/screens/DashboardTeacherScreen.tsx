@@ -1,13 +1,13 @@
-import { StyleSheet, Text, View, ScrollView, Dimensions } from 'react-native';
 import React from 'react';
-import AppSafeView from '../components/views/AppSafeView';
-import ScreenHeader from '../components/common/ScreenHeader';
-import { s, vs } from 'react-native-size-matters';
-import { AppColors } from '../styles/color';
+import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import AppText from '../components/texts/AppText';
-import SectionHeader from '../components/common/SectionHeader';
+import { s, vs } from 'react-native-size-matters';
 import { EditIcon, PassIcon } from '../assets/icons/icon';
+import ScreenHeader from '../components/common/ScreenHeader';
+import SectionHeader from '../components/common/SectionHeader';
+import AppText from '../components/texts/AppText';
+import AppSafeView from '../components/views/AppSafeView';
+import { AppColors } from '../styles/color';
 
 const screenWidth = Dimensions.get('window').width;
 

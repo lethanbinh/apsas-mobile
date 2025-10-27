@@ -5,8 +5,8 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Platform, // Import Platform
-  PermissionsAndroid, // Import PermissionsAndroid
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -24,9 +24,9 @@ import {
   GenderIdToNameMap,
 } from '../../api/account';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
-import _debounce from 'lodash/debounce'; // Import debounce
-import * as XLSX from 'xlsx'; // Import xlsx
-import RNBlobUtil from 'react-native-blob-util'; // Import blob-util
+import _debounce from 'lodash/debounce';
+import * as XLSX from 'xlsx';
+import RNBlobUtil from 'react-native-blob-util';
 import AddEditUserModal from '../modals/AddEditUserModal';
 import dayjs from 'dayjs';
 const ManageUserList = () => {

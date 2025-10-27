@@ -1,17 +1,40 @@
 import { ApiResponse, ApiService } from '../utils/ApiService';
 
+interface CourseDetail {
+  id: number;
+  name: string;
+  code: string;
+  description: string;
+}
+
+interface SemesterDetail {
+  id: number;
+  semesterCode: string;
+  academicYear: number;
+  startDate: string;
+  endDate: string;
+}
+
+interface SemesterCourseDetail {
+  id: number;
+  semesterId: number;
+  courseId: number;
+  createdByHODAccountCode: string;
+  course: CourseDetail;
+  semester: SemesterDetail;
+}
+
 export interface CourseElementData {
-  id: string;
+  id: number;
   name: string;
   description: string;
   weight: number;
-  semesterCourseId: string;
+  semesterCourseId: number;
   createdAt: string;
   updatedAt: string;
+  semesterCourse?: SemesterCourseDetail;
 }
 
-// Ghi chú: PlanDetailCourseElement là một type cũ, có vẻ đã được thay thế
-// bằng CourseElementData trong response PlanDetail mới.
 export interface PlanDetailCourseElement {
   id: string;
   name: string;
@@ -26,12 +49,10 @@ export interface CourseElementCrudPayload {
   semesterCourseId: string | number;
 }
 
-// --- FUNCTIONS ---
-
 export const fetchCourseElements = async (): Promise<CourseElementData[]> => {
   try {
     const response = await ApiService.get<CourseElementData[]>(
-      '/api/courseElements?pageNumber=1&pageSize=5000',
+      '/api/CourseElements?pageNumber=1&pageSize=5000', // Đảm bảo URL chính xác
     );
     if (response.result) {
       return response.result;
@@ -63,14 +84,28 @@ export const fetchCourseElementById = async (
 export const createCourseElement = async (
   data: CourseElementCrudPayload,
 ): Promise<ApiResponse<CourseElementData>> => {
-  return ApiService.post<CourseElementData>('/api/CourseElements', data);
+  const payloadToSend = {
+    ...data,
+    weight: data.weight / 100,
+  };
+  return ApiService.post<CourseElementData>(
+    '/api/CourseElements',
+    payloadToSend,
+  );
 };
 
 export const updateCourseElement = async (
   courseElementId: string | number,
   data: CourseElementCrudPayload,
 ): Promise<ApiResponse<any>> => {
-  return ApiService.put(`/api/CourseElements/${courseElementId}`, data);
+  const payloadToSend = {
+    ...data,
+    weight: data.weight / 100,
+  };
+  return ApiService.put(
+    `/api/CourseElements/${courseElementId}`,
+    payloadToSend,
+  );
 };
 
 export const deleteCourseElement = async (

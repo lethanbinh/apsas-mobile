@@ -1,5 +1,3 @@
-// --- INTERFACES ---
-
 import { ApiResponse, ApiService } from '../utils/ApiService';
 import { ClassDetailData } from './class';
 import { CourseElementData } from './courseElementService';
@@ -22,9 +20,6 @@ export interface SemesterCourseData {
   createdAt: string;
   updatedAt: string;
 }
-
-// --- INTERFACES CHO PLAN DETAIL ---
-// (Tất cả các type PlanDetail... đều thuộc về response của fetchSemesterPlanDetail)
 
 export interface PlanDetailStudentAccount {
   id: number;
@@ -79,7 +74,7 @@ export interface PlanDetailAssignRequest {
   createdAt: string;
   updatedAt: string;
   lecturer: PlanDetailLecturer;
-  courseElement: CourseElementData; // Sử dụng type đã import
+  courseElement: CourseElementData;
 }
 
 export interface PlanDetailSemesterCourse {
@@ -106,8 +101,6 @@ export interface PlanDetailResult {
   updatedAt: string;
   semesterCourses: PlanDetailSemesterCourse[];
 }
-
-// --- FUNCTIONS ---
 
 export const fetchSemesters = async (): Promise<SemesterData[]> => {
   try {

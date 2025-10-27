@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, View, TouchableOpacity, FlatList } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
-import AppText from '../texts/AppText'; // Adjust path
-import { AppColors } from '../../styles/color'; // Adjust path
-import AppButton from '../buttons/AppButton'; // Adjust path
+import AppText from '../texts/AppText';
+import { AppColors } from '../../styles/color';
+import AppButton from '../buttons/AppButton';
 import CustomModal from '../modals/CustomModal';
 
 interface SemesterFilterModalProps {

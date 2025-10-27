@@ -1,12 +1,12 @@
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { s, vs } from 'react-native-size-matters';
+import { vs } from 'react-native-size-matters';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { NavigationIcon } from '../../assets/icons/courses';
 import { TestCaseIcon } from '../../assets/icons/icon';
 import { AppColors } from '../../styles/color';
-import AppText from '../texts/AppText';
 import CourseCardItem from '../courses/CourseCardItem';
+import AppText from '../texts/AppText';
 
 interface QuestionAccordionProps {
   title: string;
@@ -14,8 +14,8 @@ interface QuestionAccordionProps {
   imageUrl: ImageSourcePropType;
   isExpanded: boolean;
   onPress: () => void;
-  onCriteriaPress?: () => void; // Prop này giờ là tùy chọn
-  showCriteria?: boolean; // << THÊM PROP MỚI
+  onCriteriaPress?: () => void;
+  showCriteria?: boolean;
 }
 
 const QuestionAccordion = ({
@@ -25,7 +25,7 @@ const QuestionAccordion = ({
   isExpanded,
   onPress,
   onCriteriaPress,
-  showCriteria = true, // << GIÁ TRỊ MẶC ĐỊNH LÀ TRUE
+  showCriteria = true,
 }: QuestionAccordionProps) => {
   return (
     <View style={styles.container}>

@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Portal } from 'react-native-paper';
 import { s, vs } from 'react-native-size-matters';
-import AppText from '../texts/AppText'; // Adjust path if needed
+import AppText from '../texts/AppText';
 
 interface CustomModalProps {
   visible: boolean;
@@ -18,7 +18,7 @@ interface CustomModalProps {
   description?: string;
   children?: ReactNode;
   icon?: ReactNode;
-  disableScrollView?: boolean; // Prop mới
+  disableScrollView?: boolean;
 }
 
 const CustomModal: React.FC<CustomModalProps> = ({
@@ -28,11 +28,9 @@ const CustomModal: React.FC<CustomModalProps> = ({
   description,
   children,
   icon,
-  disableScrollView = false, // Giá trị mặc định
+  disableScrollView = false,
 }) => {
   if (!visible) return null;
-
-  // Nội dung bên trong Modal, giữ nguyên cấu trúc cũ
   const modalInnerContent = (
     <>
       <View

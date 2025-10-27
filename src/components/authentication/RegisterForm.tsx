@@ -75,7 +75,7 @@ const RegisterForm = () => {
         name="password"
         control={control}
         placeholder="Enter password"
-        securityTextEntry
+        secureTextEntry
         label="Password"
         icon={<PasswordInputIcon />}
       />
@@ -84,7 +84,7 @@ const RegisterForm = () => {
         name="retypePassword"
         control={control}
         placeholder="Retype password"
-        securityTextEntry
+        secureTextEntry
         label="Retype Password"
         icon={<PasswordInputIcon />}
       />
@@ -122,9 +122,7 @@ const RegisterForm = () => {
     </View>
   );
 };
-
 export default RegisterForm;
-
 const styles = StyleSheet.create({
   container: {
     marginTop: vs(20),

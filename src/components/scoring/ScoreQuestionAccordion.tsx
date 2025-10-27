@@ -1,4 +1,3 @@
-// --- Mã đầy đủ cho file này ---
 import React, { useState } from 'react';
 import { Control } from 'react-hook-form';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';

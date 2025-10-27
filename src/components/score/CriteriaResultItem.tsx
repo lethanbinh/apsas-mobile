@@ -1,8 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { s, vs } from 'react-native-size-matters';
 import { CriteriaGradeIcon } from '../../assets/icons/icon';
 import AppText from '../texts/AppText';
-import { s, vs } from 'react-native-size-matters';
 
 interface CriteriaResultItemProps {
   title: string;

@@ -13,7 +13,7 @@ interface CriteriaAccordionProps {
   criteriaIndex: number;
   isExpanded: boolean;
   onToggle: () => void;
-  editable?: boolean; // << THÊM PROP MỚI
+  editable?: boolean;
 }
 
 const CriteriaAccordion = ({
@@ -22,7 +22,7 @@ const CriteriaAccordion = ({
   criteriaIndex,
   isExpanded,
   onToggle,
-  editable = true, // << GIÁ TRỊ MẶC ĐỊNH
+  editable = true,
 }: CriteriaAccordionProps) => {
   return (
     <View style={styles.container}>
@@ -42,7 +42,7 @@ const CriteriaAccordion = ({
             label="Score"
             placeholder="2"
             keyboardType="numeric"
-            editable={editable} // << SỬ DỤNG PROP
+            editable={editable}
           />
           <AppTextInputController
             control={control}
@@ -51,7 +51,7 @@ const CriteriaAccordion = ({
             placeholder="Lorem ipsum dolor sit amet..."
             multiline
             numberOfLines={4}
-            editable={editable} // << SỬ DỤNG PROP
+            editable={editable}
           />
         </View>
       )}
@@ -59,7 +59,6 @@ const CriteriaAccordion = ({
   );
 };
 
-// ... styles không đổi
 const styles = StyleSheet.create({
     container: {
       marginBottom: vs(10),

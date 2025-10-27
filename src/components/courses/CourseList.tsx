@@ -1,6 +1,6 @@
 import React from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
-import { s, vs } from 'react-native-size-matters'; // Import vs
+import { s, vs } from 'react-native-size-matters';
 import CourseItem, { CourseItemProps } from './CourseItem';
 
 export interface CourseListProps {

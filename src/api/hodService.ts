@@ -1,5 +1,3 @@
-// --- INTERFACES ---
-
 import { ApiService } from '../utils/ApiService';
 
 export interface HoDData {
@@ -21,8 +19,6 @@ export interface HoDListData {
   dateOfBirth: string | null;
   role: number;
 }
-
-// --- FUNCTIONS ---
 
 export const fetchHoDDetails = async (hodId: string): Promise<HoDData> => {
   try {

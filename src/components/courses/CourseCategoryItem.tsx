@@ -1,9 +1,9 @@
-import React, { ReactNode } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { s, vs } from 'react-native-size-matters';
-import AppText from '../texts/AppText';
-import { SvgProps } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
+import React from 'react';
+import { StyleSheet, TouchableOpacity } from 'react-native';
+import { s, vs } from 'react-native-size-matters';
+import { SvgProps } from 'react-native-svg';
+import AppText from '../texts/AppText';
 
 interface CourseCategoryItemProps {
   item: {

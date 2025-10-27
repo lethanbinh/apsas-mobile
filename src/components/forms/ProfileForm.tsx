@@ -74,8 +74,6 @@ const schema = yup.object({
 });
 
 type FormData = yup.InferType<typeof schema>;
-
-// Store the selected file object from image picker
 type SelectedFile = {
   uri: string;
   name: string;

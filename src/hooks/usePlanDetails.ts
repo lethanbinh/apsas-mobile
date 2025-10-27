@@ -7,7 +7,7 @@ import {
   PlanDetailAssignRequest,
   PlanDetailCourse,
   PlanDetailResult,
-} from '../api/semesterService'; // Sửa import
+} from '../api/semesterService';
 import {
   fetchStudentGroupList,
   StudentGroupData,

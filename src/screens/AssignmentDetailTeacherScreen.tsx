@@ -14,11 +14,11 @@ import { DocumentList, SubmissionList } from '../data/coursesData';
 import { AppColors } from '../styles/color';
 import AppSafeView from '../components/views/AppSafeView'; // Import AppSafeView
 import ScreenHeader from '../components/common/ScreenHeader'; // Import ScreenHeader
-import { fetchCourseElementById, CourseElementData } from '../api/semester'; // Import API
 import { showErrorToast } from '../components/toasts/AppToast'; // Import toast
 import { useSelector } from 'react-redux'; // Import useSelector
 import { RootState } from '../store/store'; // Import RootState
 import AppText from '../components/texts/AppText'; // Import AppText
+import { CourseElementData, fetchCourseElementById } from '../api/courseElementService';
 
 const sections = [
   { title: 'Documents', data: DocumentList },
@@ -80,8 +80,7 @@ const AssignmentDetailTeacherScreen = () => {
   }
 
   return (
-    <AppSafeView style={styles.container}>
-      <ScreenHeader title={elementData.name} />
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         nestedScrollEnabled
@@ -117,7 +116,7 @@ const AssignmentDetailTeacherScreen = () => {
           />
         </View>
       </ScrollView>
-    </AppSafeView>
+    </View>
   );
 };
 
