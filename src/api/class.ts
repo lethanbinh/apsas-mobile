@@ -28,6 +28,48 @@ export interface SemesterData {
   updatedAt: string;
 }
 
+export interface ClassDetailLecturerAccount {
+  id: number;
+  accountCode: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  fullName: string;
+  avatar: string;
+}
+
+export interface ClassDetailLecturer {
+  id: number;
+  department: string;
+  specialization: string;
+  account: ClassDetailLecturerAccount;
+}
+
+export interface ClassDetailStudentAccount {
+  id: number;
+  accountCode: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  fullName: string;
+  avatar: string;
+}
+
+export interface ClassDetailStudent {
+  id: number;
+  account: ClassDetailStudentAccount;
+  enrollmentDate: string;
+}
+
+export interface ClassDetailData {
+  id: number;
+  classCode: string;
+  totalStudent: number;
+  description: string;
+  lecturer: ClassDetailLecturer;
+  students: ClassDetailStudent[];
+}
+
 export const fetchClassList = async (): Promise<ClassData[]> => {
   try {
     const response = await ApiService.get<ClassData[]>('/api/Class/list');

@@ -4,8 +4,8 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import { BACKEND_API_URL } from '@env';
-import { SecureStorage } from './SecureStorage';
-import { jwtDecode } from 'jwt-decode'; // Import jwt-decode
+import { SecureStorage } from './SecureStorage'; // Giả sử file này ở cùng cấp
+import { jwtDecode } from 'jwt-decode';
 
 export interface ApiResponse<T = any> {
   statusCode: number;
@@ -118,20 +118,18 @@ const del = <T = any>(
     .then(response => response.data);
 };
 
-// Define a generic type for the decoded JWT payload
-// Adjust this based on the actual claims in YOUR token
 interface DecodedToken {
-  nameid?: string; // Often used for user ID
+  nameid?: string;
   email?: string;
-  unique_name?: string; // Often used for full name
-  fullName?: string; // Often used for full name
-  role?: string | string[]; // Role can be single or multiple
-  nbf?: number; // Not Before timestamp
-  exp?: number; // Expiration timestamp
-  iat?: number; // Issued At timestamp
-  iss?: string; // Issuer
-  aud?: string; // Audience
-  [key: string]: any; // Allow other custom claims
+  unique_name?: string;
+  fullName?: string;
+  role?: string | string[];
+  nbf?: number;
+  exp?: number;
+  iat?: number;
+  iss?: string;
+  aud?: string;
+  [key: string]: any;
 }
 
 const decodeToken = (token: string): DecodedToken | null => {
@@ -149,5 +147,5 @@ export const ApiService = {
   get,
   put,
   delete: del,
-  decodeToken, // Export the new function
+  decodeToken,
 };

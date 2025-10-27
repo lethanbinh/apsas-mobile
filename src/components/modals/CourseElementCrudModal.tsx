@@ -9,29 +9,36 @@ import AppButton from '../buttons/AppButton';
 import AppTextInputController from '../inputs/AppTextInputController';
 import AppText from '../texts/AppText';
 import { AppColors } from '../../styles/color';
+import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 import {
+  CourseElementData,
   createCourseElement,
   updateCourseElement,
-  CourseElementData,
-} from '../../api/semester';
-import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
+} from '../../api/courseElementService';
 
 type FormData = {
   name: string;
   description: string;
-  weight: number;
+  weight: string;
 };
 
 const schema = yup
   .object({
     name: yup.string().required('Name is required'),
     description: yup.string().required('Description is required'),
-    weight: yup
-      .number()
-      .typeError('Weight must be a number')
+    weight: yup // <-- SỬA
+      .string() // <-- SỬA
       .required('Weight is required')
-      .min(0, 'Weight must be >= 0')
-      .max(100, 'Weight must be <= 100'),
+      .matches(/^[0-9]+(\.[0-9]+)?$/, 'Weight must be a valid number') // Cho phép số thập phân (vd: 10.5)
+      .test(
+        'range',
+        'Weight must be between 0 and 100', // Giữ validation 0-100
+        value => {
+          if (!value) return false;
+          const num = Number(value);
+          return num >= 0 && num <= 100;
+        },
+      ),
   })
   .required();
 
@@ -62,8 +69,8 @@ const CourseElementCrudModal: React.FC<CourseElementCrudModalProps> = ({
     defaultValues: useMemo(
       () => ({
         name: initialData?.name ?? '',
-        description: initialData?.description ?? '',
-        weight: initialData?.weight ?? 0,
+        description: initialData?.description ?? '', // SỬA: (ví dụ: 0.25 -> "25")
+        weight: String((initialData?.weight ?? 0) * 100),
       }),
       [initialData],
     ),
@@ -73,8 +80,8 @@ const CourseElementCrudModal: React.FC<CourseElementCrudModalProps> = ({
     if (visible) {
       reset({
         name: initialData?.name ?? '',
-        description: initialData?.description ?? '',
-        weight: initialData?.weight ?? 0,
+        description: initialData?.description ?? '', // SỬA: (ví dụ: 0.25 -> "25")
+        weight: String((initialData?.weight ?? 0) * 100),
       });
     }
   }, [visible, initialData, reset]);
@@ -86,7 +93,8 @@ const CourseElementCrudModal: React.FC<CourseElementCrudModalProps> = ({
         : 'Assignment created';
 
       const payload = {
-        ...data,
+        ...data, // SỬA: (ví dụ: "25" -> 0.25)
+        weight: Number(data.weight) / 100,
         semesterCourseId: Number(semesterCourseId),
       };
 
@@ -119,7 +127,7 @@ const CourseElementCrudModal: React.FC<CourseElementCrudModalProps> = ({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContentContainer}
         >
-          <AppText style={styles.modalTitle} variant="h5">
+          <AppText style={styles.modalTitle} variant="h3">
             {isEditMode ? 'Edit Assignment' : 'Create Assignment'}
           </AppText>
 
@@ -152,7 +160,11 @@ const CourseElementCrudModal: React.FC<CourseElementCrudModalProps> = ({
               title="Cancel"
               variant="secondary"
               onPress={onClose}
-              style={{ width: s(120), borderColor: AppColors.pr500 }}
+              style={{
+                width: s(120),
+                borderColor: AppColors.pr500,
+                minWidth: 0,
+              }}
               textColor={AppColors.pr500}
               disabled={isSubmitting}
             />
@@ -160,7 +172,7 @@ const CourseElementCrudModal: React.FC<CourseElementCrudModalProps> = ({
               size="medium"
               title={isEditMode ? 'Update' : 'Create'}
               onPress={handleSubmit(onSubmit)}
-              style={{ width: s(120) }}
+              style={{ width: s(120), minWidth: 0 }}
               loading={isSubmitting}
               disabled={isSubmitting}
             />

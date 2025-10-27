@@ -5,7 +5,7 @@ interface UserProfile {
   name?: string;
   email?: string;
   role?: string | string[];
-  accountCode?: string; // Add accountCode
+  accountCode?: string;
   [key: string]: any;
 }
 

@@ -10,16 +10,13 @@ import AppTextInputController from '../inputs/AppTextInputController';
 import AppText from '../texts/AppText';
 import { AppColors } from '../../styles/color';
 import {
-  createCourse,
-  updateCourse,
-  CourseData,
-  CourseCrudPayload,
   createSemesterCourse,
-  findHoDByAccountId, // Import hàm mới
 } from '../../api/semester';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store/store';
+import { CourseCrudPayload, CourseData, createCourse, updateCourse } from '../../api/courseService';
+import { findHoDByAccountId } from '../../api/hodService';
 
 type FormData = CourseCrudPayload;
 
@@ -98,8 +95,6 @@ const CourseCrudModal: React.FC<CourseCrudModalProps> = ({
             'HOD Account ID not found. Cannot add course to semester.',
           );
         }
-
-        // 1. Tìm HoDId (ví dụ: "1") từ AccountId (ví dụ: "36")
         const hodProfile = await findHoDByAccountId(userAccountId);
         if (!hodProfile || !hodProfile.hoDId) {
           throw new Error(
@@ -108,7 +103,6 @@ const CourseCrudModal: React.FC<CourseCrudModalProps> = ({
         }
         const createdByHODId = hodProfile.hoDId; // Đây là ID (ví dụ: "1") mà API cần
 
-        // 2. Thêm Course vào SemesterPlan
         await createSemesterCourse({
           semesterId: semesterId,
           courseId: courseId,
@@ -141,7 +135,7 @@ const CourseCrudModal: React.FC<CourseCrudModalProps> = ({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContentContainer}
         >
-          <AppText style={styles.modalTitle} variant="h5">
+          <AppText style={styles.modalTitle} variant="h3">
             {isEditMode ? 'Edit Course' : 'Create New Course'}
           </AppText>
 
@@ -174,7 +168,11 @@ const CourseCrudModal: React.FC<CourseCrudModalProps> = ({
               title="Cancel"
               variant="secondary"
               onPress={onClose}
-              style={{ width: s(120), borderColor: AppColors.pr500 }}
+              style={{
+                width: s(120),
+                borderColor: AppColors.pr500,
+                minWidth: 0,
+              }}
               textColor={AppColors.pr500}
               disabled={isSubmitting}
             />
@@ -182,7 +180,7 @@ const CourseCrudModal: React.FC<CourseCrudModalProps> = ({
               size="medium"
               title={isEditMode ? 'Update' : 'Create'}
               onPress={handleSubmit(onSubmit)}
-              style={{ width: s(120) }}
+              style={{ width: s(120), minWidth: 0 }}
               loading={isSubmitting}
               disabled={isSubmitting}
             />

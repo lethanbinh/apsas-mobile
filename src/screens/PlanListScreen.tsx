@@ -11,11 +11,7 @@ import {
 import { Button, Modal, Portal } from 'react-native-paper';
 import { s, vs } from 'react-native-size-matters';
 import { useSelector } from 'react-redux';
-import {
-  fetchHoDDetails,
-  fetchSemesterCourses,
-  fetchSemesters
-} from '../api/semester';
+import { fetchSemesterCourses, fetchSemesters } from '../api/semester';
 import ScreenHeader from '../components/common/ScreenHeader';
 import Tabs from '../components/common/Tabs';
 import SubmissionItem from '../components/score/SubmissionItem';
@@ -26,6 +22,7 @@ import {
 import AppSafeView from '../components/views/AppSafeView';
 import { RootState } from '../store/store';
 import { AppColors } from '../styles/color';
+import { fetchHoDDetails } from '../api/hodService';
 
 interface Plan {
   id: string;
@@ -189,7 +186,10 @@ const PlatListScreen = () => {
             fileName={`${item.semester} - ${item.year}`}
             title={'Semester Plan'}
             onNavigate={() =>
-              navigation.navigate('PublishPlansScreen', { semesterId: item.id })
+              navigation.navigate('PublishPlansScreen', {
+                semesterId: item.id,
+                semesterCode: item.semester,
+              })
             }
             onClone={() => handleClone(item)}
           />

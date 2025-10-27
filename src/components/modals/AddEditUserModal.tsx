@@ -440,6 +440,7 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
               onPress={onClose}
               style={{
                 width: s(100),
+
                 minWidth: 0,
                 borderColor: AppColors.pr500,
               }}

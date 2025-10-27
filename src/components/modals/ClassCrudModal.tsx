@@ -1,43 +1,38 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, ScrollView } from 'react-native';
-import { Modal, Portal } from 'react-native-paper';
-import { useForm, Controller, Control } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Portal } from 'react-native-paper';
+import RNPickerSelect from 'react-native-picker-select';
 import { s, vs } from 'react-native-size-matters';
+import * as yup from 'yup';
+import { ClassDetailData } from '../../api/class';
+import { createClass, updateClass } from '../../api/classService';
+import { fetchLecturerList, LecturerListData } from '../../api/lecturerService';
+import { AppColors } from '../../styles/color';
 import AppButton from '../buttons/AppButton';
 import AppTextInputController from '../inputs/AppTextInputController';
 import AppText from '../texts/AppText';
-import { AppColors } from '../../styles/color';
-import {
-  createClass,
-  updateClass,
-  ClassData,
-  fetchLecturerList,
-  LecturerListData,
-} from '../../api/semester';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
-import RNPickerSelect from 'react-native-picker-select';
 
 type FormData = {
   classCode: string;
-  totalStudent: number;
+  totalStudent: string;
   description: string | null;
-  lecturerId: string;
-  semesterCourseId: string;
+  lecturerId: number | null; // <-- SỬA
+  semesterCourseId: number | null; // <-- SỬA
 };
 
 const schema = yup
   .object({
     classCode: yup.string().required('Class code is required'),
     totalStudent: yup
-      .number()
-      .typeError('Total students must be a number')
+      .string()
       .required('Total students is required')
-      .min(0),
+      .matches(/^[0-9]+$/, 'Total students must be a valid number'),
     description: yup.string().nullable().optional(),
-    lecturerId: yup.string().required('Lecturer is required'),
-    semesterCourseId: yup.string().required('Course is required'),
+    lecturerId: yup.number().nullable().required('Lecturer is required'), // <-- SỬA
+    semesterCourseId: yup.number().nullable().required('Course is required'), // <-- SỬA
   })
   .required();
 
@@ -45,20 +40,27 @@ interface ClassCrudModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: ClassData | null;
+  initialData?: ClassDetailData | null;
   semesterCourses: { id: string; courseName: string; code: string }[];
+  currentSemesterCourseId?: string | number | null; // <-- THÊM PROP NÀY
 }
-
+const toNumberOrNull = (
+  value: string | number | null | undefined,
+): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  return isNaN(num) ? null : num;
+};
 const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
   visible,
   onClose,
   onSuccess,
   initialData,
   semesterCourses,
+  currentSemesterCourseId = null,
 }) => {
   const isEditMode = !!initialData;
   const [lecturers, setLecturers] = useState<LecturerListData[]>([]);
-
   const {
     control,
     handleSubmit,
@@ -69,12 +71,12 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
     defaultValues: useMemo(
       () => ({
         classCode: initialData?.classCode ?? '',
-        totalStudent: Number(initialData?.totalStudent ?? 0),
+        totalStudent: String(initialData?.totalStudent ?? 0),
         description: initialData?.description ?? null,
-        lecturerId: initialData?.lecturerId ?? '',
-        semesterCourseId: initialData?.semesterCourseId ?? '',
+        lecturerId: toNumberOrNull(initialData?.lecturer.id), // <-- SỬA: Dùng ID của Lecturer
+        semesterCourseId: toNumberOrNull(currentSemesterCourseId), // <-- SỬA: Dùng prop mới
       }),
-      [initialData],
+      [initialData, currentSemesterCourseId], // <-- Thêm dependency
     ),
   });
 
@@ -83,16 +85,15 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
       fetchLecturerList()
         .then(data => setLecturers(data))
         .catch(err => showErrorToast('Error', 'Failed to load lecturers.'));
-
       reset({
         classCode: initialData?.classCode ?? '',
-        totalStudent: Number(initialData?.totalStudent ?? 0),
+        totalStudent: String(initialData?.totalStudent ?? 0),
         description: initialData?.description ?? null,
-        lecturerId: initialData?.lecturerId ?? '',
-        semesterCourseId: initialData?.semesterCourseId ?? '',
+        lecturerId: toNumberOrNull(initialData?.lecturer.id), // <-- SỬA
+        semesterCourseId: toNumberOrNull(currentSemesterCourseId), // <-- SỬA
       });
     }
-  }, [visible, initialData, reset]);
+  }, [visible, initialData, reset, currentSemesterCourseId]); // <-- Thêm dependency
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -101,8 +102,8 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
       const payload = {
         ...data,
         totalStudent: Number(data.totalStudent),
-        lecturerId: String(data.lecturerId),
-        semesterCourseId: String(data.semesterCourseId),
+        lecturerId: String(data.lecturerId), // Giữ nguyên
+        semesterCourseId: String(data.semesterCourseId), // Giữ nguyên
       };
 
       if (isEditMode && initialData) {
@@ -120,14 +121,13 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
       );
     }
   };
-
   const courseOptions = semesterCourses.map(sc => ({
     label: `${sc.code} - ${sc.courseName}`,
-    value: sc.id,
+    value: Number(sc.id), // <-- SỬA: Bắt buộc là Number()
   }));
   const lecturerOptions = lecturers.map(l => ({
     label: `${l.fullName} (${l.accountCode})`,
-    value: l.lecturerId, // Dùng lecturerId (ví dụ: "1")
+    value: Number(l.lecturerId), // <-- SỬA: Bắt buộc là Number()
   }));
 
   return (
@@ -142,13 +142,13 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.scrollContentContainer}
         >
-          <AppText style={styles.modalTitle} variant="h5">
+          <AppText style={styles.modalTitle} variant="h3">
             {isEditMode ? 'Edit Class' : 'Create New Class'}
           </AppText>
 
           <AppTextInputController
             name="classCode"
-            control={control as any}
+            control={control}
             label="Class Code"
             placeholder="Enter class code"
           />
@@ -167,7 +167,6 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
                   value={value}
                   style={pickerSelectStyles}
                   placeholder={{ label: 'Select a course...', value: null }}
-                  disabled={isEditMode}
                 />
                 {error && (
                   <AppText style={styles.textError}>{error.message}</AppText>
@@ -200,14 +199,14 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
 
           <AppTextInputController
             name="totalStudent"
-            control={control as any}
+            control={control}
             label="Total Students"
             placeholder="Enter total students"
             keyboardType="number-pad"
           />
           <AppTextInputController
             name="description"
-            control={control as any}
+            control={control}
             label="Description"
             placeholder="Enter description"
             multiline
@@ -267,7 +266,7 @@ const styles = StyleSheet.create({
     marginTop: -vs(5),
     marginBottom: vs(10),
   },
-  button: { width: s(120), borderColor: AppColors.pr500 },
+  button: { width: s(120), borderColor: AppColors.pr500, minWidth: 0 },
 });
 
 const pickerSelectStyles = StyleSheet.create({

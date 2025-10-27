@@ -1,4 +1,5 @@
 import { yupResolver } from '@hookform/resolvers/yup';
+import dayjs from 'dayjs';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -6,9 +7,13 @@ import { Modal, Portal } from 'react-native-paper';
 import RNPickerSelect from 'react-native-picker-select';
 import { s, vs } from 'react-native-size-matters';
 import * as yup from 'yup';
-import { AssignRequestData, createAssignRequest, updateAssignRequest } from '../../api/assignRequestService';
-import { CourseElementData } from '../../api/courseElementService';
-import { fetchLecturerList, LecturerListData } from '../../api/lecturerService';
+import { ClassDetailData } from '../../api/class';
+import {
+  createStudentEnrollment,
+  StudentGroupData,
+  updateStudentEnrollment,
+} from '../../api/studentGroupService';
+import { fetchStudentList, StudentListData } from '../../api/studentService';
 import { AppColors } from '../../styles/color';
 import AppButton from '../buttons/AppButton';
 import AppTextInputController from '../inputs/AppTextInputController';
@@ -16,39 +21,36 @@ import AppText from '../texts/AppText';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 
 type FormData = {
-  courseElementId: string;
-  assignedLecturerId: string;
-  message: string | null;
+  classId: string | null; // <-- SỬA
+  studentId: string | null; // <-- SỬA
+  description: string; // <-- SỬA
 };
-
 const schema = yup
   .object({
-    courseElementId: yup.string().required('Course Element is required'),
-    assignedLecturerId: yup.string().required('Lecturer is required'),
-    message: yup.string().nullable().optional(),
+    classId: yup.string().nullable().required('Class is required'), // <-- SỬA
+    studentId: yup.string().nullable().required('Student is required'), // <-- SỬA
+    description: yup.string().nullable(), // <-- SỬA
   })
   .required();
 
-interface AssignRequestCrudModalProps {
+interface StudentEnrollmentModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: AssignRequestData | null;
-  courseElements: CourseElementData[];
-  hodId: string;
+  initialData?: StudentGroupData | null; // Use StudentGroupData for editing
+  planClasses: ClassDetailData[]; // Pass available classes
 }
 
-const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
+const StudentEnrollmentModal: React.FC<StudentEnrollmentModalProps> = ({
   visible,
   onClose,
   onSuccess,
   initialData,
-  courseElements,
-  hodId,
+  planClasses,
 }) => {
   const isEditMode = !!initialData;
-  const [lecturers, setLecturers] = useState<LecturerListData[]>([]);
-
+  const [allStudents, setAllStudents] = useState<StudentListData[]>([]); // Sửa: Dùng StudentListData
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const {
     control,
     handleSubmit,
@@ -58,9 +60,9 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
     resolver: yupResolver(schema),
     defaultValues: useMemo(
       () => ({
-        message: initialData?.message ?? null,
-        courseElementId: initialData?.courseElementId ?? '',
-        assignedLecturerId: initialData?.assignedLecturerId ?? '',
+        classId: initialData?.classId ?? null, // <-- SỬA
+        studentId: initialData?.studentId ?? null, // <-- SỬA
+        description: initialData?.description ?? '', // <-- SỬA
       }),
       [initialData],
     ),
@@ -68,14 +70,16 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      fetchLecturerList()
-        .then(data => setLecturers(data))
-        .catch(err => showErrorToast('Error', 'Failed to load lecturers.'));
+      setIsLoadingStudents(true);
+      fetchStudentList()
+        .then(data => setAllStudents(data))
+        .catch(err => showErrorToast('Error', 'Failed to load student list.'))
+        .finally(() => setIsLoadingStudents(false));
 
       reset({
-        message: initialData?.message ?? null,
-        courseElementId: initialData?.courseElementId ?? '',
-        assignedLecturerId: initialData?.assignedLecturerId ?? '',
+        classId: initialData?.classId ?? null, // <-- SỬA
+        studentId: initialData?.studentId ?? null, // <-- SỬA
+        description: initialData?.description ?? '', // <-- SỬA
       });
     }
   }, [visible, initialData, reset]);
@@ -83,39 +87,22 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
   const onSubmit = async (data: FormData) => {
     try {
       const successMessage = isEditMode
-        ? 'Assignment updated'
-        : 'Assignment created';
-
-      // Chuyển đổi ID sang kiểu số
-      const assignedLecturerIdNum = Number(data.assignedLecturerId);
-      const courseElementIdNum = Number(data.courseElementId);
-      const assignedByHODIdNum = Number(hodId);
-      console.log('HOD ID Number:', assignedByHODIdNum);
-
-      if (isNaN(assignedLecturerIdNum) || isNaN(courseElementIdNum)) {
-        throw new Error('Invalid Lecturer or Course Element ID.');
-      }
+        ? 'Enrollment updated'
+        : 'Student enrolled';
 
       if (isEditMode && initialData) {
-        if (isNaN(Number(initialData.id))) {
-          throw new Error('Invalid Assignment Request ID.');
-        }
         const payload = {
-          message: data.message || '',
-          assignedLecturerId: assignedLecturerIdNum,
+          description: data.description || null,
         };
-        await updateAssignRequest(initialData.id, payload);
+        await updateStudentEnrollment(initialData.id, payload);
       } else {
-        if (isNaN(assignedByHODIdNum)) {
-          throw new Error('Invalid HOD ID.');
-        }
         const payload = {
-          message: data.message || '',
-          assignedLecturerId: assignedLecturerIdNum,
-          courseElementId: courseElementIdNum,
-          assignedByHODId: assignedByHODIdNum, // Gửi dưới dạng SỐ
+          classId: String(data.classId),
+          studentId: String(data.studentId), // Đây là Student ID (ví dụ: "1")
+          description: data.description || null,
+          enrollmentDate: dayjs().utc().toISOString(),
         };
-        await createAssignRequest(payload);
+        await createStudentEnrollment(payload);
       }
       showSuccessToast('Success', `${successMessage} successfully.`);
       onSuccess();
@@ -124,19 +111,19 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
       showErrorToast(
         'Error',
         error.message ||
-          `Failed to ${isEditMode ? 'save' : 'create'} assignment.`,
+          `Failed to ${isEditMode ? 'update' : 'enroll'} student.`,
       );
     }
   };
 
-  const elementOptions = courseElements.map(el => ({
-    label: `${el.name} (Weight: ${el.weight}%)`,
-    value: String(el.id), // RNPickerSelect dùng string
+  const classOptions = planClasses.map(cls => ({
+    label: cls.classCode,
+    value: String(cls.id),
   }));
 
-  const lecturerOptions = lecturers.map(l => ({
-    label: `${l.fullName} (${l.accountCode})`,
-    value: l.lecturerId, // Giữ string cho RNPickerSelect
+  const studentOptions = allStudents.map(s => ({
+    label: `${s.fullName} (${s.accountCode})`,
+    value: String(s.id),
   }));
 
   return (
@@ -152,23 +139,23 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
           contentContainerStyle={styles.scrollContentContainer}
         >
           <AppText style={styles.modalTitle} variant="h3">
-            {isEditMode ? 'Edit Assignment' : 'Assign Teacher'}
+            {isEditMode ? 'Edit Enrollment' : 'Enroll Student'}
           </AppText>
 
           <AppText style={styles.label} variant="label16pxBold">
-            Course Element
+            Class
           </AppText>
           <Controller
-            name="courseElementId"
+            name="classId"
             control={control}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
               <View>
                 <RNPickerSelect
                   onValueChange={onChange}
-                  items={elementOptions}
+                  items={classOptions}
                   value={value}
                   style={pickerSelectStyles}
-                  placeholder={{ label: 'Select an element...', value: null }}
+                  placeholder={{ label: 'Select a class...', value: null }}
                   disabled={isEditMode}
                 />
                 {error && (
@@ -179,19 +166,25 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
           />
 
           <AppText style={styles.label} variant="label16pxBold">
-            Assign Lecturer
+            Student
           </AppText>
           <Controller
-            name="assignedLecturerId"
+            name="studentId"
             control={control}
             render={({ field: { onChange, value }, fieldState: { error } }) => (
               <View>
                 <RNPickerSelect
                   onValueChange={onChange}
-                  items={lecturerOptions}
+                  items={studentOptions}
                   value={value}
                   style={pickerSelectStyles}
-                  placeholder={{ label: 'Select a lecturer...', value: null }}
+                  placeholder={{
+                    label: isLoadingStudents
+                      ? 'Loading students...'
+                      : 'Select a student...',
+                    value: null,
+                  }}
+                  disabled={isEditMode || isLoadingStudents}
                 />
                 {error && (
                   <AppText style={styles.textError}>{error.message}</AppText>
@@ -201,10 +194,10 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
           />
 
           <AppTextInputController
-            name="message"
-            control={control}
-            label="Message (Optional)"
-            placeholder="Enter a message"
+            name="description"
+            control={control} // <-- SỬA
+            label="Description (Optional)"
+            placeholder="Enter description (e.g., enrollment reason)"
             multiline
           />
 
@@ -220,7 +213,7 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
             />
             <AppButton
               size="medium"
-              title={isEditMode ? 'Update' : 'Assign'}
+              title={isEditMode ? 'Update' : 'Enroll'}
               onPress={handleSubmit(onSubmit)}
               style={styles.button}
               loading={isSubmitting}
@@ -291,4 +284,4 @@ const pickerSelectStyles = StyleSheet.create({
   placeholder: { color: AppColors.n400 },
 });
 
-export default AssignRequestCrudModal;
+export default StudentEnrollmentModal;
