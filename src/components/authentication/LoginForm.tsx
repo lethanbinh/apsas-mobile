@@ -91,7 +91,6 @@ const LoginForm = () => {
     setIsGoogleLoading(true);
     try {
       const googleIdToken = await signInWithGoogle();
-      console.log(googleIdToken);
       type GoogleLoginResult = {
         token: string;
         refreshToken: string;

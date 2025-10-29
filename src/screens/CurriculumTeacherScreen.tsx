@@ -1,14 +1,13 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  View
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import ScreenHeader from '../components/common/ScreenHeader';
 import CurriculumList from '../components/courses/CurriculumList';
 import AppSafeView from '../components/views/AppSafeView';
-import { CourseElementData, fetchCourseElements } from '../api/courseElementService';
+import {
+  CourseElementData,
+  fetchCourseElements,
+} from '../api/courseElementService';
 import { ViewIcon } from '../assets/icons/courses';
 import AppText from '../components/texts/AppText';
 import { showErrorToast } from '../components/toasts/AppToast';
@@ -66,18 +65,23 @@ const CurriculumTeacherScreen = () => {
   };
 
   const handleDownload = async (fileUrl: string, fileName: string) => {
-     // ... (Giữ nguyên code của bạn)
-     // LƯU Ý QUAN TRỌNG: sampleFileUrl đang lấy từ fileUrl (tức item.description từ API mới)
-     // Điều này có thể không đúng nếu API không trả về URL file trong description.
-     // Bạn cần xác nhận lại cấu trúc API hoặc điều chỉnh logic này.
-     const sampleFileUrl = fileUrl || 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
-     // ... (Phần còn lại giữ nguyên)
+    // ... (Giữ nguyên code của bạn)
+    // LƯU Ý QUAN TRỌNG: sampleFileUrl đang lấy từ fileUrl (tức item.description từ API mới)
+    // Điều này có thể không đúng nếu API không trả về URL file trong description.
+    // Bạn cần xác nhận lại cấu trúc API hoặc điều chỉnh logic này.
+    const sampleFileUrl =
+      fileUrl ||
+      'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+    // ... (Phần còn lại giữ nguyên)
   };
-
 
   // SỬA MAP LOGIC:
   const assignments = courseElements
-    .filter(el => el.name.toLowerCase().includes('assignment'))
+    .filter(
+      el =>
+        !el.name.toLowerCase().includes('pe') &&
+        !el.name.toLowerCase().includes('exam'),
+    )
     .map((item, index) => ({
       id: String(item.id), // Chuyển sang string nếu CurriculumList cần
       number: `0${index + 1}`,
@@ -147,7 +151,6 @@ const CurriculumTeacherScreen = () => {
 
 export default CurriculumTeacherScreen;
 
-// Styles giữ nguyên
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,

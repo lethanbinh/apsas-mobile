@@ -1,65 +1,63 @@
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   StyleSheet,
-  Text,
-  View,
-  TextInput,
-  TouchableOpacity,
+  View
 } from 'react-native';
-import React, { useState } from 'react';
-import AppSafeView from '../components/views/AppSafeView';
+import { s, vs } from 'react-native-size-matters';
+import { fetchSemesters } from '../api/semester';
+import AppButton from '../components/buttons/AppButton';
 import ScreenHeader from '../components/common/ScreenHeader';
 import SemesterDropdown from '../components/common/SemesterDropdown';
-import { globalStyles } from '../styles/shareStyles';
-import AppButton from '../components/buttons/AppButton';
+import { showErrorToast } from '../components/toasts/AppToast';
+import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
-import { PlusIcon } from '../assets/icons/icon';
-import { s, vs } from 'react-native-size-matters';
-import { Modal, Portal } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { globalStyles } from '../styles/shareStyles';
 
 const TaskListScreen = () => {
-  const [semesters, setSemesters] = useState([
-    'Fall2025',
-    'Summer2025',
-    'Spring2025',
-  ]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newSemester, setNewSemester] = useState('');
-  const navigation = useNavigation();
-  const handleSemesterSelect = (semester: string) => {
-    console.log('Selected semester:', semester);
-  };
+  const [semesters, setSemesters] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
+  const navigation = useNavigation<any>();
 
-  const handleAddSemester = () => {
-    if (newSemester.trim()) {
-      setSemesters(prev => [...prev, newSemester.trim()]);
-      setNewSemester('');
-      setModalVisible(false);
-    }
-  };
+  useEffect(() => {
+    const loadSemesters = async () => {
+      setIsLoading(true);
+      try {
+        const semesterData = await fetchSemesters();
+        const semesterCodes = semesterData
+          .map(s => s.semesterCode)
+          .sort()
+          .reverse();
+        setSemesters(semesterCodes);
+        if (semesterCodes.length > 0) {
+          setSelectedSemester(semesterCodes[0]);
+        }
+      } catch (error: any) {
+        showErrorToast('Error', 'Failed to load semesters.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadSemesters();
+  }, []);
 
+  const handleSemesterSelect = (semester: string | null) => {
+    setSelectedSemester(semester);
+  };
   return (
     <AppSafeView>
-      <ScreenHeader title="Create plan" />
+      <ScreenHeader title="Choose Semesters" />
       <View style={globalStyles.containerStyle}>
-        <AppButton
-          variant="secondary"
-          textColor={AppColors.black}
-          title="Add Semester"
-          leftIcon={<PlusIcon />}
-          onPress={() => setModalVisible(true)}
-          style={{
-            borderColor: AppColors.n500,
-            width: s(120),
-            alignSelf: 'flex-start',
-          }}
-        />
-
-        <SemesterDropdown
-          semesters={semesters}
-          onSelect={handleSemesterSelect}
-        />
-
+        {isLoading ? (
+          <ActivityIndicator size="large" style={styles.loader} />
+        ) : (
+          <SemesterDropdown
+            semesters={semesters}
+            onSelect={handleSemesterSelect}
+          />
+        )}
         <AppButton
           style={{
             marginTop: vs(20),
@@ -67,35 +65,18 @@ const TaskListScreen = () => {
           }}
           title="Continue"
           onPress={() => {
-            navigation.navigate('CreateAssessmentScreen' as never);
+            if (selectedSemester) {
+              navigation.navigate('CreateAssessmentScreen' as never, {
+                semesterCode: selectedSemester,
+              });
+            } else {
+              showErrorToast('Error', 'Please select a semester.');
+            }
           }}
           size="large"
+          disabled={isLoading || !selectedSemester}
         />
       </View>
-
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <Text style={styles.modalTitle}>Add New Semester</Text>
-          <TextInput
-            value={newSemester}
-            onChangeText={setNewSemester}
-            placeholder="Ex: Winter2026"
-            style={styles.input}
-          />
-          <View style={styles.modalActions}>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Text style={styles.cancel}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleAddSemester}>
-              <Text style={styles.add}>Add</Text>
-            </TouchableOpacity>
-          </View>
-        </Modal>
-      </Portal>
     </AppSafeView>
   );
 };
@@ -103,13 +84,16 @@ const TaskListScreen = () => {
 export default TaskListScreen;
 
 const styles = StyleSheet.create({
+  loader: {
+    marginVertical: vs(20),
+  },
   modalContainer: {
     backgroundColor: AppColors.white,
     borderRadius: s(12),
     paddingVertical: vs(20),
     paddingHorizontal: s(16),
-    marginHorizontal: s(20), // tránh sát mép màn hình
-    alignItems: 'stretch', // các thành phần full chiều ngang
+    marginHorizontal: s(20),
+    alignItems: 'stretch',
   },
   modalTitle: {
     fontSize: s(16),
@@ -124,6 +108,7 @@ const styles = StyleSheet.create({
     borderRadius: s(8),
     padding: s(10),
     marginBottom: vs(20),
+    color: AppColors.black,
   },
   modalActions: {
     flexDirection: 'row',

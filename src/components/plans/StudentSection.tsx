@@ -70,7 +70,6 @@ const StudentSection = ({
       setIsDeletingStudent(false);
     }
   };
-
   return (
     <>
       <TableSection

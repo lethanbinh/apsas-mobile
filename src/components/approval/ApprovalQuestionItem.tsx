@@ -1,15 +1,25 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { NavigationIcon } from '../../assets/icons/courses';
 import { TestCaseIcon } from '../../assets/icons/icon';
+import {
+  RubricItemData,
+  getRubricItemsByQuestionId,
+} from '../../api/rubricItemService';
+import { Question } from '../../screens/ApprovalScreen';
 import { AppColors } from '../../styles/color';
+import CriteriaBottomSheet from '../assessments/CriteriaBottomSheet';
 import CourseCardItem from '../courses/CourseCardItem';
 import AppText from '../texts/AppText';
-import { Question } from '../../screens/ApprovalScreen';
-import CriteriaBottomSheet from '../assessments/CriteriaBottomSheet';
 
 interface ApprovalQuestionItemProps {
   question: Question;
@@ -25,11 +35,29 @@ const ApprovalQuestionItem = ({
   onToggle,
 }: ApprovalQuestionItemProps) => {
   const [isCriteriaVisible, setCriteriaVisible] = useState(false);
-  const { control } = useForm({
-    defaultValues: {
-      questions: [{ criteria: (question as any).criteria || [] }],
-    },
-  });
+  const [fetchedRubrics, setFetchedRubrics] = useState<RubricItemData[] | null>(
+    null,
+  );
+  const [isLoadingCriteria, setIsLoadingCriteria] = useState(false);
+  console.log(question);
+  const handleOpenCriteria = async () => {
+    if (fetchedRubrics) {
+      setCriteriaVisible(true);
+      return;
+    }
+
+    setIsLoadingCriteria(true);
+    try {
+      const rubrics = await getRubricItemsByQuestionId(question.id);
+      setFetchedRubrics(rubrics); // Lưu rubrics
+      setCriteriaVisible(true); // Mở bottom sheet
+    } catch (error) {
+      console.error('Failed to fetch rubrics:', error);
+      Alert.alert('Error', 'Could not load criteria.');
+    } finally {
+      setIsLoadingCriteria(false); // Dừng loading
+    }
+  };
 
   return (
     <>
@@ -50,13 +78,21 @@ const ApprovalQuestionItem = ({
         {isExpanded && (
           <View style={styles.questionBody}>
             <AppText style={styles.description}>{question.content}</AppText>
-            <Image source={{ uri: question.imageUrl }} style={styles.image} />
+            {!!question.imageUrl && (
+              <Image source={{ uri: question.imageUrl }} style={styles.image} />
+            )}
             <CourseCardItem
               title={'Criteria'}
               leftIcon={<TestCaseIcon />}
               backGroundColor={AppColors.pr100}
-              rightIcon={<NavigationIcon color={AppColors.pr500} />}
-              onPress={() => setCriteriaVisible(true)}
+              rightIcon={
+                isLoadingCriteria ? (
+                  <ActivityIndicator size="small" color={AppColors.pr500} />
+                ) : (
+                  <NavigationIcon color={AppColors.pr500} />
+                )
+              }
+              onPress={handleOpenCriteria} // <-- SỬA ONPRESS
             />
           </View>
         )}
@@ -66,14 +102,14 @@ const ApprovalQuestionItem = ({
         visible={isCriteriaVisible}
         onClose={() => setCriteriaVisible(false)}
         questionNumber={index + 1}
-        questionIndex={0}
-        control={control}
-        isEditable={false}
+        rubrics={fetchedRubrics || []} // <-- TRUYỀN DỮ LIỆU ĐÃ FETCH
+        isEditable={false} // Vì đây là màn hình Approval
       />
     </>
   );
 };
 
+// ... styles không đổi
 const styles = StyleSheet.create({
   questionContainer: {
     borderBottomWidth: 1,

@@ -18,8 +18,9 @@ interface CurriculumSection {
     title: string;
     linkFile: string;
     rightIcon: (props: SvgProps) => React.ReactElement;
-    detailNavigation: string;
+    detailNavigation?: string;
     onAction: () => void;
+    onPress?: () => void;
   }[];
   sectionButton?: string;
 }
@@ -95,6 +96,7 @@ const CurriculumList = ({
           rightIcon={<item.rightIcon />}
           detailNavigation={item.detailNavigation}
           onAction={item.onAction}
+          onPress={item.onPress}
         />
       )}
       scrollEnabled={scrollEnabled}

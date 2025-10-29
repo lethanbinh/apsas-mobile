@@ -1,52 +1,66 @@
-import React, { useState } from 'react';
+import { useRoute } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
+import {
+  AssessmentPaperQuestion,
+  AssessmentTemplateData,
+} from '../api/assessmentTemplateService';
 import QuestionAccordion from '../components/assessments/QuestionAccordion';
 import ScreenHeader from '../components/common/ScreenHeader';
+import AppText from '../components/texts/AppText';
 import AppSafeView from '../components/views/AppSafeView';
-const MOCK_QUESTIONS = [
-  {
-    id: 1,
-    title: 'Question 1: Create a program',
-    description:
-      'Amet minim mollit non deserunt ullamco est sit aliqua dolor do sit amet. Velit officia consequat duis enim velit mollit. Exercitation ven...',
-    imageUrl: require('../assets/images/code.png'),
-  },
-  {
-    id: 2,
-    title: 'Question 2: Create a program',
-    description:
-      'Amet minim mollit non deserunt ullamco est sit aliqua dolor do sit amet. Velit officia consequat duis enim velit mollit. Exercitation ven...',
-    imageUrl: require('../assets/images/code.png'),
-  },
-  { id: 3, title: 'Question 3: Create a program', description: '...', imageUrl: require('../assets/images/code.png') },
-  { id: 4, title: 'Question 4: Create a program', description: '...', imageUrl: require('../assets/images/code.png') },
-  { id: 5, title: 'Question 5: Create a program', description: '...', imageUrl: require('../assets/images/code.png') },
-];
+import { AppColors } from '../styles/color';
 
 const RequirementScreen = () => {
-  const [expandedId, setExpandedId] = useState<number | null>(1);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const route = useRoute();
+  const assessmentTemplate = (
+    route.params as { assessmentTemplate?: AssessmentTemplateData }
+  )?.assessmentTemplate;
+
+  const [questions, setQuestions] = useState<AssessmentPaperQuestion[]>([]);
+  const [paperName, setPaperName] = useState('Requirement Details');
+
+  useEffect(() => {
+    if (assessmentTemplate && assessmentTemplate.papers.length > 0) {
+      const paper = assessmentTemplate.papers[0];
+      setPaperName(paper.name || 'Requirement Details');
+      setQuestions(paper.questions || []);
+      if (paper.questions.length > 0) {
+        setExpandedId(paper.questions[0].id);
+      }
+    } else {
+      setQuestions([]);
+      setPaperName('Requirement Details');
+    }
+  }, [assessmentTemplate]);
+
   const handleToggle = (id: number) => {
     setExpandedId(prevId => (prevId === id ? null : id));
   };
-
   return (
     <AppSafeView>
-      <ScreenHeader title="Paper Assignment1" />
+      <ScreenHeader title={paperName} />
       <ScrollView contentContainerStyle={styles.container}>
-        {MOCK_QUESTIONS.map(question => (
-          <QuestionAccordion
-            key={question.id}
-            title={question.title}
-            description={question.description}
-            imageUrl={question.imageUrl}
-            isExpanded={expandedId === question.id}
-            onPress={() => handleToggle(question.id)}
-            showCriteria={false} // << TRUYỀN PROP ĐỂ ẨN CRITERIA
-          />
-        ))}
+        {questions.length === 0 ? (
+          <AppText style={styles.errorText}>
+            No requirement details available.
+          </AppText>
+        ) : (
+          questions.map((question, index) => (
+            <QuestionAccordion
+              key={question.id}
+              title={`Question ${index + 1}: ${question.questionText}`}
+              description={`Sample Input:\n${question.questionSampleInput}\n\nSample Output:\n${question.questionSampleOutput}`}
+              imageUrl={null}
+              isExpanded={expandedId === question.id}
+              onPress={() => handleToggle(question.id)}
+              showCriteria={false}
+            />
+          ))
+        )}
       </ScrollView>
-
     </AppSafeView>
   );
 };
@@ -57,5 +71,10 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: s(20),
     paddingVertical: vs(16),
+  },
+  errorText: {
+    textAlign: 'center',
+    color: AppColors.n500,
+    marginTop: vs(20),
   },
 });

@@ -38,9 +38,7 @@ const LecturerHeader = ({ title, role }: LecturerHeaderProps) => {
       await SecureStorage.deleteCredentials('authToken');
       await AsyncStorage.removeItem('tokenExpiresAt');
       dispatch(clearUser());
-      console.log('Logout successful, state cleared.');
     } catch (error) {
-      console.error('Logout failed:', error);
     }
   };
 

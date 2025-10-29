@@ -23,7 +23,7 @@ const SubmissionScreen = () => {
     uri: string;
     type: string;
   }) => {
-    setSubmittedFile(file); // ✅ luôn thay thế file cũ
+    setSubmittedFile(file);
   };
 
   const handleSubmit = () => {
@@ -32,7 +32,6 @@ const SubmissionScreen = () => {
       return;
     }
     console.log('Submitting file:', submittedFile);
-    // TODO: Gọi API upload file ở đây
   };
 
   return (

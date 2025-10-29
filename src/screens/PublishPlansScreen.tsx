@@ -28,7 +28,7 @@ const PublishPlansScreen = () => {
     refreshPlan,
   } = usePlanDetails(semesterId, semesterCode);
 
-  console.log(assignRequests)
+  console.log(studentGroups)
   return (
     <AppSafeView style={{ flex: 1 }}>
       <ScreenHeader title={`Plan Detail: ${planData?.semesterCode || ''}`} />

@@ -8,25 +8,24 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
-import AssignmentCardInfo from '../components/courses/AssignmentCardInfo';
-import CurriculumList from '../components/courses/CurriculumList';
-import { DocumentList, SubmissionList } from '../data/coursesData';
-import { AppColors } from '../styles/color';
-import AppSafeView from '../components/views/AppSafeView'; // Import AppSafeView
-import ScreenHeader from '../components/common/ScreenHeader'; // Import ScreenHeader
-import { showErrorToast } from '../components/toasts/AppToast'; // Import toast
-import { useSelector } from 'react-redux'; // Import useSelector
-import { RootState } from '../store/store'; // Import RootState
-import AppText from '../components/texts/AppText'; // Import AppText
+import { useSelector } from 'react-redux';
+import {
+  AssessmentTemplateData,
+  fetchAssessmentTemplates,
+} from '../api/assessmentTemplateService';
 import {
   CourseElementData,
   fetchCourseElementById,
 } from '../api/courseElementService';
-
-const sections = [
-  { title: 'Documents', data: DocumentList },
-  { title: 'Submissions', data: SubmissionList },
-];
+import ScreenHeader from '../components/common/ScreenHeader';
+import AssignmentCardInfo from '../components/courses/AssignmentCardInfo';
+import CurriculumList from '../components/courses/CurriculumList';
+import AppText from '../components/texts/AppText';
+import { showErrorToast } from '../components/toasts/AppToast';
+import AppSafeView from '../components/views/AppSafeView';
+import { DocumentList, SubmissionList } from '../data/coursesData';
+import { RootState } from '../store/store';
+import { AppColors } from '../styles/color';
 
 const AssignmentDetailScreen = () => {
   const [listHeight, setListHeight] = useState(0);
@@ -37,6 +36,8 @@ const AssignmentDetailScreen = () => {
   const [elementData, setElementData] = useState<CourseElementData | null>(
     null,
   );
+  const [templateData, setTemplateData] =
+    useState<AssessmentTemplateData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const userProfile = useSelector(
     (state: RootState) => state.userSlice.profile,
@@ -48,11 +49,19 @@ const AssignmentDetailScreen = () => {
       setIsLoading(false);
       return;
     }
-    const loadElementDetails = async () => {
+    const loadDetails = async () => {
       setIsLoading(true);
       try {
-        const data = await fetchCourseElementById(elementId);
-        setElementData(data);
+        const element = await fetchCourseElementById(elementId);
+        setElementData(element);
+        const templatesResponse = await fetchAssessmentTemplates({
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+        const foundTemplate = templatesResponse.items.find(
+          t => t.courseElementId === Number(elementId),
+        );
+        setTemplateData(foundTemplate || null);
       } catch (error: any) {
         showErrorToast('Error', 'Failed to load assignment details.');
         console.error(error);
@@ -60,8 +69,37 @@ const AssignmentDetailScreen = () => {
         setIsLoading(false);
       }
     };
-    loadElementDetails();
+    loadDetails();
   }, [elementId]);
+
+  const navigateToRequirement = () => {
+    if (templateData) {
+      navigation.navigate('RequirementScreen', {
+        assessmentTemplate: templateData,
+      });
+    } else {
+      showErrorToast(
+        'Error',
+        'No requirement details found for this assignment.',
+      );
+    }
+  };
+
+  const dynamicDocumentList = DocumentList.map(item => {
+    if (item.title === 'Requirement') {
+      return {
+        ...item,
+        detailNavigation: undefined,
+        onPress: navigateToRequirement,
+      };
+    }
+    return item;
+  });
+
+  const sections = [
+    { title: 'Documents', data: dynamicDocumentList },
+    { title: 'Submissions', data: SubmissionList },
+  ];
 
   if (isLoading) {
     return (
@@ -81,7 +119,6 @@ const AssignmentDetailScreen = () => {
       </AppSafeView>
     );
   }
-
   return (
     <View style={styles.container}>
       <ScrollView
@@ -94,12 +131,12 @@ const AssignmentDetailScreen = () => {
           source={require('../assets/images/assignment.png')}
         />
         <AssignmentCardInfo
-          assignmentType="Assignment" // Cập nhật loại
-          assignmentTitle={elementData.name} // Dùng data fetch
-          dueDate="N/A"
-          lecturerName={userProfile?.name || 'Lecturer'} // Tạm lấy tên user, API không trả về
-          description={elementData.description} // Dùng data fetch
-          isSubmitted={false}
+          assignmentType="Assignment"
+          assignmentTitle={elementData.name}
+          dueDate="N/A" // Add deadline if available in elementData
+          lecturerName={userProfile?.fullName || 'Lecturer'} // Use profile name if available
+          description={elementData.description}
+          isSubmitted={false} // TODO: Add logic to check submission status
           onSubmitPress={() => {
             navigation.navigate('SubmissionScreen', {
               elementId: elementData.id,
@@ -122,36 +159,14 @@ const AssignmentDetailScreen = () => {
 export default AssignmentDetailScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: AppColors.white,
-  },
-  scrollView: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: AppColors.white },
+  scrollView: { flex: 1 },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: AppColors.white,
   },
-  errorText: {
-    color: AppColors.n500,
-    marginTop: vs(20),
-  },
-  image: {
-    width: '100%',
-  },
-  scoreContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: vs(10),
-  },
-  scoreItem: {
-    width: '22%',
-    height: vs(50),
-    justifyContent: 'center',
-    borderRadius: s(5),
-    paddingLeft: s(8),
-  },
+  errorText: { color: AppColors.n500, marginTop: vs(20), textAlign: 'center' },
+  image: { width: '100%' },
 });

@@ -70,7 +70,6 @@ const TableSection = ({
     return String(value ?? '');
   };
   const cellRenderer = renderCellContent || defaultRenderCell;
-  console.log(dataKeys);
   return (
     <View style={styles.section}>
       <SectionHeader

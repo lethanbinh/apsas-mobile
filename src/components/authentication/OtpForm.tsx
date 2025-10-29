@@ -39,7 +39,6 @@ const OtpForm = ({ email }: OtpFormProps) => {
   const handleVerifyOtp = async (formData: FormData) => {
     setIsLoading(true);
     try {
-      console.log(email);
       const response = await verifyOtp(email, formData.otp);
       if (response.result?.verified === true) {
         showSuccessToast(

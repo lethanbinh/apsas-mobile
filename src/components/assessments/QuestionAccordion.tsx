@@ -1,5 +1,11 @@
 import React from 'react';
-import { Image, ImageSourcePropType, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  Image,
+  ImageSourcePropType,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { vs } from 'react-native-size-matters';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { NavigationIcon } from '../../assets/icons/courses';
@@ -11,7 +17,7 @@ import AppText from '../texts/AppText';
 interface QuestionAccordionProps {
   title: string;
   description: string;
-  imageUrl: ImageSourcePropType;
+  imageUrl?: ImageSourcePropType | null;
   isExpanded: boolean;
   onPress: () => void;
   onCriteriaPress?: () => void;
@@ -44,11 +50,8 @@ const QuestionAccordion = ({
         <View style={styles.body}>
           <AppText style={styles.description}>
             {description}
-            <AppText style={styles.readMore}> Read more</AppText>
           </AppText>
-          <Image source={imageUrl} style={styles.image} />
-
-          {/* === HIỂN THỊ CRITERIA CÓ ĐIỀU KIỆN === */}
+          {imageUrl && <Image source={imageUrl} style={styles.image} />}
           {showCriteria && (
             <CourseCardItem
               title="Criteria"

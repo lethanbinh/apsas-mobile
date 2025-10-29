@@ -1,5 +1,14 @@
 import { ApiService, ApiResponse } from '../utils/ApiService';
 
+export interface StudentEnrollment {
+  studentId: string;
+  studentCode: string;
+  studentName: string;
+  email: string;
+  enrollmentDate: string;
+  description: string | null;
+}
+
 export interface ClassResponse {
   currentPage: number;
   pageSize: number;
@@ -11,10 +20,9 @@ export interface ClassResponse {
 export interface ClassData {
   id: string;
   classCode: string;
-  totalStudent: number;
+  totalStudent: string;
   description: string | null;
   lecturerId: string;
-  semesterId: string;
   semesterCourseId: string;
   createdAt: string;
   updatedAt: string;
@@ -23,7 +31,8 @@ export interface ClassData {
   courseName: string;
   courseCode: string;
   semesterName: string;
-  studentCount: number;
+  semesterCode: string;
+  students: StudentEnrollment[];
 }
 
 export interface SemesterData {
@@ -78,10 +87,18 @@ export interface ClassDetailData {
   students: ClassDetailStudent[];
 }
 
-export const fetchClassList = async (): Promise<ClassData[]> => {
+export const fetchClassList = async (
+  includeStudents: boolean = false, // Thêm tham số
+  pageNumber: number = 1,
+  pageSize: number = 1000, // Tăng pageSize để lấy nhiều hơn
+): Promise<ClassData[]> => {
   try {
-    const response = await ApiService.get<ClassResponse>('/api/Class/list');
-    if (response.result) {
+    // Xây dựng endpoint với params
+    const endpoint = `/api/Class/list?pageNumber=${pageNumber}&pageSize=${pageSize}&includeStudents=${includeStudents}`;
+    const response = await ApiService.get<ClassResponse>(endpoint);
+
+    if (response.result && response.result.items) {
+      // TODO: Cân nhắc xử lý phân trang nếu totalPages > 1
       return response.result.items;
     } else {
       throw new Error('No class list data found in the response result.');

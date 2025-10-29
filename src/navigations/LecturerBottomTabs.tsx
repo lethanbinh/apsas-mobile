@@ -8,7 +8,6 @@ import { AppColors } from '../styles/color';
 import TaskStackNavigator from './TaskStack';
 import TeacherCourseStackNavigator from './TeacherCourseStack';
 import TeacherHomeStackNavigator from './TeacherHomeStack';
-import TeacherPracticalExamStackNavigator from './TeacherPracticalExamStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -58,7 +57,7 @@ const LecturerBottomTabs = () => {
           ),
         }}
       />
-      <Tab.Screen
+      {/* <Tab.Screen
         name="Exams"
         component={TeacherPracticalExamStackNavigator}
         options={{
@@ -66,7 +65,7 @@ const LecturerBottomTabs = () => {
             <Feather name="file-text" size={size} color={color} />
           ),
         }}
-      />
+      /> */}
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}

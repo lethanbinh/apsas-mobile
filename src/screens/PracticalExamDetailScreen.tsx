@@ -12,33 +12,36 @@ import AssignmentCardInfo from '../components/courses/AssignmentCardInfo';
 import CurriculumList from '../components/courses/CurriculumList';
 import { DocumentList, SubmissionList } from '../data/coursesData';
 import { AppColors } from '../styles/color';
-import AppSafeView from '../components/views/AppSafeView'; // Import AppSafeView
-import ScreenHeader from '../components/common/ScreenHeader'; // Import ScreenHeader
-import { fetchCourseElementById, CourseElementData } from '../api/semester'; // Import API
-import { showErrorToast } from '../components/toasts/AppToast'; // Import toast
-import { useSelector } from 'react-redux'; // Import useSelector
-import { RootState } from '../store/store'; // Import RootState
-import AppText from '../components/texts/AppText'; // Import AppText
-
-const sections = [
-  { title: 'Documents', data: DocumentList },
-  { title: 'Submissions', data: SubmissionList },
-];
+import AppSafeView from '../components/views/AppSafeView';
+import ScreenHeader from '../components/common/ScreenHeader';
+import { showErrorToast } from '../components/toasts/AppToast';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store/store';
+import AppText from '../components/texts/AppText';
+import {
+  CourseElementData,
+  fetchCourseElementById,
+} from '../api/courseElementService';
+import {
+  AssessmentTemplateData,
+  fetchAssessmentTemplates,
+} from '../api/assessmentTemplateService';
 
 const PracticalExamDetailScreen = () => {
   const [listHeight, setListHeight] = useState(0);
   const navigation = useNavigation<any>();
   const route = useRoute();
-  const elementId = (route.params as { elementId?: string })?.elementId; // Lấy elementId
+  const elementId = (route.params as { elementId?: string })?.elementId;
 
   const [elementData, setElementData] = useState<CourseElementData | null>(
     null,
   );
+  const [templateData, setTemplateData] =
+    useState<AssessmentTemplateData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const userProfile = useSelector(
     (state: RootState) => state.userSlice.profile,
   );
-
   useEffect(() => {
     if (!elementId) {
       showErrorToast('Error', 'No Exam ID provided.');
@@ -48,8 +51,16 @@ const PracticalExamDetailScreen = () => {
     const loadElementDetails = async () => {
       setIsLoading(true);
       try {
-        const data = await fetchCourseElementById(elementId); // Fetch
+        const data = await fetchCourseElementById(elementId);
         setElementData(data);
+        const templatesResponse = await fetchAssessmentTemplates({
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+        const foundTemplate = templatesResponse.items.find(
+          t => t.courseElementId === Number(elementId),
+        );
+        setTemplateData(foundTemplate || null);
       } catch (error: any) {
         showErrorToast('Error', 'Failed to load exam details.');
         console.error(error);
@@ -77,24 +88,52 @@ const PracticalExamDetailScreen = () => {
     );
   }
 
+  const navigateToRequirement = () => {
+    if (templateData) {
+      navigation.navigate('RequirementTeacherScreen', {
+        assessmentTemplate: templateData,
+      });
+    } else {
+      showErrorToast(
+        'Error',
+        'No requirement template found for this exam.',
+      );
+    }
+  };
+
+  const dynamicDocumentList = DocumentList.map(item => {
+    if (item.title === 'Requirement') {
+      return {
+        ...item,
+        onPress: navigateToRequirement,
+      };
+    }
+    return item;
+  });
+
+  const sections = [
+    { title: 'Documents', data: dynamicDocumentList },
+    { title: 'Submissions', data: SubmissionList },
+  ];
+
+  console.log(sections)
+
   return (
-    <AppSafeView style={styles.container}>
-      <ScreenHeader title={elementData.name} />
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         nestedScrollEnabled
-        contentContainerStyle={{ paddingBottom: listHeight }}
-      >
+        contentContainerStyle={{ paddingBottom: listHeight }}>
         <Image
           style={styles.image}
           source={require('../assets/images/assignment.png')}
         />
         <AssignmentCardInfo
-          assignmentType="Practical Exam" // Cập nhật loại
-          assignmentTitle={elementData.name} // Dùng data fetch
+          assignmentType="Practical Exam"
+          assignmentTitle={elementData.name}
           dueDate="N/A"
           lecturerName={userProfile?.name || 'Lecturer'}
-          description={elementData.description} // Dùng data fetch
+          description={elementData.description}
           isSubmitted={false}
           onSubmitPress={() => {
             navigation.navigate('SubmissionScreen');
@@ -107,15 +146,14 @@ const PracticalExamDetailScreen = () => {
         <View />
         <View
           style={{ position: 'absolute', top: s(320), width: '100%' }}
-          onLayout={e => setListHeight(e.nativeEvent.layout.height + s(100))}
-        >
+          onLayout={e => setListHeight(e.nativeEvent.layout.height + s(100))}>
           <CurriculumList
             sections={sections}
             buttonText="Download All Submissions"
           />
         </View>
       </ScrollView>
-    </AppSafeView>
+    </View>
   );
 };
 

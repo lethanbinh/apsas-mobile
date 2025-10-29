@@ -1,22 +1,25 @@
+import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
-  StyleSheet,
+  ActivityIndicator,
+  Alert,
   PermissionsAndroid,
   Platform,
-  Alert,
+  StyleSheet,
   View,
-  ActivityIndicator,
 } from 'react-native';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import {
+  CourseElementData,
+  fetchCourseElements,
+} from '../api/courseElementService';
+import { ViewIcon } from '../assets/icons/courses';
 import ScreenHeader from '../components/common/ScreenHeader';
 import CurriculumList from '../components/courses/CurriculumList';
-import AppSafeView from '../components/views/AppSafeView';
-import ReactNativeBlobUtil from 'react-native-blob-util';
-import { useRoute } from '@react-navigation/native';
-import { showErrorToast } from '../components/toasts/AppToast';
-import { DownloadIcon, ViewIcon } from '../assets/icons/courses'; // Import Icon
 import AppText from '../components/texts/AppText';
+import { showErrorToast } from '../components/toasts/AppToast';
+import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
-import { fetchCourseElements } from '../api/courseElementService';
 
 const CurriculumScreen = () => {
   const route = useRoute();
@@ -57,7 +60,6 @@ const CurriculumScreen = () => {
     if (Platform.OS !== 'android') return true;
     try {
       const granted = await PermissionsAndroid.request(
-        // Sửa: Dùng WRITE_EXTERNAL_STORAGE (mặc dù READ có thể đủ cho một số trường hợp)
         PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
         {
           title: 'Storage Permission Required',
@@ -117,17 +119,19 @@ const CurriculumScreen = () => {
         );
       });
   };
-
-  // Map dữ liệu fetch được sang định dạng sections
   const assignments = courseElements
-    .filter(el => el.name.toLowerCase().includes('assignment'))
+    .filter(
+      el =>
+        !el.name.toLowerCase().includes('pe') &&
+        !el.name.toLowerCase().includes('exam'),
+    )
     .map((item, index) => ({
       id: item.id,
       number: `0${index + 1}`,
       title: item.name,
       linkFile: item.description,
       rightIcon: ViewIcon,
-      detailNavigation: 'AssignmentDetailScreen', // Điều hướng đến trang của học sinh
+      detailNavigation: 'AssignmentDetailScreen',
       onAction: () => {
         console.log('Navigate to AssignmentDetailScreen with ID:', item.id);
       },

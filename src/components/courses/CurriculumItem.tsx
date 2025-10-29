@@ -11,6 +11,7 @@ export interface CurriculumItemProps {
   rightIcon: ReactNode;
   detailNavigation?: string;
   onAction: () => void;
+  onPress?: () => void;
 }
 const CurriculumItem = ({
   id,
@@ -20,6 +21,7 @@ const CurriculumItem = ({
   rightIcon,
   detailNavigation,
   onAction,
+  onPress,
 }: CurriculumItemProps) => {
   const navigation = useNavigation<any>();
   return (
@@ -29,11 +31,14 @@ const CurriculumItem = ({
           <AppText>{number}</AppText>
         </View>
         <TouchableOpacity
-          onPress={() =>
-            // Sửa logic ở đây:
+          onPress={() => {
+            if (onPress) {
+              onPress();
+              return;
+            }
             detailNavigation &&
-            navigation.navigate(detailNavigation as never, { elementId: id })
-          }
+              navigation.navigate(detailNavigation as never, { elementId: id });
+          }}
         >
           <AppText variant="label16pxBold" style={{ color: '#202244' }}>
             {title}

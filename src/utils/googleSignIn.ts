@@ -48,7 +48,6 @@ export const signInWithGoogle = async (): Promise<string> => {
     console.log('Google Sign-In successful, ID Token obtained.');
     return idToken;
   } catch (error: any) {
-    // ... (error handling remains the same) ...
     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
       console.log('Google Sign-In Cancelled');
       throw new Error('Sign in cancelled by user.');

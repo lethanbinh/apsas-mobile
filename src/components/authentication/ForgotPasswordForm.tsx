@@ -38,7 +38,6 @@ const ForgotPasswordForm = () => {
           'Password reset instructions sent to your email.',
         );
         navigation.navigate('VerifyOTPScreen', { email: formData.email });
-        console.log(`OTP expires in ${result.expiresMinutes} minutes.`);
       } else {
         throw new Error('Failed to send reset email. Please try again.');
       }

@@ -1,39 +1,43 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
+import { useSelector } from 'react-redux';
+import {
+  CourseElementData,
+  fetchCourseElementById,
+} from '../api/courseElementService';
+import ScreenHeader from '../components/common/ScreenHeader';
 import AssignmentCardInfo from '../components/courses/AssignmentCardInfo';
 import CurriculumList from '../components/courses/CurriculumList';
+import AppText from '../components/texts/AppText';
+import { showErrorToast } from '../components/toasts/AppToast';
+import AppSafeView from '../components/views/AppSafeView';
 import { DocumentList, SubmissionList } from '../data/coursesData';
+import { RootState } from '../store/store';
 import { AppColors } from '../styles/color';
-import AppSafeView from '../components/views/AppSafeView'; // Import AppSafeView
-import ScreenHeader from '../components/common/ScreenHeader'; // Import ScreenHeader
-import { showErrorToast } from '../components/toasts/AppToast'; // Import toast
-import { useSelector } from 'react-redux'; // Import useSelector
-import { RootState } from '../store/store'; // Import RootState
-import AppText from '../components/texts/AppText'; // Import AppText
-import { CourseElementData, fetchCourseElementById } from '../api/courseElementService';
-
-const sections = [
-  { title: 'Documents', data: DocumentList },
-  { title: 'Submissions', data: SubmissionList },
-];
+import {
+  AssessmentTemplateData,
+  fetchAssessmentTemplates,
+} from '../api/assessmentTemplateService';
 
 const AssignmentDetailTeacherScreen = () => {
   const [listHeight, setListHeight] = useState(0);
   const navigation = useNavigation<any>();
   const route = useRoute();
   const elementId = (route.params as { elementId?: string })?.elementId;
-  console.log('Element ID:', elementId);
   const [elementData, setElementData] = useState<CourseElementData | null>(
     null,
   );
+  const [templateData, setTemplateData] =
+    useState<AssessmentTemplateData | null>(null);
+  const [dynamicDocumentList, setDynamicDocumentList] = useState(DocumentList);
   const [isLoading, setIsLoading] = useState(true);
   const userProfile = useSelector(
     (state: RootState) => state.userSlice.profile,
@@ -50,6 +54,37 @@ const AssignmentDetailTeacherScreen = () => {
       try {
         const data = await fetchCourseElementById(elementId);
         setElementData(data);
+        const templatesResponse = await fetchAssessmentTemplates({
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+        const foundTemplate = templatesResponse.items.find(
+          t => t.courseElementId === Number(elementId),
+        );
+        setTemplateData(foundTemplate || null);
+        const navigateToRequirement = () => {
+          if (foundTemplate) {
+            navigation.navigate('RequirementTeacherScreen', {
+              assessmentTemplate: foundTemplate,
+            });
+          } else {
+            showErrorToast(
+              'Error',
+              'No requirement template found for this assignment.',
+            );
+          }
+        };
+
+        const updatedList = DocumentList.map(item => {
+          if (item.title === 'Requirement') {
+            return {
+              ...item,
+              onPress: navigateToRequirement,
+            };
+          }
+          return item;
+        });
+        setDynamicDocumentList(updatedList);
       } catch (error: any) {
         showErrorToast('Error', 'Failed to load assignment details.');
         console.error(error);
@@ -58,7 +93,7 @@ const AssignmentDetailTeacherScreen = () => {
       }
     };
     loadElementDetails();
-  }, [elementId]);
+  }, [elementId, navigation]);
 
   if (isLoading) {
     return (
@@ -79,6 +114,11 @@ const AssignmentDetailTeacherScreen = () => {
     );
   }
 
+  const sections = [
+    { title: 'Documents', data: dynamicDocumentList },
+    { title: 'Submissions', data: SubmissionList },
+  ];
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -91,12 +131,12 @@ const AssignmentDetailTeacherScreen = () => {
           source={require('../assets/images/assignment.png')}
         />
         <AssignmentCardInfo
-          assignmentType="Assignment" // Có thể thay đổi nếu API có
+          assignmentType="Assignment"
           assignmentTitle={elementData.name}
-          dueDate="N/A" // Cần thêm endDate nếu API có
+          dueDate="N/A"
           lecturerName={userProfile?.name || 'Lecturer'}
           description={elementData.description}
-          isSubmitted={false} // Logic này có thể cần thay đổi
+          isSubmitted={false}
           onSubmitPress={() => {
             navigation.navigate('SubmissionScreen');
           }}
@@ -111,7 +151,7 @@ const AssignmentDetailTeacherScreen = () => {
           onLayout={e => setListHeight(e.nativeEvent.layout.height + s(100))}
         >
           <CurriculumList
-            sections={sections}
+            sections={sections} // Sử dụng sections động
             buttonText="Download All Submissions"
           />
         </View>

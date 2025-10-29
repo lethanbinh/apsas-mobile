@@ -6,7 +6,12 @@ import { Modal, Portal } from 'react-native-paper';
 import RNPickerSelect from 'react-native-picker-select';
 import { s, vs } from 'react-native-size-matters';
 import * as yup from 'yup';
-import { AssignRequestData, createAssignRequest, updateAssignRequest } from '../../api/assignRequestService';
+import {
+  AssignRequestData,
+  createAssignRequest,
+  PlanDetailAssignRequestInitial,
+  updateAssignRequest,
+} from '../../api/assignRequestService';
 import { CourseElementData } from '../../api/courseElementService';
 import { fetchLecturerList, LecturerListData } from '../../api/lecturerService';
 import { AppColors } from '../../styles/color';
@@ -33,7 +38,7 @@ interface AssignRequestCrudModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: AssignRequestData | null;
+  initialData?: PlanDetailAssignRequestInitial | null;
   courseElements: CourseElementData[];
   hodId: string;
 }
@@ -48,7 +53,6 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
 }) => {
   const isEditMode = !!initialData;
   const [lecturers, setLecturers] = useState<LecturerListData[]>([]);
-
   const {
     control,
     handleSubmit,
@@ -59,8 +63,8 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
     defaultValues: useMemo(
       () => ({
         message: initialData?.message ?? null,
-        courseElementId: initialData?.courseElementId ?? '',
-        assignedLecturerId: initialData?.assignedLecturerId ?? '',
+        courseElementId: String(initialData?.courseElement?.id ?? ''),
+        assignedLecturerId: String(initialData?.lecturer?.id ?? ''),
       }),
       [initialData],
     ),
@@ -68,14 +72,16 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
 
   useEffect(() => {
     if (visible) {
+      console.log(initialData);
+
       fetchLecturerList()
         .then(data => setLecturers(data))
         .catch(err => showErrorToast('Error', 'Failed to load lecturers.'));
 
       reset({
         message: initialData?.message ?? null,
-        courseElementId: initialData?.courseElementId ?? '',
-        assignedLecturerId: initialData?.assignedLecturerId ?? '',
+        courseElementId: String(initialData?.courseElement?.id ?? ''),
+        assignedLecturerId: String(initialData?.lecturer?.id ?? ''),
       });
     }
   }, [visible, initialData, reset]);
@@ -86,7 +92,6 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
         ? 'Assignment updated'
         : 'Assignment created';
 
-      // Chuyển đổi ID sang kiểu số
       const assignedLecturerIdNum = Number(data.assignedLecturerId);
       const courseElementIdNum = Number(data.courseElementId);
       const assignedByHODIdNum = Number(hodId);
@@ -131,12 +136,12 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
 
   const elementOptions = courseElements.map(el => ({
     label: `${el.name} (Weight: ${el.weight}%)`,
-    value: String(el.id), // RNPickerSelect dùng string
+    value: String(el.id),
   }));
 
   const lecturerOptions = lecturers.map(l => ({
     label: `${l.fullName} (${l.accountCode})`,
-    value: l.lecturerId, // Giữ string cho RNPickerSelect
+    value: String(l.lecturerId),
   }));
 
   return (
@@ -169,7 +174,6 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
                   value={value}
                   style={pickerSelectStyles}
                   placeholder={{ label: 'Select an element...', value: null }}
-                  disabled={isEditMode}
                 />
                 {error && (
                   <AppText style={styles.textError}>{error.message}</AppText>

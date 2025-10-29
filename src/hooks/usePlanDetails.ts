@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { CourseElementData } from '../api/courseElementService';
 import { findHoDByAccountId } from '../api/hodService';
+import { PlanDetailClass } from '../api/semester';
 import {
   fetchSemesterPlanDetail,
   PlanDetailAssignRequest,
@@ -14,8 +15,6 @@ import {
 } from '../api/studentGroupService';
 import { showErrorToast } from '../components/toasts/AppToast';
 import { RootState } from '../store/store';
-import { ClassDetailData } from '../api/class';
-import { PlanDetailClass } from '../api/semester';
 
 export interface PlanCourse extends PlanDetailCourse {
   semesterCourseId: number;
@@ -83,13 +82,9 @@ export const usePlanDetails = (
       );
       setPlanElements(allPlanElements);
 
-      // ... bên trong hàm loadPlanDetails
-
-      // Sửa logic này:
-      const allPlanClasses: PlanDetailClassWithSemesterCourseId[] = // <-- SỬA TYPE
+      const allPlanClasses: PlanDetailClassWithSemesterCourseId[] =
         planSemesterCourses.flatMap(sc =>
           (sc.classes || []).map(cls => ({
-            // <-- Dùng .map để thêm trường mới
             ...cls, // Giữ lại tất cả thuộc tính cũ của class
             semesterCourseId: sc.id, // <-- THÊM trường này
           })),
@@ -101,9 +96,9 @@ export const usePlanDetails = (
       );
       setAssignRequests(allPlanAssignRequests); // Tối ưu: Lọc StudentGroups
 
-      const planClassIds = new Set(allPlanClasses.map(cls => String(cls.id)));
+      const planClassIds = new Set(allPlanClasses.map(cls => Number(cls.id)));
       const planStudents = allStudentGroups.filter(sg =>
-        planClassIds.has(sg.classId),
+        planClassIds.has(Number(sg.classId)),
       );
       setStudentGroups(planStudents);
     } catch (error: any) {
@@ -116,7 +111,7 @@ export const usePlanDetails = (
 
   useEffect(() => {
     loadPlanDetails();
-  }, [loadPlanDetails]); // useEffect gọi hàm đã được useCallback // Cung cấp data đã được memoize cho modal
+  }, [loadPlanDetails]);
 
   const semesterCoursesForDropdown = useMemo(() => {
     return (planData?.semesterCourses || []).map(sc => ({

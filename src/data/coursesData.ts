@@ -323,7 +323,6 @@ export const DocumentList = [
     linkFile: 'requirement.pdf',
     rightIcon: DownloadIcon,
     linkTo: '',
-    detailNavigation: 'RequirementTeacherScreen',
     onAction: () => {},
   },
   {

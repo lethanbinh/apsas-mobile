@@ -49,7 +49,9 @@ const ApprovalAccordion = ({
 }: ApprovalAccordionProps) => {
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
-  const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
+  const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(
+    null,
+  );
 
   const handleConfirmReject = () => {
     if (rejectReason.trim()) {
@@ -60,75 +62,104 @@ const ApprovalAccordion = ({
 
   const handleExport = async () => {
     if (Platform.OS === 'android') {
-        try {
-            const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE);
-            if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                Alert.alert("Permission Denied!", "Storage permission is required.");
-                return;
-            }
-        } catch (err) {
-            console.warn(err);
-            return;
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permission Denied!', 'Storage permission is required.');
+          return;
         }
+      } catch (err) {
+        console.warn(err);
+        return;
+      }
     }
 
     const children: Paragraph[] = [
-        new Paragraph({ text: assignment.name, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
+      new Paragraph({
+        text: assignment.name,
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 },
+      }),
     ];
 
     for (const [index, question] of assignment.questions.entries()) {
-        children.push(
-            new Paragraph({ text: `Question ${index + 1}: ${question.title}`, heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 150 } }),
-            new Paragraph({ children: [new TextRun({ text: question.content, size: 24 })], spacing: { after: 200 } }),
-        );
+      children.push(
+        new Paragraph({
+          text: `Question ${index + 1}: ${question.title}`,
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 300, after: 150 },
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: question.content, size: 24 })],
+          spacing: { after: 200 },
+        }),
+      );
 
-        if (question.imageUrl) {
-            try {
-                const imageDimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-                    Image.getSize(question.imageUrl, (width, height) => resolve({ width, height }), reject);
-                });
+      if (question.imageUrl) {
+        try {
+          const imageDimensions = await new Promise<{
+            width: number;
+            height: number;
+          }>((resolve, reject) => {
+            Image.getSize(
+              question.imageUrl,
+              (width, height) => resolve({ width, height }),
+              reject,
+            );
+          });
 
-                const response = await ReactNativeBlobUtil.fetch('GET', question.imageUrl);
-                const imageBase64 = response.base64();
-                const imageBuffer = Buffer.from(imageBase64, 'base64');
-                
-                const maxWidth = 450;
-                const aspectRatio = imageDimensions.height / imageDimensions.width;
-                const calculatedHeight = maxWidth * aspectRatio;
+          const response = await ReactNativeBlobUtil.fetch(
+            'GET',
+            question.imageUrl,
+          );
+          const imageBase64 = response.base64();
+          const imageBuffer = Buffer.from(imageBase64, 'base64');
 
-                children.push(
-                    new Paragraph({
-                        children: [new ImageRun({ data: imageBuffer, transformation: { width: maxWidth, height: calculatedHeight } } as any)],
-                        alignment: AlignmentType.CENTER,
-                        spacing: { after: 200 },
-                    }),
-                );
-            } catch (e) {
-                console.error("Error processing image for docx:", e);
-            }
+          const maxWidth = 450;
+          const aspectRatio = imageDimensions.height / imageDimensions.width;
+          const calculatedHeight = maxWidth * aspectRatio;
+
+          children.push(
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  data: imageBuffer,
+                  transformation: { width: maxWidth, height: calculatedHeight },
+                } as any),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 },
+            }),
+          );
+        } catch (e) {
+          console.error('Error processing image for docx:', e);
         }
+      }
     }
 
     const doc = new Document({ sections: [{ children }] });
 
     try {
-        const base64 = await Packer.toBase64String(doc);
-        const fileName = `${assignment.name.replace(/ /g, '_')}.docx`;
-        const path = `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
-        await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
-        if (Platform.OS === 'android') {
-            await ReactNativeBlobUtil.android.addCompleteDownload({
-                title: fileName,
-                description: 'Download complete',
-                mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                path: path,
-                showNotification: true,
-            });
-        }
-        Alert.alert("Export Successful", `File saved as ${fileName}`);
+      const base64 = await Packer.toBase64String(doc);
+      const fileName = `${assignment.name.replace(/ /g, '_')}.docx`;
+      const path = `${ReactNativeBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
+      await ReactNativeBlobUtil.fs.writeFile(path, base64, 'base64');
+      if (Platform.OS === 'android') {
+        await ReactNativeBlobUtil.android.addCompleteDownload({
+          title: fileName,
+          description: 'Download complete',
+          mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          path: path,
+          showNotification: true,
+        });
+      }
+      Alert.alert('Export Successful', `File saved as ${fileName}`);
     } catch (error) {
-        console.error("Error exporting file:", error);
-        Alert.alert("Export Failed", "An error occurred.");
+      console.error('Error exporting file:', error);
+      Alert.alert('Export Failed', 'An error occurred.');
     }
   };
 
@@ -138,13 +169,16 @@ const ApprovalAccordion = ({
         <AppText variant="body14pxBold" style={styles.assignmentTitle}>
           {assignment.name}
         </AppText>
-        <TouchableOpacity onPress={handleExport}>
-            <AppText style={styles.exportButtonText}>Export</AppText>
+        <TouchableOpacity
+          onPress={e => {
+            e.stopPropagation();
+            handleExport();
+          }}
+        >
+          <AppText style={styles.exportButtonText}>Export</AppText>
         </TouchableOpacity>
         <StatusTag status={assignment.status} />
-        <AppText style={styles.expandIcon}>
-          {isExpanded ? '−' : '+'}
-        </AppText>
+        <AppText style={styles.expandIcon}>{isExpanded ? '−' : '+'}</AppText>
       </TouchableOpacity>
 
       {isExpanded && (
@@ -178,9 +212,7 @@ const ApprovalAccordion = ({
               index={index}
               isExpanded={expandedQuestionId === q.id}
               onToggle={() =>
-                setExpandedQuestionId(prevId =>
-                  prevId === q.id ? null : q.id
-                )
+                setExpandedQuestionId(prevId => (prevId === q.id ? null : q.id))
               }
             />
           ))}
@@ -238,78 +270,78 @@ const ApprovalAccordion = ({
 };
 
 const styles = StyleSheet.create({
-    assignmentCard: {
-      backgroundColor: AppColors.white,
-      borderRadius: 10,
-      marginHorizontal: s(10),
-      marginVertical: vs(8),
-      borderWidth: 1,
-      borderColor: AppColors.n200,
-    },
-    assignmentHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: s(15),
-    },
-    assignmentTitle: {
-      flex: 1,
-      color: AppColors.n900,
-    },
-    exportButtonText: {
-        color: AppColors.pr500,
-        fontWeight: 'bold',
-        marginHorizontal: s(8)
-    },
-    expandIcon: {
-      fontSize: 18,
-      marginLeft: 6,
-      color: AppColors.n700,
-    },
-    assignmentBody: {
-      paddingHorizontal: s(15),
-      paddingBottom: vs(15),
-      borderTopWidth: 1,
-      borderTopColor: AppColors.n100,
-    },
-    typeContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: vs(12),
-      marginTop: vs(8),
-    },
-    typeLabel: {
-      color: AppColors.n700,
-    },
-    typeValue: {
-      marginLeft: s(8),
-    },
-    actionRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      marginTop: vs(16),
-      gap: s(16),
-    },
-    actionButton: {
-      flex: 1,
-    },
-    reasonInput: {
-      borderWidth: 1,
-      borderColor: AppColors.errorColor,
-      borderRadius: 8,
-      padding: s(10),
-      marginTop: vs(8),
-      backgroundColor: AppColors.white,
-      textAlignVertical: 'top',
-      minHeight: vs(60),
-    },
-    reasonText: {
-      marginTop: vs(12),
-      color: AppColors.errorColor,
-      fontStyle: 'italic',
-      backgroundColor: AppColors.r100,
-      padding: s(10),
-      borderRadius: 8,
-    },
-  });
+  assignmentCard: {
+    backgroundColor: AppColors.white,
+    borderRadius: 10,
+    marginHorizontal: s(10),
+    marginVertical: vs(8),
+    borderWidth: 1,
+    borderColor: AppColors.n200,
+  },
+  assignmentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: s(15),
+  },
+  assignmentTitle: {
+    flex: 1,
+    color: AppColors.n900,
+  },
+  exportButtonText: {
+    color: AppColors.pr500,
+    fontWeight: 'bold',
+    marginHorizontal: s(8),
+  },
+  expandIcon: {
+    fontSize: 18,
+    marginLeft: 6,
+    color: AppColors.n700,
+  },
+  assignmentBody: {
+    paddingHorizontal: s(15),
+    paddingBottom: vs(15),
+    borderTopWidth: 1,
+    borderTopColor: AppColors.n100,
+  },
+  typeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: vs(12),
+    marginTop: vs(8),
+  },
+  typeLabel: {
+    color: AppColors.n700,
+  },
+  typeValue: {
+    marginLeft: s(8),
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: vs(16),
+    gap: s(16),
+  },
+  actionButton: {
+    flex: 1,
+  },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: AppColors.errorColor,
+    borderRadius: 8,
+    padding: s(10),
+    marginTop: vs(8),
+    backgroundColor: AppColors.white,
+    textAlignVertical: 'top',
+    minHeight: vs(60),
+  },
+  reasonText: {
+    marginTop: vs(12),
+    color: AppColors.errorColor,
+    fontStyle: 'italic',
+    backgroundColor: AppColors.r100,
+    padding: s(10),
+    borderRadius: 8,
+  },
+});
 
 export default ApprovalAccordion;
