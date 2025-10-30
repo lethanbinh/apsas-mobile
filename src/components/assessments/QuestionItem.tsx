@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'; // <-- Import useEffect
+import React, { useEffect, useState } from 'react';
 import { Control } from 'react-hook-form';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
@@ -12,15 +12,15 @@ import AppText from '../texts/AppText';
 import CriteriaBottomSheet from './CriteriaBottomSheet';
 
 interface QuestionItemProps {
-  // question: { id: string; fileUri: string | null }; // <-- Bỏ prop này
   index: number;
   isExpanded: boolean;
-  control: Control<any>; // Nên dùng kiểu cụ thể hơn nếu có AssessmentFormData
+  control: Control<any>;
   onToggle: () => void;
   onFileUpload: () => void;
   onRemove: () => void;
   canRemove: boolean;
-  initialFileUri: string | null | undefined; // <-- Thêm prop này
+  initialFileUri: string | null | undefined;
+  isEditable?: boolean; // <-- Thêm prop
 }
 
 const QuestionItem = ({
@@ -31,13 +31,12 @@ const QuestionItem = ({
   onFileUpload,
   onRemove,
   canRemove,
-  initialFileUri, // <-- Nhận prop
+  initialFileUri,
+  isEditable = true,
 }: QuestionItemProps) => {
   const [isCriteriaSheetVisible, setCriteriaSheetVisible] = useState(false);
-  // State để lưu file URI (vì useWatch có thể chậm)
   const [currentFileUri, setCurrentFileUri] = useState(initialFileUri);
 
-  // Cập nhật state nội bộ khi prop initialFileUri thay đổi
   useEffect(() => {
     setCurrentFileUri(initialFileUri);
   }, [initialFileUri]);
@@ -50,7 +49,8 @@ const QuestionItem = ({
             Question {index + 1}
           </AppText>
           <View style={styles.headerActions}>
-            {canRemove && (
+            {/* Chỉ hiển thị nút Remove khi 'canRemove' và 'isEditable' */}
+            {canRemove && isEditable && (
               <TouchableOpacity
                 onPress={onRemove}
                 style={{ marginRight: s(10) }}>
@@ -74,44 +74,43 @@ const QuestionItem = ({
               name={`questions.${index}.title`}
               label="Title"
               placeholder="Enter question title..."
-              rules={{ required: 'Title is required' }} // Thêm rule
+              rules={{ required: 'Title is required' }}
+              editable={isEditable} // <-- Truyền prop
             />
-            {/* Tạm ẩn content vì đã có sample input/output */}
-            {/* <AppTextInputController
-              control={control}
-              name={`questions.${index}.content`}
-              label="Content"
-              placeholder="Enter question content..."
-              multiline
-              numberOfLines={4}
-            /> */}
             <AppTextInputController
               control={control}
-              name={`questions.${index}.sampleInput`} // <-- Input mới
+              name={`questions.${index}.sampleInput`}
               label="Sample Input"
               placeholder="Enter sample input..."
               multiline
+              editable={isEditable} // <-- Truyền prop
             />
             <AppTextInputController
               control={control}
-              name={`questions.${index}.sampleOutput`} // <-- Input mới
+              name={`questions.${index}.sampleOutput`}
               label="Sample Output"
               placeholder="Enter sample output..."
               multiline
+              editable={isEditable} // <-- Truyền prop
             />
             <AppTextInputController
               control={control}
-              name={`questions.${index}.score`} // <-- Input mới
+              name={`questions.${index}.score`}
               label="Score"
               placeholder="Enter score (e.g., 10)"
               keyboardType="numeric"
               rules={{
                 required: 'Score is required',
-                pattern: { value: /^\d+$/, message: 'Score must be a number' },
-              }} // Thêm rule
+                pattern: { value: /^\d+(\.\d+)?$/, message: 'Score must be a number' }, // <-- Sửa pattern
+              }}
+              editable={isEditable} // <-- Truyền prop
             />
-            <TouchableOpacity style={styles.uploadBox} onPress={onFileUpload}>
-              {currentFileUri ? ( // <-- Dùng state nội bộ
+            <TouchableOpacity
+              style={styles.uploadBox}
+              onPress={onFileUpload}
+              disabled={!isEditable} // <-- Thêm disabled
+            >
+              {currentFileUri ? (
                 <Image
                   source={{ uri: currentFileUri }}
                   style={styles.previewImage}
@@ -146,17 +145,15 @@ const QuestionItem = ({
         visible={isCriteriaSheetVisible}
         onClose={() => setCriteriaSheetVisible(false)}
         questionNumber={index + 1}
-        // rubrics={[]} // Bỏ prop rubrics
-        // Thêm control và questionIndex
         control={control}
         questionIndex={index}
-        isEditable={true} // Lecturer có thể sửa criteria
+        isEditable={isEditable} // <-- Truyền prop
       />
     </>
   );
 };
 
-// Styles giữ nguyên
+// ... (styles) ...
 const styles = StyleSheet.create({
   questionContainer: {
     borderBottomWidth: 1,

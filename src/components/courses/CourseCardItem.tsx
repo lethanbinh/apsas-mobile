@@ -22,6 +22,7 @@ interface CourseCardItemProps {
   onDownload?: () => void;
   style?: ViewStyle;
   onPress?: () => void;
+  disabled?: boolean; // <-- Thêm prop
 }
 
 const CourseCardItem = ({
@@ -34,6 +35,7 @@ const CourseCardItem = ({
   onDownload,
   style,
   onPress,
+  disabled = false, // <-- Lấy prop và gán giá trị mặc định
 }: CourseCardItemProps) => {
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);
@@ -60,13 +62,15 @@ const CourseCardItem = ({
 
   return (
     <TouchableOpacity
-      onPress={handlePress} // Sử dụng hàm xử lý mới
+      onPress={handlePress}
+      disabled={disabled} // <-- Thêm disabled
       style={[
         styles.container,
         {
           backgroundColor: backGroundColor,
         },
         style,
+        disabled && styles.disabledContainer, // <-- Thêm style disabled
       ]}
     >
       <View
@@ -102,5 +106,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: s(15),
     justifyContent: 'space-between',
+  },
+  disabledContainer: { // <-- Thêm style
+    opacity: 0.5,
   },
 });

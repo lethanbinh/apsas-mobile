@@ -3,7 +3,11 @@ import { ApiResponse, ApiService } from '../utils/ApiService';
 import { SecureStorage } from '../utils/SecureStorage';
 import { IS_ANDROID } from '../constants/constants';
 import RNBlobUtil from 'react-native-blob-util';
-
+export enum FileTemplate {
+  DATABASE = 0,
+  TESTFILE = 1,
+  PAPER = 2,
+}
 export interface AssessmentFileData {
   id: number;
   name: string;
@@ -44,7 +48,8 @@ export const createAssessmentFile = async (
 };
 export const uploadAssessmentFile = async (
   file: FileUpload,
-  fileTemplate: number,
+  name: string, // <-- Thêm tham số 'name'
+  fileTemplate: FileTemplate, // <-- Dùng Enum
   assessmentTemplateId: number,
 ): Promise<AssessmentFileData> => {
   const token = await SecureStorage.getCredentials('authToken');
@@ -52,23 +57,30 @@ export const uploadAssessmentFile = async (
     throw new Error('No auth token found for upload.');
   }
 
-  const url = `${BACKEND_API_URL}/api/AssessmentFile/upload`;
+  // SỬA URL: Dùng endpoint /create
+  const url = `${BACKEND_API_URL}/api/AssessmentFile/create`;
   const filePath = IS_ANDROID ? file.uri : file.uri.replace('file://', '');
 
   try {
     const resp = await RNBlobUtil.fetch(
+      // SỬA METHOD: Dùng 'POST'
       'POST',
       url,
       {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
+      // SỬA CÁC TRƯỜNG FORM DATA
       [
         {
-          name: 'File',
+          name: 'File', // Tên field là 'File' (viết hoa)
           filename: file.name,
           type: file.type,
           data: RNBlobUtil.wrap(filePath),
+        },
+        {
+          name: 'Name', // <-- Thêm trường 'Name'
+          data: name,
         },
         {
           name: 'FileTemplate',
@@ -81,7 +93,34 @@ export const uploadAssessmentFile = async (
       ],
     );
 
-    const jsonResp = resp.json() as ApiResponse<AssessmentFileData>;
+    // Bổ sung logic xử lý response an toàn
+    const status = resp.info().status;
+    const data = resp.data;
+
+    // Lỗi 4xx, 5xx
+    if (status < 200 || status >= 300) {
+      let errorMessage = `Server error: ${status}`;
+      try {
+        const errorJson = JSON.parse(data);
+        errorMessage =
+          errorJson.errorMessages?.join(', ') || errorJson.title || data;
+      } catch (e) {
+        errorMessage = data || errorMessage; // Giữ lỗi text/html nếu có
+      }
+      console.error('Upload Assessment File HTTP Error:', status, data);
+      throw new Error(errorMessage);
+    }
+
+    // Lỗi response 2xx rỗng
+    if (!data) {
+      console.warn(
+        'Upload Assessment File: Server returned 2xx but with empty body.',
+      );
+      throw new Error('File upload succeeded but returned no data.');
+    }
+
+    // Parse JSON
+    const jsonResp = JSON.parse(data) as ApiResponse<AssessmentFileData>;
 
     if (jsonResp.isSuccess && jsonResp.result) {
       return jsonResp.result;
@@ -91,7 +130,7 @@ export const uploadAssessmentFile = async (
       );
     }
   } catch (error: any) {
-    console.error('Upload Assessment File Error:', error);
+    console.error('Upload Assessment File Error:', error.message);
     throw new Error(error.message || 'Failed to upload assessment file.');
   }
 };

@@ -1,25 +1,22 @@
-import React, { useEffect, useState, useMemo } from 'react'; // <-- Thêm useMemo
+import React, { useEffect, useState } from 'react'; // <-- Thêm useMemo
 import {
   Control,
-  Controller,
   useFieldArray,
-  useForm, // <-- Giữ lại useForm
+  useForm
 } from 'react-hook-form';
-import { StyleSheet, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { RubricItemData } from '../../api/rubricItemService'; // <-- Import lại
 import { AppColors } from '../../styles/color';
 import AppButton from '../buttons/AppButton';
 import BottomSheet from '../common/BottomSheet';
 import AppTextInputController from '../inputs/AppTextInputController';
-import RadioWithTitle from '../inputs/RadioWithTitle';
 import AppText from '../texts/AppText';
 
 interface CriteriaBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   questionNumber: number;
-  // Các props này là tùy chọn
   rubrics?: RubricItemData[]; // <-- Dùng cho chế độ standalone (chỉ xem)
   control?: Control<any>; // <-- Dùng cho chế độ managed (từ cha)
   questionIndex?: number; // <-- Đi kèm với control
@@ -75,7 +72,6 @@ const CriteriaBottomSheet = ({
     }
   }, [visible, rubrics, controlFromProps, internalForm.reset]); // Thêm controlFromProps và reset
 
-  // 4. Sử dụng activeControl và activeQuestionIndex
   const { fields, append, remove } = useFieldArray({
     control: activeControl, // <-- Dùng control đã chọn
     name: controlFromProps
@@ -86,8 +82,6 @@ const CriteriaBottomSheet = ({
   const [expandedCriteriaId, setExpandedCriteriaId] = useState<string | null>(
     null,
   );
-
-  // Mở criteria đầu tiên khi fields thay đổi
   useEffect(() => {
     if (visible && fields.length > 0 && !expandedCriteriaId) {
       setExpandedCriteriaId(fields[0].id);
@@ -96,9 +90,6 @@ const CriteriaBottomSheet = ({
       setExpandedCriteriaId(null);
     }
   }, [visible, fields]);
-
-  const DATA_TYPES = ['Numeric', 'Boolean', 'String', 'Special'];
-
   const handleAddCriteria = () => {
     append({
       input: '',
@@ -109,7 +100,6 @@ const CriteriaBottomSheet = ({
     });
   };
 
-  // Tên field động dựa trên chế độ
   const getFieldName = (index: number, fieldName: string): string => {
     return controlFromProps
       ? `questions.${activeQuestionIndex}.criteria.${index}.${fieldName}`
@@ -120,7 +110,6 @@ const CriteriaBottomSheet = ({
     <BottomSheet visible={visible} onClose={onClose}>
       <View style={styles.header}>
         <AppText variant="h3">Criteria (Q{questionNumber})</AppText>
-        {/* Chỉ hiện nút Add khi Editable VÀ dùng control từ cha (managed mode) */}
         {isEditable && controlFromProps && !isLoading && (
           <TouchableOpacity onPress={handleAddCriteria}>
             <AppText variant="body14pxBold" style={{ color: AppColors.pr500 }}>
@@ -137,7 +126,7 @@ const CriteriaBottomSheet = ({
         />
       ) : (
         <View style={styles.contentContainer}>
-          {fields.length === 0 ? ( // Hiển thị text này nếu không có field (cả 2 mode)
+          {fields.length === 0 ? (
             <AppText style={styles.emptyText}>
               {isEditable && controlFromProps
                 ? 'Click "Add" to define criteria.'
@@ -161,7 +150,6 @@ const CriteriaBottomSheet = ({
                       Criteria {index + 1}
                     </AppText>
                     <View style={styles.headerActions}>
-                      {/* Chỉ hiện nút Remove khi Editable VÀ dùng control từ cha */}
                       {isEditable && controlFromProps && fields.length > 1 && (
                         <TouchableOpacity onPress={() => remove(index)}>
                           <AppText style={styles.removeButtonText}>
@@ -190,29 +178,6 @@ const CriteriaBottomSheet = ({
                         placeholder="10"
                         editable={isEditable}
                       />
-                      <AppText
-                        variant="body16pxBold"
-                        style={{ color: AppColors.n700, marginTop: vs(10) }}>
-                        Data type
-                      </AppText>
-
-                      <Controller
-                        control={activeControl}
-                        name={getFieldName(index, 'dataType')}
-                        render={({ field: { onChange, value } }) => (
-                          <View>
-                            {DATA_TYPES.map(type => (
-                              <RadioWithTitle
-                                key={type}
-                                title={type}
-                                selected={value === type}
-                                onPress={() => isEditable && onChange(type)}
-                              />
-                            ))}
-                          </View>
-                        )}
-                      />
-
                       <View style={{ height: vs(8) }}></View>
                       <AppTextInputController
                         control={activeControl}
