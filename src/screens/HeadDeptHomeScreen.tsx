@@ -34,17 +34,17 @@ const HeadDeptHomeScreen = () => {
       </View>
       <View style={{ paddingHorizontal: s(25), marginTop: s(20) }}>
         <LearningCard
-          title="You want to create a new semester learning plan?"
-          buttonLabel="Create plan"
+          title="You want to create a new courses?"
+          buttonLabel="Courses"
           onPress={() => {
-            navigation.navigate('ImportExcelScreen' as never);
+            navigation.navigate('CourseManagementScreen' as never);
           }}
           backgroundColor={AppColors.pr100}
           imageSource={require('../assets/images/illu1.png')}
         />
         <LearningCard
-          buttonLabel="Your plans"
-          onPress={() => navigation.navigate('PlatListScreen')}
+          buttonLabel="Semesters"
+          onPress={() => navigation.navigate('SemesterManagementScreen')}
           backgroundColor={'#BFE4C6'}
           imageSource={require('../assets/images/illu2.png')}
           reverse

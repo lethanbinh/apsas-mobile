@@ -125,6 +125,8 @@ const LoginForm = () => {
     }
   };
 
+  console.log(isLoading);
+
   const handleLogin = async (formData: FormData) => {
     setIsLoading(true);
     try {
@@ -137,13 +139,16 @@ const LoginForm = () => {
         email: formData.email,
         password: formData.password,
       });
+      console.log('Logging in with:', formData);
 
       const token = response.result?.token;
       const expiresAt = response.result?.expiresAt;
-
+      console.log(token, expiresAt);
       if (token && expiresAt) {
         await handleLoginSuccess(token, expiresAt);
+        setIsLoading(false);
       } else {
+        setIsLoading(false);
         throw new Error('Login response missing token or expiration time.');
       }
     } catch (error: any) {
@@ -151,9 +156,9 @@ const LoginForm = () => {
         'Login Failed',
         error.message || 'An unexpected error occurred.',
       );
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   };
 
   return (

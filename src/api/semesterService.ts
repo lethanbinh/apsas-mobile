@@ -10,6 +10,7 @@ export interface SemesterData {
   endDate: string;
   createdAt: string;
   updatedAt: string;
+  note: string;
 }
 
 export interface SemesterCourseData {
@@ -102,10 +103,33 @@ export interface PlanDetailResult {
   semesterCourses: PlanDetailSemesterCourse[];
 }
 
-export const fetchSemesters = async (): Promise<SemesterData[]> => {
+export interface GetSemestersParams {
+  pageNumber: number;
+  pageSize: number;
+}
+
+export interface CreateSemesterPayload {
+  semesterCode: string;
+  academicYear: number;
+  note: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface UpdateSemesterPayload {
+  semesterCode: string;
+  academicYear: number;
+  note: string;
+  startDate: string;
+  endDate: string;
+}
+
+export const fetchSemesters = async (
+  params: GetSemestersParams = { pageNumber: 1, pageSize: 100 },
+): Promise<SemesterData[]> => {
   try {
     const response = await ApiService.get<SemesterData[]>(
-      '/api/Semester?pageNumber=1&pageSize=100',
+      `/api/Semester?pageNumber=${params.pageNumber}&pageSize=${params.pageSize}`,
     );
     if (response.result) return response.result;
     throw new Error('No semester data found.');
@@ -160,4 +184,23 @@ export const fetchSemesterPlanDetail = async (
     );
     throw error;
   }
+};
+
+export const createSemester = async (
+  payload: CreateSemesterPayload,
+): Promise<ApiResponse<SemesterData>> => {
+  return ApiService.post<SemesterData>('/api/Semester', payload);
+};
+
+export const updateSemester = async (
+  semesterId: string | number,
+  payload: UpdateSemesterPayload,
+): Promise<ApiResponse<SemesterData>> => {
+  return ApiService.put<SemesterData>(`/api/Semester/${semesterId}`, payload);
+};
+
+export const deleteSemester = async (
+  semesterId: string | number,
+): Promise<ApiResponse<any>> => {
+  return ApiService.delete(`/api/Semester/${semesterId}`);
 };

@@ -14,6 +14,20 @@ export interface CourseCrudPayload {
   description: string;
   code: string;
 }
+
+export const fetchCourses = async (): Promise<CourseData[]> => {
+  try {
+    const response = await ApiService.get<CourseData[]>('/api/Course');
+    if (response.result) {
+      return response.result;
+    }
+    throw new Error('No course data found.');
+  } catch (error: any) {
+    console.error('Failed to fetch courses:', error);
+    throw error;
+  }
+};
+
 export const fetchCourseById = async (
   courseId: string,
 ): Promise<CourseData> => {
