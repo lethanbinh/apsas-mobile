@@ -147,6 +147,14 @@ const CourseSection = ({
             { key: 'description', label: 'Description' },
             { key: 'weight', label: 'Weight (%)' },
           ]}
+          renderCellContent={(item: any, key: string) => {
+            if (key === 'weight') {
+              // Convert decimal (0.25) to percentage (25%)
+              const weightValue = typeof item.weight === 'number' ? item.weight : Number(item.weight) || 0;
+              return `${(weightValue * 100).toFixed(1)}%`;
+            }
+            return String(item[key] ?? '');
+          }}
           onAdd={() => handleOpenAddElement(course.semesterCourseId)}
           onEdit={(element: CourseElementData) =>
             handleOpenEditElement(element, course.semesterCourseId)

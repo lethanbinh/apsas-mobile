@@ -10,11 +10,11 @@ import {
 import DeleteConfirmModal from '../modals/DeleteConfirmModal';
 import StudentEnrollmentModal from '../modals/StudentEnrollmentModal';
 import TableSection from '../common/TableSection';
-import { ClassDetailData } from '../../api/class';
+import { PlanDetailClassWithSemesterCourseId } from '../../hooks/usePlanDetails';
 
 interface StudentSectionProps {
   studentGroups: StudentGroupData[];
-  planClasses: ClassDetailData[];
+  planClasses: PlanDetailClassWithSemesterCourseId[];
   onRefresh: () => void;
 }
 
@@ -59,7 +59,16 @@ const StudentSection = ({
     if (!selectedStudentGroup) return;
     setIsDeletingStudent(true);
     try {
-      await deleteStudentEnrollment(selectedStudentGroup.id);
+      // Convert ID to number if it's a string, as API expects number
+      const studentGroupId = typeof selectedStudentGroup.id === 'string' 
+        ? Number(selectedStudentGroup.id) 
+        : selectedStudentGroup.id;
+      
+      if (isNaN(studentGroupId)) {
+        throw new Error('Invalid student group ID.');
+      }
+      
+      await deleteStudentEnrollment(studentGroupId);
       showSuccessToast(
         'Success',
         `Student "${selectedStudentGroup.studentName}" enrollment deleted.`,

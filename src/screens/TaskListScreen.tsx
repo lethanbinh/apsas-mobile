@@ -1,81 +1,321 @@
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
-  View
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
-import { fetchSemesters } from '../api/semester';
-import AppButton from '../components/buttons/AppButton';
+import {
+  AssessmentTemplateData,
+  fetchAssessmentTemplates,
+} from '../api/assessmentTemplateService';
+import {
+  AssignRequestData,
+  fetchAssignRequestList,
+} from '../api/assignRequestService';
+import { fetchSemesters, SemesterData } from '../api/semesterService';
+import AssignmentAccordion from '../components/assessments/AssignmentAccordion';
+import StatusTag from '../components/assessments/StatusTag';
 import ScreenHeader from '../components/common/ScreenHeader';
 import SemesterDropdown from '../components/common/SemesterDropdown';
+import AppText from '../components/texts/AppText';
 import { showErrorToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
+import { useGetCurrentLecturerId } from '../hooks/useGetCurrentLecturerId';
 import { AppColors } from '../styles/color';
-import { globalStyles } from '../styles/shareStyles';
+
+interface CourseUI {
+  id: string;
+  title: string;
+  status: string;
+  assignmentsData: {
+    assignRequest: AssignRequestData;
+    template: AssessmentTemplateData | null;
+  }[];
+}
 
 const TaskListScreen = () => {
-  const [semesters, setSemesters] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
   const navigation = useNavigation<any>();
+  const route = useRoute();
+  const semesterCode = (route.params as { semesterCode?: string })?.semesterCode;
+  const { lecturerId: currentLecturerId, isLoading: isLecturerLoading } = useGetCurrentLecturerId();
+  const [courses, setCourses] = useState<CourseUI[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
+  const [expandedAssignment, setExpandedAssignment] = useState<string | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<string | null>(semesterCode || null);
+  const [semesterList, setSemesterList] = useState<SemesterData[]>([]);
 
+  // Fetch semester list on mount
   useEffect(() => {
+    let isMounted = true;
+
     const loadSemesters = async () => {
-      setIsLoading(true);
       try {
-        const semesterData = await fetchSemesters();
-        const semesterCodes = semesterData
-          .map(s => s.semesterCode)
-          .sort()
-          .reverse();
-        setSemesters(semesterCodes);
-        if (semesterCodes.length > 0) {
-          setSelectedSemester(semesterCodes[0]);
+        const semesters = await fetchSemesters({ pageNumber: 1, pageSize: 1000 });
+        if (isMounted) {
+          setSemesterList(semesters || []);
         }
       } catch (error: any) {
-        showErrorToast('Error', 'Failed to load semesters.');
-      } finally {
-        setIsLoading(false);
+        console.error('Failed to fetch semesters:', error);
       }
     };
+
     loadSemesters();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleSemesterSelect = (semester: string | null) => {
+  useEffect(() => {
+    let isMounted = true;
+
+    if (isLecturerLoading) {
+      return;
+    }
+
+    if (!selectedSemester) {
+      if (isMounted) {
+        setIsLoading(false);
+        setCourses([]);
+      }
+      return;
+    }
+
+    if (!currentLecturerId) {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    const loadAssignments = async () => {
+      if (!isMounted) return;
+      
+      setIsLoading(true);
+      try {
+        // Fetch assign requests
+        const response = await fetchAssignRequestList(
+          selectedSemester,
+          currentLecturerId,
+          1,
+          1000,
+        );
+        const assignRequests = response?.items || [];
+        
+        if (!isMounted) return;
+
+        if (!assignRequests || assignRequests.length === 0) {
+          setCourses([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch templates tương ứng
+        const templatePromises = assignRequests
+          .filter(ar => ar && ar.id)
+          .map(ar =>
+            fetchAssessmentTemplates({
+              pageNumber: 1,
+              pageSize: 1,
+              assignRequestId: ar.id,
+            })
+              .then(res => ({
+                assignRequest: ar,
+                template: (res?.items && res.items[0]) || null,
+              }))
+              .catch(err => {
+                console.error(`Error fetching template for AR ${ar.id}:`, err);
+                return { assignRequest: ar, template: null };
+              }),
+          );
+
+        const combinedData = await Promise.all(templatePromises);
+
+        // Group data theo courseName
+        const coursesMap = new Map<
+          string,
+          {
+            assignRequest: AssignRequestData;
+            template: AssessmentTemplateData | null;
+          }[]
+        >();
+
+        combinedData.forEach(item => {
+          if (item && item.assignRequest && item.assignRequest.courseName) {
+            try {
+              const courseName = item.assignRequest.courseName;
+              if (courseName && typeof courseName === 'string') {
+                if (!coursesMap.has(courseName)) {
+                  coursesMap.set(courseName, []);
+                }
+                const existingItems = coursesMap.get(courseName);
+                if (existingItems) {
+                  existingItems.push(item);
+                }
+              }
+            } catch (err) {
+              console.error('Error processing assignment data:', err);
+            }
+          }
+        });
+        const coursesData: CourseUI[] = Array.from(coursesMap.entries())
+          .filter(([courseName]) => courseName)
+          .map(([courseName, assignmentsData]) => ({
+            id: courseName,
+            title: courseName,
+            status: 'Pending',
+            assignmentsData: assignmentsData || [],
+          }));
+
+        if (!isMounted) return;
+        
+        setCourses(coursesData);
+        if (coursesData.length > 0 && coursesData[0] && coursesData[0].id) {
+          try {
+            setExpandedCourse(coursesData[0].id);
+            const firstAssignment = coursesData[0].assignmentsData?.[0];
+            if (firstAssignment?.assignRequest?.id) {
+              setExpandedAssignment(
+                String(firstAssignment.assignRequest.id),
+              );
+            }
+          } catch (err) {
+            console.error('Error setting initial expanded state:', err);
+          }
+        }
+      } catch (error: any) {
+        console.error(error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load assignments.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadAssignments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedSemester, currentLecturerId, isLecturerLoading]);
+
+  const handleSemesterSelect = (semester: string) => {
     setSelectedSemester(semester);
+    setExpandedCourse(null);
+    setExpandedAssignment(null);
   };
+
+  const handleRefresh = () => {
+    // Trigger re-fetch by forcing a state update
+    if (selectedSemester && currentLecturerId) {
+      // Force re-fetch by temporarily clearing and resetting
+      const currentSemester = selectedSemester;
+      setSelectedSemester(null);
+      setTimeout(() => {
+        setSelectedSemester(currentSemester);
+      }, 100);
+    }
+  };
+
+  // Get semester codes from semester list
+  const semesterOptions = (semesterList || [])
+    .filter(sem => sem && sem.semesterCode)
+    .map(sem => sem.semesterCode)
+    .filter((code): code is string => !!code);
+
+  if (isLoading || isLecturerLoading) {
+    return (
+      <AppSafeView>
+        <ScreenHeader title="Tasks" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={AppColors.pr500} />
+        </View>
+      </AppSafeView>
+    );
+  }
+
   return (
     <AppSafeView>
-      <ScreenHeader title="Choose Semesters" />
-      <View style={globalStyles.containerStyle}>
+      <ScreenHeader title={`Tasks${selectedSemester ? ` (${selectedSemester})` : ''}`} />
+      <View style={styles.contentContainer}>
+        <View style={styles.dropdownContainer}>
+          <SemesterDropdown
+            semesters={semesterOptions}
+            onSelect={handleSemesterSelect}
+          />
+        </View>
         {isLoading ? (
           <ActivityIndicator size="large" style={styles.loader} />
         ) : (
-          <SemesterDropdown
-            semesters={semesters}
-            onSelect={handleSemesterSelect}
-          />
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {courses.length > 0 ? (
+              courses.map(course => (
+                <View key={course.id} style={styles.courseCard}>
+                  <TouchableOpacity
+                    style={styles.courseHeader}
+                    onPress={() =>
+                      setExpandedCourse(
+                        expandedCourse === course.id ? null : course.id,
+                      )
+                    }
+                  >
+                    <AppText variant="label16pxBold" style={{ flex: 1 }}>
+                      {course.title}
+                    </AppText>
+                    <StatusTag status={course.status} />
+                    <AppText style={styles.expandIcon}>
+                      {expandedCourse === course.id ? '−' : '+'}
+                    </AppText>
+                  </TouchableOpacity>
+                  {expandedCourse === course.id && (
+                    <View style={styles.courseBody}>
+                      {(course.assignmentsData || [])
+                        .filter(item => item && item.assignRequest && item.assignRequest.id)
+                        .map(
+                          ({ assignRequest, template }) => (
+                            <AssignmentAccordion
+                              key={assignRequest.id}
+                              assignRequest={assignRequest}
+                              template={template || null}
+                              isExpanded={
+                                expandedAssignment === String(assignRequest.id)
+                              }
+                              onToggle={() =>
+                                setExpandedAssignment(prevId =>
+                                  prevId === String(assignRequest.id)
+                                    ? null
+                                    : String(assignRequest.id),
+                                )
+                              }
+                              onSuccess={handleRefresh}
+                            />
+                          ),
+                        )}
+                    </View>
+                  )}
+                </View>
+              ))
+            ) : (
+              <AppText style={styles.emptyText}>
+                {selectedSemester 
+                  ? 'No tasks found for this semester.' 
+                  : 'Please select a semester to view tasks.'}
+              </AppText>
+            )}
+          </ScrollView>
         )}
-        <AppButton
-          style={{
-            marginTop: vs(20),
-            borderRadius: s(12),
-          }}
-          title="Continue"
-          onPress={() => {
-            if (selectedSemester) {
-              navigation.navigate('CreateAssessmentScreen' as never, {
-                semesterCode: selectedSemester,
-              });
-            } else {
-              showErrorToast('Error', 'Please select a semester.');
-            }
-          }}
-          size="large"
-          disabled={isLoading || !selectedSemester}
-        />
       </View>
     </AppSafeView>
   );
@@ -84,44 +324,56 @@ const TaskListScreen = () => {
 export default TaskListScreen;
 
 const styles = StyleSheet.create({
-  loader: {
-    marginVertical: vs(20),
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: s(20),
+    paddingTop: vs(8),
   },
-  modalContainer: {
+  dropdownContainer: {
+    marginBottom: vs(8),
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: vs(40),
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loader: {
+    flex: 1,
+  },
+  courseCard: {
     backgroundColor: AppColors.white,
     borderRadius: s(12),
-    paddingVertical: vs(20),
-    paddingHorizontal: s(16),
-    marginHorizontal: s(20),
-    alignItems: 'stretch',
-  },
-  modalTitle: {
-    fontSize: s(16),
-    fontWeight: '600',
-    marginBottom: vs(12),
-    textAlign: 'center',
-    color: AppColors.black,
-  },
-  input: {
     borderWidth: 1,
-    borderColor: AppColors.n300,
-    borderRadius: s(8),
-    padding: s(10),
-    marginBottom: vs(20),
-    color: AppColors.black,
+    borderColor: AppColors.pr100,
+    marginBottom: vs(16),
   },
-  modalActions: {
+  courseHeader: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingVertical: vs(12),
+    paddingHorizontal: s(14),
   },
-  cancel: {
+  expandIcon: {
+    fontSize: s(18),
+    marginLeft: s(6),
+    color: AppColors.n700,
+  },
+  courseBody: {
+    backgroundColor: AppColors.pr100,
+    borderBottomLeftRadius: s(12),
+    borderBottomRightRadius: s(12),
+    paddingTop: vs(2),
+    paddingBottom: vs(10),
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: vs(50),
     color: AppColors.n500,
-    fontSize: s(14),
-    marginRight: s(20),
-  },
-  add: {
-    color: AppColors.pr500,
-    fontSize: s(14),
-    fontWeight: '600',
   },
 });

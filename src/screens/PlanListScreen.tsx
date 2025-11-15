@@ -10,8 +10,7 @@ import {
 } from 'react-native';
 import { Button, Modal, Portal } from 'react-native-paper';
 import { s, vs } from 'react-native-size-matters';
-import { useSelector } from 'react-redux';
-import { fetchSemesterCourses, fetchSemesters } from '../api/semester';
+import { fetchSemesters } from '../api/semesterService';
 import ScreenHeader from '../components/common/ScreenHeader';
 import Tabs from '../components/common/Tabs';
 import SubmissionItem from '../components/score/SubmissionItem';
@@ -20,9 +19,7 @@ import {
   showSuccessToast,
 } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
-import { RootState } from '../store/store';
 import { AppColors } from '../styles/color';
-import { fetchHoDDetails } from '../api/hodService';
 
 interface Plan {
   id: string;
@@ -43,78 +40,20 @@ const PlatListScreen = () => {
   const [cloneTarget, setCloneTarget] = useState<Plan | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const userAccountId = useSelector(
-    (state: RootState) => state.userSlice.profile?.id,
-  );
-
   useEffect(() => {
     const loadSemesterPlans = async () => {
-      if (!userAccountId) {
-        showErrorToast('Error', 'User not logged in or account ID missing.');
-        setIsLoading(false);
-        return;
-      }
-
       setIsLoading(true);
       try {
-        const [semesters, semesterCourses] = await Promise.all([
-          fetchSemesters(),
-          fetchSemesterCourses(),
-        ]);
+        // Fetch all semesters - display all semesters regardless of whether they have data
+        const semesters = await fetchSemesters({ pageNumber: 1, pageSize: 1000 });
 
-        const uniqueHodIds = [
-          ...new Set(
-            semesterCourses
-              .map(sc => sc.createdByHODId)
-              .filter(id => id != null),
-          ),
-        ];
-
-        const hodDetailsPromises = uniqueHodIds.map(async hodId => {
-          try {
-            const details = await fetchHoDDetails(hodId);
-            return {
-              hodId: hodId, // ID từ semesterCourse
-              accountId: details.accountId, // ID tài khoản của HOD đó
-            };
-          } catch (e) {
-            return null;
-          }
-        });
-
-        const hodIdToAccountIdMap = (
-          await Promise.all(hodDetailsPromises)
-        ).filter(item => item !== null) as {
-          hodId: string;
-          accountId: number;
-        }[];
-
-        const matchingHodIds = hodIdToAccountIdMap
-          .filter(
-            mapItem => String(mapItem.accountId) === String(userAccountId),
-          )
-          .map(mapItem => mapItem.hodId);
-
-        const userSemesterCourses = semesterCourses.filter(
-          sc =>
-            sc.createdByHODId != null &&
-            matchingHodIds.includes(sc.createdByHODId),
-        );
-
-        const userSemesterIds = [
-          ...new Set(userSemesterCourses.map(sc => sc.semesterId)),
-        ];
-
-        const userSemesters = semesters.filter(sem =>
-          userSemesterIds.includes(sem.id),
-        );
-
+        // Categorize all semesters by date
         const now = dayjs();
         const ongoing: Plan[] = [];
         const ended: Plan[] = [];
         const upcoming: Plan[] = [];
 
-        userSemesters.forEach(sem => {
+        semesters.forEach(sem => {
           const startDate = dayjs(sem.startDate);
           const endDate = dayjs(sem.endDate);
           const plan: Plan = {
@@ -145,7 +84,7 @@ const PlatListScreen = () => {
     };
 
     loadSemesterPlans();
-  }, [userAccountId]);
+  }, []);
 
   const handleClone = (item: Plan) => {
     setCloneTarget(item);

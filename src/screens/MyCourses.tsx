@@ -25,24 +25,34 @@ const mapApiDataToMyCourseItemProps = (
   apiData: ClassData[],
   navigation: any,
 ): CourseItemProps[] => {
-  return apiData.map((item, index) => {
-    const sampleIndex = index % sampleCourses.length;
-    const randomSample = sampleCourses[sampleIndex];
+  return (apiData || [])
+    .filter(item => item && item.id)
+    .map((item, index) => {
+      try {
+        const sampleIndex = index % sampleCourses.length;
+        const randomSample = sampleCourses[sampleIndex] || sampleCourses[0];
 
-    return {
-      item: {
-        id: item.id,
-        title: `${item.courseName} (${item.classCode})`,
-        description: item.lecturerName,
-        image: randomSample.image,
-        color: randomSample.color,
-      },
-      onPress: () => {
-        navigation.navigate('CourseDetailScreen', { classId: item.id });
-      },
-      isMyCourse: true,
-    };
-  });
+        return {
+          item: {
+            id: item.id,
+            title: `${item.courseName || 'Unknown'} (${item.classCode || 'N/A'})`,
+            description: item.lecturerName || 'Unknown Lecturer',
+            image: randomSample.image,
+            color: randomSample.color,
+          },
+          onPress: () => {
+            if (item.id) {
+              navigation.navigate('CourseDetailScreen', { classId: item.id });
+            }
+          },
+          isMyCourse: true,
+        };
+      } catch (err) {
+        console.error('Error mapping course item:', err);
+        return null;
+      }
+    })
+    .filter((item): item is CourseItemProps => item !== null);
 };
 
 const MyCoursesScreen = () => {
@@ -54,39 +64,60 @@ const MyCoursesScreen = () => {
   const [semesters, setSemesters] = useState<string[]>([]);
   const [isSemesterModalVisible, setIsSemesterModalVisible] = useState(false);
   const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(true);
 
   useEffect(() => {
+    setIsMounted(true);
     if (isLoadingStudentId || studentId === null) {
       if (!isLoadingStudentId && studentId === null) {
-        showErrorToast('Error', 'Could not identify current student.');
-        setIsScreenLoading(false);
+        if (isMounted) {
+          showErrorToast('Error', 'Could not identify current student.');
+          setIsScreenLoading(false);
+        }
       }
       return;
     }
 
     const loadMyClasses = async () => {
+      if (!isMounted) return;
       setIsScreenLoading(true);
       try {
         const apiData = await fetchClassList(true, 1, 1000); // Lấy nhiều trang, có students
-        const myClasses = apiData.filter(cls =>
-          cls.students.some(student => student.studentId === studentId),
+        if (!isMounted) return;
+
+        const myClasses = (apiData || []).filter(cls =>
+          cls && cls.students && Array.isArray(cls.students) && cls.students.some(student => student && student.studentId === studentId),
         );
+        if (!isMounted) return;
         setAllApiData(myClasses); // Chỉ lưu lại lớp của tôi
+
         const uniqueSemesters = [
-          ...new Set(myClasses.map(item => item.semesterName)), // Lấy semester từ lớp của tôi
+          ...new Set(myClasses
+            .filter(item => item && item.semesterName)
+            .map(item => item.semesterName)
+            .filter((name): name is string => !!name)
+          ),
         ].sort();
+        if (!isMounted) return;
         setSemesters(uniqueSemesters);
         if (uniqueSemesters.length > 0) {
           setSelectedSemester(uniqueSemesters[0]);
         }
       } catch (error: any) {
-        showErrorToast('Error', 'Failed to load your classes.');
         console.error(error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load your classes.');
+        }
       } finally {
-        setIsScreenLoading(false);
+        if (isMounted) {
+          setIsScreenLoading(false);
+        }
       }
     };
     loadMyClasses();
+    return () => {
+      setIsMounted(false);
+    };
   }, [studentId, isLoadingStudentId]);
 
   const filteredAndMappedList = useMemo(() => {

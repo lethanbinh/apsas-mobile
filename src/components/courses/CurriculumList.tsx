@@ -33,7 +33,10 @@ interface CurriculumListProps {
   scrollEnabled?: boolean;
   hasTestCase?: boolean;
   buttonText?: string;
-  containerStyle?: ViewStyle
+  containerStyle?: ViewStyle;
+  hideSectionHeader?: boolean;
+  onDownloadAll?: () => void;
+  onSectionButtonPress?: (sectionTitle: string) => void;
 }
 
 const CurriculumList = ({
@@ -44,7 +47,10 @@ const CurriculumList = ({
   scrollEnabled = false,
   hasTestCase = false,
   buttonText,
-  containerStyle
+  containerStyle,
+  hideSectionHeader = false,
+  onDownloadAll,
+  onSectionButtonPress,
 }: CurriculumListProps) => {
   const handleSave = () => {};
 
@@ -55,38 +61,47 @@ const CurriculumList = ({
       keyExtractor={(item, index) =>
         item.id ? String(item.id) : String(index)
       }
-      renderSectionHeader={({ section: { title, sectionButton } }) => (
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <View>
-            <AppText
-              style={{ color: '#202244', marginBottom: vs(15) }}
-              variant="label16pxBold"
-            >
-              {title}
-            </AppText>
-          </View>
-
-          {sectionButton && (
-            <TouchableOpacity>
+      renderSectionHeader={({ section: { title, sectionButton } }) => {
+        if (hideSectionHeader) return null;
+        return (
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <View>
               <AppText
-                variant="body12pxBold"
-                style={{
-                  color: AppColors.pr500,
-                  marginBottom: vs(15),
+                style={{ color: '#202244', marginBottom: vs(15) }}
+                variant="label16pxBold"
+              >
+                {title}
+              </AppText>
+            </View>
+
+            {sectionButton && (
+              <TouchableOpacity
+                onPress={() => {
+                  if (onSectionButtonPress) {
+                    onSectionButtonPress(title);
+                  }
                 }}
               >
-                {sectionButton}
-              </AppText>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+                <AppText
+                  variant="body12pxBold"
+                  style={{
+                    color: AppColors.pr500,
+                    marginBottom: vs(15),
+                  }}
+                >
+                  {sectionButton}
+                </AppText>
+              </TouchableOpacity>
+            )}
+          </View>
+        );
+      }}
       renderItem={({ item }) => (
         <CurriculumItem
           id={item.id}
@@ -175,7 +190,7 @@ const CurriculumList = ({
               marginTop: vs(10),
               borderRadius: s(10),
             }}
-            onPress={() => {}}
+            onPress={onDownloadAll || (() => {})}
             title={buttonText || 'Download All Materials'}
           />
         );

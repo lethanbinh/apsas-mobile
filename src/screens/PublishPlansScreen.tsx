@@ -28,7 +28,6 @@ const PublishPlansScreen = () => {
     refreshPlan,
   } = usePlanDetails(semesterId, semesterCode);
 
-  console.log(studentGroups)
   return (
     <AppSafeView style={{ flex: 1 }}>
       <ScreenHeader title={`Plan Detail: ${planData?.semesterCode || ''}`} />
@@ -39,7 +38,10 @@ const PublishPlansScreen = () => {
           style={styles.loadingIndicator}
         />
       ) : (
-        <ScrollView style={globalStyles.containerStyle}>
+        <ScrollView 
+          style={globalStyles.containerStyle}
+          removeClippedSubviews={true}
+        >
           <CourseSection
             courses={courses}
             semesterId={semesterId || ''}

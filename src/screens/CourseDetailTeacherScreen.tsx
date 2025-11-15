@@ -5,30 +5,23 @@ import {
   Image,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { ClassData, fetchClassById } from '../api/class';
 import {
-  EnterIcon,
-  LecturerIcon,
-  NavigationIcon,
-  SemesterIcon,
-  CurriculumIcon, // Import for navigation data
-  ParticipantsIcon, // Import for navigation data
+  CurriculumIcon,
   ExcelIcon, // Import for navigation data
-  ExportExcelIcon, // Import for navigation data
+  ExportExcelIcon,
+  LecturerIcon,
+  NavigationIcon, // Import for navigation data
+  ParticipantsIcon,
+  SemesterIcon,
 } from '../assets/icons/courses';
-import { SmallAppIcon } from '../assets/icons/icon';
-import AppButton from '../components/buttons/AppButton';
 import CourseCardItem from '../components/courses/CourseCardItem';
-import AppTextInput from '../components/inputs/AppTextInput';
-import CustomModal from '../components/modals/CustomModal';
 import AppText from '../components/texts/AppText';
 import { showErrorToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
-// Remove import { teacherNavigation } from '../data/coursesData';
 import { AppColors } from '../styles/color';
 
 const CourseDetailTeacherScreen = () => {
@@ -38,33 +31,41 @@ const CourseDetailTeacherScreen = () => {
 
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [enterCode, setEnterCode] = useState('');
-  const [enterCodeModal, setEnterCodeModal] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState(true);
 
   useEffect(() => {
+    setIsMounted(true);
     if (!classId) {
-      showErrorToast('Error', 'No Class ID provided.');
-      setIsLoading(false);
+      if (isMounted) {
+        showErrorToast('Error', 'No Class ID provided.');
+        setIsLoading(false);
+      }
       return;
     }
     const loadClassDetails = async () => {
+      if (!isMounted) return;
       setIsLoading(true);
       try {
         const data = await fetchClassById(classId);
+        if (!isMounted) return;
         setClassData(data);
       } catch (error: any) {
-        showErrorToast('Error', 'Failed to load class details.');
         console.error(error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load class details.');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     loadClassDetails();
-  }, [classId]);
 
-  const handleSetEnterCode = () => {
-    setEnterCodeModal(false);
-  };
+    return () => {
+      setIsMounted(false);
+    };
+  }, [classId]);
 
   // Define teacherNavigation inside the component to access classData
   const teacherNavigation = [
@@ -80,21 +81,30 @@ const CourseDetailTeacherScreen = () => {
     },
     {
       id: 2,
-      title: 'Participants',
+      title: 'Members',
       leftIcon: ParticipantsIcon,
       backGroundColor: AppColors.pur100,
       rightIconColor: AppColors.pur500,
-      linkTo: 'ParticipantsScreen',
+      linkTo: 'MembersScreen',
       params: { classId: classData?.id }, // Pass classId
     },
     {
       id: 3,
+      title: 'Practical Exams',
+      leftIcon: CurriculumIcon,
+      backGroundColor: AppColors.b100,
+      rightIconColor: AppColors.b500,
+      linkTo: 'PracticalExamListScreen',
+      params: { classId: classData?.id },
+    },
+    {
+      id: 4,
       title: 'Export grade report',
       leftIcon: ExcelIcon,
       rightIcon: ExportExcelIcon,
       backGroundColor: AppColors.g100,
       rightIconColor: AppColors.g500,
-      linkTo: 'GradingHistoryScreen', // Or handle download directly
+      linkTo: 'GradingHistoryScreen',
       params: { classId: classData?.id },
       onDownload: () => {
         console.log('Download grade report');
@@ -176,14 +186,6 @@ const CourseDetailTeacherScreen = () => {
             {classData.description ||
               'No description available for this class.'}{' '}
           </AppText>
-          <AppButton
-            leftIcon={<EnterIcon />}
-            textVariant="body12pxRegular"
-            style={styles.enterCodeButton}
-            size="small"
-            onPress={() => setEnterCodeModal(true)}
-            title="Set Enter code"
-          />
         </View>
       </View>
       <View style={styles.navigationWrapper}>
@@ -211,39 +213,6 @@ const CourseDetailTeacherScreen = () => {
           </View>
         ))}
       </View>
-
-      <CustomModal
-        visible={enterCodeModal}
-        onClose={() => setEnterCodeModal(false)}
-        title="Set Enter code"
-        description="Enter 6-digits code for this class"
-        icon={<SmallAppIcon />}
-      >
-        <AppTextInput
-          placeholder="Enter class code"
-          secureTextEntry
-          label="Class code"
-          value={enterCode}
-          onChangeText={setEnterCode}
-        />
-
-        <View style={styles.buttonContainer}>
-          <AppButton
-            onPress={handleSetEnterCode}
-            style={{ width: s(100), marginTop: vs(20) }}
-            title="Save"
-            size="small"
-          />
-          <AppButton
-            onPress={() => setEnterCodeModal(false)}
-            style={{ width: s(100), marginTop: vs(20) }}
-            title="Cancel"
-            size="small"
-            variant="secondary"
-            textColor={AppColors.black}
-          />
-        </View>
-      </CustomModal>
     </ScrollView>
   );
 };
@@ -301,12 +270,6 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     padding: s(20),
-  },
-  enterCodeButton: {
-    width: s(130),
-    alignSelf: 'flex-start',
-    borderRadius: s(8),
-    marginTop: vs(10),
   },
   navigationWrapper: {
     marginTop: vs(200),

@@ -214,3 +214,30 @@ export const getAssessmentFilesByTemplateId = async (
     throw error;
   }
 };
+
+// Alias for compatibility with web code
+export interface GetFilesForTemplateParams {
+  assessmentTemplateId: number;
+  pageNumber: number;
+  pageSize: number;
+}
+
+export interface GetFilesForTemplateResponse {
+  items: AssessmentFileData[];
+  total: number;
+}
+
+export const getFilesForTemplate = async (
+  params: GetFilesForTemplateParams,
+): Promise<GetFilesForTemplateResponse> => {
+  try {
+    const files = await getAssessmentFilesByTemplateId(params.assessmentTemplateId);
+    return {
+      items: files,
+      total: files.length,
+    };
+  } catch (error: any) {
+    console.error('Failed to fetch files for template:', error);
+    throw error;
+  }
+};

@@ -204,7 +204,10 @@ const AssignmentAccordion = ({
             getRubricItemsByQuestionId(q.id)
               .then(rubrics => ({ questionId: q.id, rubrics }))
               .catch(err => {
-                console.error(`Error fetching criteria for Q ${q.id}:`, err);
+                // Only log non-404 errors (404 is expected when question has no rubrics)
+                if (err?.response?.status !== 404 && !err?.message?.includes('404')) {
+                  console.error(`Error fetching criteria for Q ${q.id}:`, err);
+                }
                 return { questionId: q.id, rubrics: [] };
               }),
           );
@@ -570,7 +573,16 @@ const AssignmentAccordion = ({
             await updateAssessmentQuestion(qData.id!, updatePayload); // Assume success
 
             // --- Update/Create/Delete Rubrics for this Question ---
-            const existingRubrics = await getRubricItemsByQuestionId(qData.id!); // Fetch fresh rubrics
+            let existingRubrics: RubricItemData[] = [];
+            try {
+              existingRubrics = await getRubricItemsByQuestionId(qData.id!); // Fetch fresh rubrics
+            } catch (err: any) {
+              // 404 is expected when question has no rubrics - use empty array
+              if (err?.response?.status !== 404 && !err?.message?.includes('404')) {
+                console.error(`Error fetching rubrics for question ${qData.id}:`, err);
+              }
+              existingRubrics = [];
+            }
             const existingRubricIds = new Set(existingRubrics.map(r => r.id));
             const formCriteriaWithId = qData.criteria.filter(
               c => c.id !== undefined,
@@ -737,42 +749,43 @@ const AssignmentAccordion = ({
               />
             ))}
           </View>
-          {selectedType !== 'Basic assignment' && (
-            <View style={{ marginBottom: vs(16) }}>
-              {attachedFiles.map((file, index) => (
-                <CurriculumItem
-                  key={file.id || `local-${index}`} // Dùng DB id hoặc index
-                  id={file.id || index}
-                  number={`0${index + 1}`}
-                  title={file.name}
-                  linkFile={file.name} // CurriculumItem sẽ tự cắt bớt
-                  rightIcon={<RemoveIcon color={AppColors.errorColor} />}
-                  onAction={() => handleRemoveAttachedFile(index)}
-                  disabled={isReadOnly || isSubmitting} // Disable khi đang submit
-                />
-              ))}
+          <View style={{ marginBottom: vs(16) }}>
+            <AppText variant="body14pxBold" style={{ color: AppColors.n700, marginBottom: vs(8) }}>
+              Assessment Files
+            </AppText>
+            {attachedFiles.map((file, index) => (
+              <CurriculumItem
+                key={file.id || `local-${index}`} // Dùng DB id hoặc index
+                id={file.id || index}
+                number={`0${index + 1}`}
+                title={file.name}
+                linkFile={file.name} // CurriculumItem sẽ tự cắt bớt
+                rightIcon={<RemoveIcon color={AppColors.errorColor} />}
+                onAction={() => handleRemoveAttachedFile(index)}
+                disabled={isReadOnly || isSubmitting} // Disable khi đang submit
+              />
+            ))}
 
-              {!isReadOnly && (
-                <TouchableOpacity
-                  style={[styles.addQuestionButton, { marginTop: vs(8) }]}
-                  onPress={handleAttachedFilesUpload}
-                  disabled={isSubmitting} // Disable khi đang submit
-                >
-                  <View style={styles.addFileButtonContent}>
-                    <UploadIcon color={AppColors.pr500} />
-                    <AppText
-                      style={[
-                        styles.addQuestionButtonText,
-                        { marginLeft: s(8) },
-                      ]}
-                    >
-                      Add Files
-                    </AppText>
-                  </View>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+            {!isReadOnly && (
+              <TouchableOpacity
+                style={[styles.addQuestionButton, { marginTop: vs(8) }]}
+                onPress={handleAttachedFilesUpload}
+                disabled={isSubmitting} // Disable khi đang submit
+              >
+                <View style={styles.addFileButtonContent}>
+                  <UploadIcon color={AppColors.pr500} />
+                  <AppText
+                    style={[
+                      styles.addQuestionButtonText,
+                      { marginLeft: s(8) },
+                    ]}
+                  >
+                    Add Files
+                  </AppText>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {fields.map((field, index) => {
             const watchedFileUri = watchedQuestions?.[index]?.fileUri;
@@ -815,8 +828,9 @@ const AssignmentAccordion = ({
             <AppButton
               title={isSubmitting ? 'Saving...' : 'Confirm'}
               onPress={handleSubmit(handleConfirm)}
-              style={styles.confirmButton}
+              style={[styles.confirmButton, { minWidth: 0 }]}
               textVariant="body14pxBold"
+              size="small"
               disabled={isSubmitting || isInitializing || isLoadingLecturerId} // Disable confirm if initializing or loading ID
             />
           )}

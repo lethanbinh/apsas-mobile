@@ -36,6 +36,21 @@ export const fetchStudentGroupList = async (): Promise<StudentGroupData[]> => {
   }
 };
 
+export const getStudentsInClass = async (
+  classId: string | number,
+): Promise<StudentGroupData[]> => {
+  try {
+    const response = await ApiService.get<StudentGroupData[]>(
+      `/api/StudentGroup/class/${classId}`,
+    );
+    if (response.result) return response.result;
+    throw new Error('No students found for this class.');
+  } catch (error: any) {
+    console.error(`Failed to fetch students in class ${classId}:`, error);
+    throw error;
+  }
+};
+
 export const createStudentEnrollment = async (
   data: StudentGroupCreatePayload,
 ): Promise<ApiResponse<StudentGroupData>> => {

@@ -1,4 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
@@ -12,11 +12,22 @@ import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
 import { globalStyles } from '../styles/shareStyles';
 
+interface FilterState {
+  searchText: string;
+  sortDate: 'oldest' | 'newest';
+  sortGrade: 'highest' | 'lowest';
+  selectedCategories: string[];
+}
+
 const GradingHistoryFilterScreen = () => {
   const navigation = useNavigation();
-  const [searchValue, setSearchValue] = useState<string>('');
-  const [sortDate, setSortDate] = useState<'oldest' | 'newest'>('oldest');
-  const [sortGrade, setSortGrade] = useState<'highest' | 'lowest'>('highest');
+  const route = useRoute();
+  const params = route.params as { filterState?: FilterState; onApplyFilter?: (state: FilterState) => void; resultCount?: number } | undefined;
+
+  const [searchValue, setSearchValue] = useState<string>(params?.filterState?.searchText || '');
+  const [sortDate, setSortDate] = useState<'oldest' | 'newest'>(params?.filterState?.sortDate || 'newest');
+  const [sortGrade, setSortGrade] = useState<'highest' | 'lowest'>(params?.filterState?.sortGrade || 'highest');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(params?.filterState?.selectedCategories || ['all']);
 
   return (
     <AppSafeView>
@@ -122,9 +133,9 @@ const GradingHistoryFilterScreen = () => {
               { id: 'webapi', name: 'Web API' },
               { id: 'webui', name: 'Web UI' },
             ]}
-            initialSelected={['all']}
+            initialSelected={selectedCategories}
             onChange={selected => {
-              console.log('Selected categories:', selected);
+              setSelectedCategories(selected);
             }}
           />
         </View>
@@ -157,8 +168,19 @@ const GradingHistoryFilterScreen = () => {
               minWidth: 0,
               borderWidth: 0,
             }}
-            title="Show 12 results"
-            onPress={() => {}}
+            title={`Show ${params?.resultCount || 0} results`}
+            onPress={() => {
+              const newFilterState: FilterState = {
+                searchText: searchValue,
+                sortDate,
+                sortGrade,
+                selectedCategories,
+              };
+              if (params?.onApplyFilter) {
+                params.onApplyFilter(newFilterState);
+              }
+              navigation.goBack();
+            }}
           />
         </View>
       </View>

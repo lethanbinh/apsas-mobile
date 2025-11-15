@@ -38,7 +38,7 @@ const SemesterDropdown: React.FC<SemesterDropdownProps> = ({
           iconContainer: styles.iconContainer,
         }}
         useNativeAndroidPickerStyle={false}
-        Icon={() => <View style={styles.icon} />}
+        Icon={() => null}
       />
     </View>
   );
@@ -48,7 +48,7 @@ export default SemesterDropdown;
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: vs(10),
+    marginVertical: vs(6),
   },
   label: {
     fontSize: s(14),
@@ -57,8 +57,8 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: s(14),
-    paddingVertical: vs(12),
-    paddingHorizontal: s(20),
+    paddingVertical: vs(10),
+    paddingHorizontal: s(16),
     borderWidth: 1,
     borderColor: AppColors.n300,
     borderRadius: s(8),

@@ -11,6 +11,7 @@ import {
 } from '../api/semesterService';
 import {
   fetchStudentGroupList,
+  getStudentsInClass,
   StudentGroupData,
 } from '../api/studentGroupService';
 import { showErrorToast } from '../components/toasts/AppToast';
@@ -47,17 +48,16 @@ export const usePlanDetails = (
   const [currentHodId, setCurrentHodId] = useState<string | null>(null);
 
   const loadPlanDetails = useCallback(async () => {
-    if (!semesterId || !userAccountId) {
-      showErrorToast('Error', 'Missing Semester ID or User ID.');
+    if (!semesterCode || !userAccountId) {
+      showErrorToast('Error', 'Missing Semester Code or User ID.');
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
     try {
-      const [data, hodProfile, allStudentGroups] = await Promise.all([
+      const [data, hodProfile] = await Promise.all([
         fetchSemesterPlanDetail(semesterCode),
         findHoDByAccountId(userAccountId),
-        fetchStudentGroupList(),
       ]);
 
       if (hodProfile) {
@@ -68,8 +68,12 @@ export const usePlanDetails = (
 
       setPlanData(data);
 
-      const planSemesterCourses = data.semesterCourses || []; // Biến đổi dữ liệu
+      // Filter semesterCourses by current HOD's accountCode (same as web)
+      const planSemesterCourses = (data.semesterCourses || []).filter(
+        sc => sc.createdByHODAccountCode === hodProfile.accountCode,
+      );
 
+      // Transform courses
       const combinedCourses: PlanCourse[] = planSemesterCourses.map(sc => ({
         ...sc.course,
         semesterCourseId: sc.id,
@@ -77,37 +81,51 @@ export const usePlanDetails = (
       }));
       setCourses(combinedCourses);
 
+      // Transform elements
       const allPlanElements = planSemesterCourses.flatMap(
         sc => sc.courseElements || [],
       );
       setPlanElements(allPlanElements);
 
+      // Transform classes with semesterCourseId
       const allPlanClasses: PlanDetailClassWithSemesterCourseId[] =
         planSemesterCourses.flatMap(sc =>
           (sc.classes || []).map(cls => ({
-            ...cls, // Giữ lại tất cả thuộc tính cũ của class
-            semesterCourseId: sc.id, // <-- THÊM trường này
+            ...cls,
+            semesterCourseId: sc.id,
           })),
         );
       setClasses(allPlanClasses);
 
+      // Transform assign requests
       const allPlanAssignRequests = planSemesterCourses.flatMap(
         sc => sc.assignRequests || [],
       );
-      setAssignRequests(allPlanAssignRequests); // Tối ưu: Lọc StudentGroups
+      setAssignRequests(allPlanAssignRequests);
 
-      const planClassIds = new Set(allPlanClasses.map(cls => Number(cls.id)));
-      const planStudents = allStudentGroups.filter(sg =>
-        planClassIds.has(Number(sg.classId)),
-      );
-      setStudentGroups(planStudents);
+      // Fetch students from API for each class (same as web)
+      const planClassIds = allPlanClasses.map(cls => Number(cls.id));
+      
+      // Fetch students for all classes in parallel
+      const studentGroupPromises = planClassIds.map(async classId => {
+        try {
+          return await getStudentsInClass(classId);
+        } catch (err) {
+          console.warn(`Failed to fetch students for class ${classId}:`, err);
+          return [];
+        }
+      });
+
+      const studentGroupArrays = await Promise.all(studentGroupPromises);
+      const allStudentGroups = studentGroupArrays.flat();
+      setStudentGroups(allStudentGroups);
     } catch (error: any) {
       showErrorToast('Error', 'Failed to load plan details.');
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  }, [semesterId, userAccountId]); // Chỉ phụ thuộc vào ID
+  }, [semesterCode, userAccountId]);
 
   useEffect(() => {
     loadPlanDetails();

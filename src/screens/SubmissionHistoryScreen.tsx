@@ -1,105 +1,209 @@
-import React from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
-import { s } from 'react-native-size-matters';
+import React, { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { s, vs } from 'react-native-size-matters';
 import ScreenHeader from '../components/common/ScreenHeader';
 import SubmissionHistoryItem from '../components/gradeHistory/SubmissionHistoryItem';
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
 import { useNavigation } from '@react-navigation/native';
+import { getSubmissionList, Submission } from '../api/submissionService';
+import { getClassAssessments } from '../api/classAssessmentService';
+import { useGetCurrentStudentId } from '../hooks/useGetCurrentStudentId';
+import { showErrorToast } from '../components/toasts/AppToast';
+import dayjs from 'dayjs';
+import AppText from '../components/texts/AppText';
 
-const data = [
-  {
-    id: 1,
-    backgroundColor: AppColors.pr100,
-    submissionTime: '12/09/2025 – 14:32',
-    courseCode: 'CS101',
-    courseName: 'Introduction to Computer Science',
-    assignmentTitle: 'Homework 1',
-    teacherName: 'NguyenNT',
-    fileName: 'homework1.zip',
-    status: 'Late' as 'Late',
-    timeSubmit: 'Submission 3',
-  },
-  {
-    id: 2,
-    backgroundColor: AppColors.g100,
-    submissionTime: '12/09/2025 – 14:32',
-    courseCode: 'MA101',
-    courseName: 'Calculus I',
-    assignmentTitle: 'Assignment 1',
-    teacherName: 'TranTV',
-    fileName: 'assignment1.pdf',
-    status: 'On time' as 'On time',
-    timeSubmit: 'Submission 2',
-  },
-  {
-    id: 3,
-    backgroundColor: AppColors.pur100,
-    submissionTime: '12/09/2025 – 14:32',
-    courseCode: 'PH101',
-    courseName: 'Physics I',
-    assignmentTitle: 'Lab Report 1',
-    teacherName: 'LeHQ',
-    fileName: 'labreport1.docx',
-    status: 'Missing' as 'Missing',
-    timeSubmit: 'Submission 1',
-  },
-];
+interface SubmissionHistoryItemData {
+  id: number;
+  backgroundColor: string;
+  submissionTime: string;
+  courseCode: string;
+  courseName: string;
+  assignmentTitle: string;
+  teacherName: string;
+  fileName: string;
+  status: 'Late' | 'On time' | 'Missing';
+  timeSubmit: string;
+  onNavigate: () => void;
+}
 
 const SubmissionHistoryScreen = () => {
-  const navigation = useNavigation();
-  const data = [
-    {
-      id: 1,
-      backgroundColor: AppColors.pr100,
-      submissionTime: '12/09/2025 – 14:32',
-      courseCode: 'CS101',
-      courseName: 'Introduction to Computer Science',
-      assignmentTitle: 'Homework 1',
-      teacherName: 'NguyenNT',
-      fileName: 'homework1.zip',
-      status: 'Late' as 'Late',
-      timeSubmit: 'Submission 3',
-      onNavigate: () => navigation.navigate('ScoreDetailScreen' as never),
-    },
-    {
-      id: 2,
-      backgroundColor: AppColors.g100,
-      submissionTime: '12/09/2025 – 14:32',
-      courseCode: 'MA101',
-      courseName: 'Calculus I',
-      assignmentTitle: 'Assignment 1',
-      teacherName: 'TranTV',
-      fileName: 'assignment1.pdf',
-      status: 'On time' as 'On time',
-      timeSubmit: 'Submission 2',
-      onNavigate: () => navigation.navigate('ScoreDetailScreen' as never),
-    },
-    {
-      id: 3,
-      backgroundColor: AppColors.pur100,
-      submissionTime: '12/09/2025 – 14:32',
-      courseCode: 'PH101',
-      courseName: 'Physics I',
-      assignmentTitle: 'Lab Report 1',
-      teacherName: 'LeHQ',
-      fileName: 'labreport1.docx',
-      status: 'Missing' as 'Missing',
-      timeSubmit: 'Submission 1',
-      onNavigate: () => navigation.navigate('ScoreDetailScreen' as never),
-    },
-  ];
+  const navigation = useNavigation<any>();
+  const { studentId, isLoading: isLoadingStudentId } = useGetCurrentStudentId();
+  const [submissions, setSubmissions] = useState<SubmissionHistoryItemData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(true);
+
+  useEffect(() => {
+    setIsMounted(true);
+    if (isLoadingStudentId || !studentId) {
+      if (!isLoadingStudentId && !studentId) {
+        showErrorToast('Error', 'Could not identify current student.');
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    const loadSubmissionHistory = async () => {
+      if (!isMounted) return;
+      setIsLoading(true);
+      try {
+        // Fetch all submissions for this student
+        const allSubmissions = await getSubmissionList({
+          studentId: studentId,
+        });
+
+        if (!isMounted) return;
+
+        // Fetch class assessments to get assignment details
+        const classAssessmentsRes = await getClassAssessments({
+          studentId: studentId,
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+
+        if (!isMounted) return;
+
+        const assessmentMap = new Map<number, any>();
+        (classAssessmentsRes?.items || []).forEach(ca => {
+          if (ca && ca.id) {
+            assessmentMap.set(ca.id, ca);
+          }
+        });
+
+        // Group submissions by classAssessmentId and get the latest one per assignment
+        const submissionMap = new Map<number, Submission>();
+        allSubmissions.forEach(sub => {
+          if (!sub || !sub.classAssessmentId || !sub.submittedAt) return;
+          const existing = submissionMap.get(sub.classAssessmentId);
+          if (
+            !existing ||
+            (existing.submittedAt && new Date(sub.submittedAt).getTime() > new Date(existing.submittedAt).getTime())
+          ) {
+            submissionMap.set(sub.classAssessmentId, sub);
+          }
+        });
+
+        // Build history items
+        const historyItems: SubmissionHistoryItemData[] = [];
+        const colorOptions = [AppColors.pr100, AppColors.g100, AppColors.pur100, AppColors.b100];
+
+        submissionMap.forEach((sub, classAssessmentId) => {
+          if (!sub || !sub.id) return;
+          const assessment = assessmentMap.get(classAssessmentId);
+          if (!assessment) return;
+
+          try {
+            // Determine status
+            let status: 'Late' | 'On time' | 'Missing' = 'On time';
+            if (sub.submittedAt && assessment.endAt) {
+              try {
+                const submittedDate = dayjs(sub.submittedAt);
+                const deadlineDate = dayjs(assessment.endAt);
+                if (submittedDate.isValid() && deadlineDate.isValid() && submittedDate.isAfter(deadlineDate)) {
+                  status = 'Late';
+                }
+              } catch (dateErr) {
+                console.error('Error parsing dates:', dateErr);
+              }
+            }
+
+            // Count submission number
+            const allSubsForAssignment = (allSubmissions || []).filter(
+              s => s && s.classAssessmentId === classAssessmentId && s.submittedAt,
+            );
+            const submissionNumber = allSubsForAssignment.length;
+
+            const colorIndex = historyItems.length % colorOptions.length;
+            historyItems.push({
+              id: sub.id,
+              backgroundColor: colorOptions[colorIndex] || AppColors.pr100,
+              submissionTime: sub.submittedAt
+                ? dayjs(sub.submittedAt).format('DD/MM/YYYY – HH:mm')
+                : 'N/A',
+              courseCode: (assessment.courseName && typeof assessment.courseName === 'string' && assessment.courseName.split(' ')[0]) || 'N/A',
+              courseName: assessment.courseName || 'Unknown Course',
+              assignmentTitle: assessment.courseElementName || 'Unknown Assignment',
+              teacherName: assessment.lecturerName || 'Unknown Teacher',
+              fileName: sub.submissionFile?.name || 'submission.zip',
+              status,
+              timeSubmit: `Submission ${submissionNumber}`,
+              onNavigate: () => {
+                if (sub.id) {
+                  navigation.navigate('ScoreDetailScreen', {
+                    submissionId: sub.id,
+                  });
+                }
+              },
+            });
+          } catch (itemErr) {
+            console.error('Error processing submission item:', itemErr);
+          }
+        });
+
+        // Sort by submission time (newest first)
+        try {
+          historyItems.sort((a, b) => {
+            try {
+              const timeA = dayjs(a.submissionTime.split(' – ')[0], 'DD/MM/YYYY').valueOf();
+              const timeB = dayjs(b.submissionTime.split(' – ')[0], 'DD/MM/YYYY').valueOf();
+              return timeB - timeA;
+            } catch (sortErr) {
+              return 0;
+            }
+          });
+        } catch (sortErr) {
+          console.error('Error sorting submissions:', sortErr);
+        }
+
+        if (!isMounted) return;
+        setSubmissions(historyItems);
+      } catch (error: any) {
+        console.error('Failed to load submission history:', error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load submission history.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadSubmissionHistory();
+    return () => {
+      setIsMounted(false);
+    };
+  }, [studentId, isLoadingStudentId]);
+
+  if (isLoading || isLoadingStudentId) {
+    return (
+      <AppSafeView>
+        <ScreenHeader title="Submission History" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={AppColors.pr500} />
+        </View>
+      </AppSafeView>
+    );
+  }
+
   return (
     <AppSafeView>
       <ScreenHeader title="Submission History" />
       <View style={styles.container}>
-        <FlatList
-          data={data}
-          keyExtractor={item => item.id.toString()}
-          renderItem={({ item }) => <SubmissionHistoryItem {...item} />}
-          showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={{ height: s(15) }} />}
-        />
+        {submissions.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <AppText style={styles.emptyText}>No submission history found.</AppText>
+          </View>
+        ) : (
+          <FlatList
+            data={submissions}
+            keyExtractor={item => item.id.toString()}
+            renderItem={({ item }) => <SubmissionHistoryItem {...item} />}
+            showsVerticalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View style={{ height: s(15) }} />}
+          />
+        )}
       </View>
     </AppSafeView>
   );
@@ -112,5 +216,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: s(25),
     paddingVertical: s(20),
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: AppColors.n500,
+    fontSize: s(14),
   },
 });

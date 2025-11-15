@@ -109,6 +109,16 @@ const put = <T = any>(
     .then(response => response.data);
 };
 
+const patch = <T = any>(
+  endpoint: string,
+  body: any,
+  config?: InternalAxiosRequestConfig,
+): Promise<ApiResponse<T>> => {
+  return axiosInstance
+    .patch<ApiResponse<T>>(endpoint, body, config)
+    .then(response => response.data);
+};
+
 const del = <T = any>(
   endpoint: string,
   config?: InternalAxiosRequestConfig,
@@ -146,6 +156,7 @@ export const ApiService = {
   post,
   get,
   put,
+  patch,
   delete: del,
   decodeToken,
 };

@@ -45,6 +45,7 @@ export const RoleMap: { [key: number]: string } = {
   1: 'LECTURER',
   2: 'STUDENT',
   3: 'HOD',
+  4: 'EXAMINER',
 };
 
 export const RoleNameToIdMap: { [key: string]: number | null } = {
@@ -52,6 +53,7 @@ export const RoleNameToIdMap: { [key: string]: number | null } = {
   LECTURER: 1,
   STUDENT: 2,
   HOD: 3,
+  EXAMINER: 4,
   All: null,
 };
 

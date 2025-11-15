@@ -15,14 +15,6 @@ import AppTextInputController from '../inputs/AppTextInputController';
 import AppText from '../texts/AppText';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 
-type FormData = {
-  classCode: string;
-  totalStudent: string;
-  description: string | null;
-  lecturerId: number | null; // <-- SỬA
-  semesterCourseId: number | null; // <-- SỬA
-};
-
 const schema = yup
   .object({
     classCode: yup.string().required('Class code is required'),
@@ -30,11 +22,13 @@ const schema = yup
       .string()
       .required('Total students is required')
       .matches(/^[0-9]+$/, 'Total students must be a valid number'),
-    description: yup.string().nullable().optional(),
-    lecturerId: yup.number().nullable().required('Lecturer is required'), // <-- SỬA
-    semesterCourseId: yup.number().nullable().required('Course is required'), // <-- SỬA
+    description: yup.string().nullable().notRequired(),
+    lecturerId: yup.number().nullable().required('Lecturer is required'),
+    semesterCourseId: yup.number().nullable().required('Course is required'),
   })
   .required();
+
+type FormData = yup.InferType<typeof schema>;
 
 interface ClassCrudModalProps {
   visible: boolean;
@@ -67,16 +61,16 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
     reset,
     formState: { isSubmitting },
   } = useForm<FormData>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: useMemo(
       () => ({
         classCode: initialData?.classCode ?? '',
         totalStudent: String(initialData?.totalStudent ?? 0),
         description: initialData?.description ?? null,
-        lecturerId: toNumberOrNull(initialData?.lecturer.id), // <-- SỬA: Dùng ID của Lecturer
-        semesterCourseId: toNumberOrNull(currentSemesterCourseId), // <-- SỬA: Dùng prop mới
+        lecturerId: toNumberOrNull(initialData?.lecturer.id) ?? undefined,
+        semesterCourseId: toNumberOrNull(currentSemesterCourseId) ?? undefined,
       }),
-      [initialData, currentSemesterCourseId], // <-- Thêm dependency
+      [initialData, currentSemesterCourseId],
     ),
   });
 
@@ -89,8 +83,8 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
         classCode: initialData?.classCode ?? '',
         totalStudent: String(initialData?.totalStudent ?? 0),
         description: initialData?.description ?? null,
-        lecturerId: toNumberOrNull(initialData?.lecturer.id), // <-- SỬA
-        semesterCourseId: toNumberOrNull(currentSemesterCourseId), // <-- SỬA
+        lecturerId: toNumberOrNull(initialData?.lecturer.id) ?? undefined,
+        semesterCourseId: toNumberOrNull(currentSemesterCourseId) ?? undefined,
       });
     }
   }, [visible, initialData, reset, currentSemesterCourseId]); // <-- Thêm dependency
@@ -100,10 +94,11 @@ const ClassCrudModal: React.FC<ClassCrudModalProps> = ({
       const successMessage = isEditMode ? 'Class updated' : 'Class created';
 
       const payload = {
-        ...data,
+        classCode: data.classCode,
         totalStudent: Number(data.totalStudent),
-        lecturerId: String(data.lecturerId), // Giữ nguyên
-        semesterCourseId: String(data.semesterCourseId), // Giữ nguyên
+        description: data.description ?? null,
+        lecturerId: String(data.lecturerId ?? ''),
+        semesterCourseId: String(data.semesterCourseId ?? ''),
       };
 
       if (isEditMode && initialData) {

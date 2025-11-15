@@ -100,3 +100,6 @@ export const fetchAssessmentPapers = async (
     throw error;
   }
 };
+
+// Alias for compatibility with web code
+export const getAssessmentPapers = fetchAssessmentPapers;

@@ -35,26 +35,39 @@ const CourseDetailScreen = () => {
 
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(true);
 
   useEffect(() => {
+    setIsMounted(true);
     if (!classId) {
-      showErrorToast('Error', 'No Class ID provided.');
-      setIsLoading(false);
+      if (isMounted) {
+        showErrorToast('Error', 'No Class ID provided.');
+        setIsLoading(false);
+      }
       return;
     }
     const loadClassDetails = async () => {
+      if (!isMounted) return;
       setIsLoading(true);
       try {
         const data = await fetchClassById(classId); // Call API
+        if (!isMounted) return;
         setClassData(data);
       } catch (error: any) {
-        showErrorToast('Error', 'Failed to load class details.');
         console.error(error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load class details.');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     loadClassDetails();
+    return () => {
+      setIsMounted(false);
+    };
   }, [classId]);
 
   const handleUnEnrollCourse = () => {
@@ -185,7 +198,7 @@ const CourseDetailScreen = () => {
               backGroundColor={item.backGroundColor}
               rightIcon={<NavigationIcon color={item.rightIconColor} />}
               onPress={() => {
-                if (item.linkTo) {
+                if (item.linkTo && classData && classData.id) {
                   navigation.navigate(item.linkTo as never, {
                     classId: classData.id,
                     semesterCourseId: classData.semesterCourseId,

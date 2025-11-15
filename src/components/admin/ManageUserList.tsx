@@ -20,9 +20,11 @@ import {
   RoleNameToIdMap,
   AccountData,
   RoleMap,
-  fetchAccounts,
   GenderIdToNameMap,
 } from '../../api/account';
+import { accountService } from '../../api/accountService';
+import { adminService } from '../../api/adminService';
+import { examinerService } from '../../api/examinerService';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 import _debounce from 'lodash/debounce';
 import * as XLSX from 'xlsx';
@@ -55,8 +57,10 @@ const ManageUserList = () => {
   const loadAllUsers = async () => {
     setIsLoading(true);
     try {
-      const result = await fetchAccounts(1, 9999, undefined, undefined);
-      setAllUsers(result.items || []);
+      // Sử dụng accountService.getAccountList() giống như web
+      // Lấy tất cả users bằng cách fetch với pageSize lớn
+      const result = await accountService.getAccountList(1, 9999);
+      setAllUsers(result.users || []);
     } catch (error: any) {
       showErrorToast('Error', 'Failed to load user list.');
       setAllUsers([]);
@@ -156,8 +160,58 @@ const ManageUserList = () => {
     setAddEditModalVisible(true);
   };
 
-  const handleModalSuccess = () => {
-    setRefreshKey(prev => prev + 1);
+  const handleEditOk = async (values: any, role: number) => {
+    if (editingUser) {
+      try {
+        setIsActionLoading(true);
+        const updatePayload = {
+          phoneNumber: values.phoneNumber,
+          fullName: values.fullName,
+          address: values.address,
+        };
+
+        await adminService.updateAccount(editingUser.id, updatePayload);
+
+        setAddEditModalVisible(false);
+        setEditingUser(null);
+        showSuccessToast('Success', 'User updated successfully');
+        setRefreshKey(prev => prev + 1);
+      } catch (err: any) {
+        console.error('Failed to update user:', err);
+        showErrorToast('Error', err.message || 'Failed to update user');
+      } finally {
+        setIsActionLoading(false);
+      }
+    }
+  };
+
+  const handleEditCancel = () => {
+    setAddEditModalVisible(false);
+    setEditingUser(null);
+  };
+
+  const handleCreateOk = async (values: any, role: number) => {
+    try {
+      setIsActionLoading(true);
+      if (role === 4) {
+        await examinerService.createExaminer(values);
+      } else {
+        await adminService.createAccount(values);
+      }
+
+      setAddEditModalVisible(false);
+      showSuccessToast('Success', 'User created successfully');
+      setRefreshKey(prev => prev + 1);
+    } catch (err: any) {
+      console.error('Failed to create user:', err);
+      showErrorToast('Error', err.message || 'Failed to create user');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleCreateCancel = () => {
+    setAddEditModalVisible(false);
   };
 
   const displayRole = selectedRoleName
@@ -288,12 +342,23 @@ const ManageUserList = () => {
         </Modal>
       </Portal>
 
-      <AddEditUserModal
-        visible={addEditModalVisible}
-        onClose={() => setAddEditModalVisible(false)}
-        onSuccess={handleModalSuccess}
-        initialData={editingUser}
-      />
+      {editingUser ? (
+        <AddEditUserModal
+          visible={addEditModalVisible}
+          onCancel={handleEditCancel}
+          onOk={handleEditOk}
+          initialData={editingUser}
+          confirmLoading={isActionLoading}
+        />
+      ) : (
+        <AddEditUserModal
+          visible={addEditModalVisible}
+          onCancel={handleCreateCancel}
+          onOk={handleCreateOk}
+          initialData={null}
+          confirmLoading={isActionLoading}
+        />
+      )}
     </View>
   );
 };

@@ -262,6 +262,14 @@ export const courseCategoryList = {
 export const navigationList = [
   {
     id: 1,
+    title: 'Assignments',
+    leftIcon: GradeIcon,
+    backGroundColor: AppColors.pr100,
+    rightIconColor: AppColors.pr500,
+    linkTo: 'AssignmentListScreen',
+  },
+  {
+    id: 2,
     title: 'Curriculum',
     leftIcon: CurriculumIcon,
     backGroundColor: AppColors.b100,
@@ -269,7 +277,7 @@ export const navigationList = [
     linkTo: 'CurriculumScreen',
   },
   {
-    id: 2,
+    id: 3,
     title: 'Participants',
     leftIcon: ParticipantsIcon,
     backGroundColor: AppColors.pur100,
@@ -277,12 +285,20 @@ export const navigationList = [
     linkTo: 'ParticipantsScreen',
   },
   {
-    id: 3,
+    id: 4,
     title: 'Grades',
     leftIcon: GradeIcon,
     backGroundColor: AppColors.g100,
     rightIconColor: AppColors.g500,
     linkTo: 'GradesScreen',
+  },
+  {
+    id: 5,
+    title: 'Practical Exams',
+    leftIcon: GradeIcon,
+    backGroundColor: AppColors.p100,
+    rightIconColor: AppColors.p500,
+    linkTo: 'PracticalExamListScreen',
   },
 ];
 

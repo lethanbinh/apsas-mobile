@@ -97,11 +97,55 @@ export const getRubricItemsByQuestionId = async (
       );
       return [];
     }
-  } catch (error) {
+  } catch (error: any) {
+    // 404 is expected when question has no rubrics yet - return empty array
+    if (error?.response?.status === 404 || error?.message?.includes('404')) {
+      return [];
+    }
+    // For other errors, log and throw
     console.error(
       `Failed to fetch rubric items for question ${questionId}:`,
       error,
     );
+    throw error;
+  }
+};
+
+export interface GetRubricsForQuestionParams {
+  assessmentQuestionId: number;
+  pageNumber: number;
+  pageSize: number;
+}
+
+export interface GetRubricsForQuestionResponse {
+  items: RubricItemData[];
+  total: number;
+}
+
+export const getRubricsForQuestion = async (
+  params: GetRubricsForQuestionParams,
+): Promise<GetRubricsForQuestionResponse> => {
+  try {
+    const response = await ApiService.get<{
+      currentPage: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
+      items: RubricItemData[];
+    }>(
+      `/api/RubricItem/list?pageNumber=${params.pageNumber}&pageSize=${params.pageSize}&assessmentQuestionId=${params.assessmentQuestionId}`,
+    );
+
+    if (response.result) {
+      return {
+        items: response.result.items,
+        total: response.result.totalCount,
+      };
+    } else {
+      throw new Error('No rubric items found.');
+    }
+  } catch (error: any) {
+    console.error('Failed to fetch rubrics for question:', error);
     throw error;
   }
 };

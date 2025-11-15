@@ -1,81 +1,61 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
-import { Modal, Portal, SegmentedButtons } from 'react-native-paper';
-import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { s, vs } from 'react-native-size-matters';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { Modal, Portal } from 'react-native-paper';
+import { s, vs } from 'react-native-size-matters';
+import * as yup from 'yup';
+import {
+  AccountData,
+  RoleNameToIdMap
+} from '../../api/account';
+import { CreateExaminerPayload } from '../../api/examinerService';
+import { CalendarIcon } from '../../assets/icons/icon';
+import { AppColors } from '../../styles/color';
 import AppButton from '../buttons/AppButton';
 import AppTextInputController from '../inputs/AppTextInputController';
-import AppText from '../texts/AppText';
-import { AppColors } from '../../styles/color';
-import {
-  createAdmin,
-  createHoD,
-  createLecturer,
-  createStudent,
-  updateAccount,
-  AccountData,
-  RoleNameToIdMap,
-  RoleMap,
-  GenderMap,
-  GenderIdToNameMap,
-} from '../../api/account';
-import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
-import AppTextInput from '../inputs/AppTextInput';
 import RadioWithTitle from '../inputs/RadioWithTitle';
-import { CalendarIcon } from '../../assets/icons/icon';
+import AppText from '../texts/AppText';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
-type FormData = {
-  username: string;
-  email: string;
-  password?: string | null;
-  fullName: string | null;
-  phoneNumber: string | null;
-  address: string;
-  role: string;
-  department?: string | null;
-  specialization?: string | null;
-  dateOfBirth: Date | null;
-  avatar: string | null;
-};
-
 const baseSchemaFields = {
   username: yup.string().required('Username is required'),
   email: yup.string().required('Email is required').email('Email is invalid'),
-  fullName: yup.string().nullable().optional(),
-  phoneNumber: yup.string().nullable().optional(),
+  fullName: yup.string().required('Full name is required'),
+  phoneNumber: yup.string().required('Phone number is required'),
   address: yup.string().required('Address is required'),
   role: yup
-    .string()
+    .mixed()
     .required('Role is required')
-    .oneOf(Object.keys(RoleNameToIdMap).filter(k => k !== 'All')),
+    .oneOf([0, 1, 2, 3, 4, 'ADMIN', 'LECTURER', 'STUDENT', 'HOD', 'EXAMINER']),
   department: yup.string().nullable().optional(),
   specialization: yup.string().nullable().optional(),
   dateOfBirth: yup.date().nullable().required('Date of birth is required'),
+  gender: yup.number().required('Gender is required'),
+  avatar: yup.string().nullable().optional(),
 };
 
 const addSchema = yup
   .object({
+    accountCode: yup.string().required('Account code is required'),
     ...baseSchemaFields,
     password: yup
       .string()
+      .nullable()
       .required('Password is required')
       .min(6, 'Password must be at least 6 characters'),
     department: yup.string().when('role', {
-      is: 'LECTURER',
+      is: 1,
       then: schema => schema.required('Department is required for lecturers'),
       otherwise: schema => schema.nullable().optional(),
     }),
     specialization: yup.string().when('role', {
-      is: 'LECTURER',
+      is: 1,
       then: schema =>
         schema.required('Specialization is required for lecturers'),
       otherwise: schema => schema.nullable().optional(),
@@ -85,15 +65,16 @@ const addSchema = yup
 
 const editSchema = yup
   .object({
+    accountCode: yup.string().nullable().optional(),
     ...baseSchemaFields,
     password: yup.string().nullable().optional(),
     department: yup.string().when('role', {
-      is: 'LECTURER',
+      is: 1,
       then: schema => schema.required('Department is required for lecturers'),
       otherwise: schema => schema.nullable().optional(),
     }),
     specialization: yup.string().when('role', {
-      is: 'LECTURER',
+      is: 1,
       then: schema =>
         schema.required('Specialization is required for lecturers'),
       otherwise: schema => schema.nullable().optional(),
@@ -103,20 +84,22 @@ const editSchema = yup
 
 interface AddEditUserModalProps {
   visible: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  onCancel: () => void;
+  onOk: (values: any, role: number) => void;
   initialData?: AccountData | null;
+  confirmLoading?: boolean;
 }
 
 const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
   visible,
-  onClose,
-  onSuccess,
+  onCancel,
+  onOk,
   initialData,
+  confirmLoading = false,
 }) => {
   const isEditMode = !!initialData;
   const currentSchema = isEditMode ? editSchema : addSchema;
-  const [selectedGender, setSelectedGender] = useState<string>('Male');
+  const [selectedGender, setSelectedGender] = useState<number>(0);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   const {
@@ -126,23 +109,25 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
     setValue,
     formState: { isSubmitting },
     watch,
-  } = useForm<FormData>({
-    resolver: yupResolver(currentSchema),
+  } = useForm({
+    resolver: yupResolver(currentSchema) as any,
     defaultValues: useMemo(
       () => ({
+        accountCode: initialData?.accountCode ?? '',
         username: initialData?.username ?? '',
         email: initialData?.email ?? '',
         password: '',
         fullName: initialData?.fullName ?? null,
         phoneNumber: initialData?.phoneNumber ?? null,
         address: initialData?.address ?? '',
-        role: initialData ? RoleMap[initialData.role] ?? 'STUDENT' : 'STUDENT',
+        role: initialData ? initialData.role : 2,
         department: initialData?.department ?? null,
         specialization: initialData?.specialization ?? null,
         dateOfBirth: initialData?.dateOfBirth
           ? dayjs.utc(initialData.dateOfBirth).local().toDate()
           : null,
         avatar: initialData?.avatar ?? null,
+        gender: initialData?.gender ?? 0,
       }),
       [initialData],
     ),
@@ -154,40 +139,40 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
   useEffect(() => {
     if (visible) {
       if (initialData) {
-        setSelectedGender(
-          initialData.gender !== null
-            ? GenderIdToNameMap[initialData.gender] ?? 'Male'
-            : 'Male',
-        ); // Default to Male if 'Others'
+        setSelectedGender(initialData.gender ?? 0);
         reset({
+          accountCode: initialData.accountCode ?? '',
           username: initialData.username ?? '',
           email: initialData.email ?? '',
           password: '',
           fullName: initialData.fullName ?? null,
           phoneNumber: initialData.phoneNumber ?? null,
           address: initialData.address ?? '',
-          role: RoleMap[initialData.role] ?? 'STUDENT',
+          role: initialData.role,
           department: initialData.department ?? null,
           specialization: initialData.specialization ?? null,
           dateOfBirth: initialData.dateOfBirth
             ? dayjs.utc(initialData.dateOfBirth).local().toDate()
             : null,
           avatar: initialData.avatar ?? null,
+          gender: initialData.gender ?? 0,
         });
       } else {
-        setSelectedGender('Male');
+        setSelectedGender(0);
         reset({
+          accountCode: '',
           username: '',
           email: '',
           password: '',
           fullName: null,
           phoneNumber: null,
           address: '',
-          role: 'STUDENT',
+          role: 2,
           department: null,
           specialization: null,
           dateOfBirth: null,
           avatar: null,
+          gender: 0,
         });
       }
     }
@@ -200,79 +185,41 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
     hideDatePicker();
   };
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      const roleId = RoleNameToIdMap[data.role];
-      if (roleId === undefined || roleId === null) {
-        throw new Error('Invalid role selected.');
-      }
-      const genderValue = GenderMap[selectedGender];
-      const dateOfBirthISO = data.dateOfBirth
-        ? dayjs(data.dateOfBirth).utc().toISOString()
-        : null;
-
-      const baseApiData: any = {
-        username: data.username,
-        email: data.email,
-        ...(!isEditMode && data.password && { password: data.password }),
-        fullName: data.fullName || null,
-        phoneNumber: data.phoneNumber || null,
-        address: data.address,
-        gender: genderValue,
-        dateOfBirth: dateOfBirthISO,
-        avatar: data.avatar || null,
+  const handleOk = () => {
+    handleSubmit((data: any) => {
+      // Format data giống web
+      const roleId = typeof data.role === 'number' ? data.role : RoleNameToIdMap[data.role] ?? 2;
+      const formattedValues = {
+        ...data,
+        dateOfBirth: data.dateOfBirth
+          ? dayjs(data.dateOfBirth).utc().toISOString()
+          : null,
+        gender: Number(data.gender ?? selectedGender),
+        role: roleId,
       };
 
-      let response;
-      const successMessage = isEditMode ? 'Account updated' : 'Account created';
-
-      if (isEditMode && initialData) {
-        const updateData = { ...baseApiData, role: roleId };
-        await updateAccount(initialData.id, updateData);
+      if (isEditMode) {
+        onOk(formattedValues, roleId);
       } else {
-        if (!baseApiData.password) {
-          throw new Error('Password is required to create an account.');
-        }
-        switch (data.role) {
-          case 'ADMIN':
-            response = await createAdmin(baseApiData);
-            break;
-          case 'HOD':
-            response = await createHoD(baseApiData);
-            break;
-          case 'LECTURER':
-            const lecturerData = {
-              ...baseApiData,
-              department: data.department || null,
-              specialization: data.specialization || null,
-            };
-            response = await createLecturer(lecturerData);
-            break;
-          case 'STUDENT':
-            response = await createStudent(baseApiData);
-            break;
-          default:
-            throw new Error(`Unhandled role: ${data.role}`);
+        if (roleId === 4) {
+          // Examiner: format như web
+          const examinerPayload: CreateExaminerPayload = {
+            ...formattedValues,
+            role: 'teacher',
+          };
+          onOk(examinerPayload, roleId);
+        } else {
+          onOk(formattedValues, roleId);
         }
       }
-
-      showSuccessToast('Success', `${successMessage} successfully.`);
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      showErrorToast(
-        'Error',
-        error.message ||
-          `Failed to ${isEditMode ? 'update' : 'create'} account.`,
-      );
-    }
+    })();
   };
 
   return (
     <Portal>
       <Modal
         visible={visible}
-        onDismiss={onClose}
+        onDismiss={onCancel}
         contentContainerStyle={styles.modalContainer}
       >
         <ScrollView
@@ -281,15 +228,15 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
           contentContainerStyle={styles.scrollContentContainer}
         >
           <AppText style={styles.modalTitle} variant="h3">
-            {isEditMode ? 'Edit Account' : 'Create New Account'}
+            {isEditMode ? `Edit User: ${initialData?.fullName || ''}` : 'Add New User'}
           </AppText>
-          {isEditMode && initialData?.accountCode && (
-            <AppTextInput
-              label="Account Code"
-              value={initialData.accountCode}
-              editable={false}
-            />
-          )}
+          <AppTextInputController
+            name="accountCode"
+            control={control}
+            label="Account Code"
+            placeholder="Enter account code"
+            editable={!isEditMode}
+          />
           <AppTextInputController
             name="username"
             control={control}
@@ -305,6 +252,7 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
             placeholder="Enter email"
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!isEditMode}
           />
           {!isEditMode && (
             <AppTextInputController
@@ -350,15 +298,23 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
                   Date of Birth
                 </AppText>
                 <TouchableOpacity
-                  onPress={showDatePicker}
-                  style={[styles.dateInput, error && styles.errorBorder]}
+                  onPress={isEditMode ? undefined : showDatePicker}
+                  disabled={isEditMode}
+                  style={[
+                    styles.dateInput,
+                    error && styles.errorBorder,
+                    isEditMode && styles.disabledInput,
+                  ]}
                 >
                   <AppText
-                    style={value ? styles.dateText : styles.datePlaceholder}
+                    style={[
+                      value ? styles.dateText : styles.datePlaceholder,
+                      isEditMode && styles.disabledText,
+                    ]}
                   >
                     {value ? dayjs(value).format('DD/MM/YYYY') : 'Select date'}
                   </AppText>
-                  <CalendarIcon />
+                  {!isEditMode && <CalendarIcon />}
                 </TouchableOpacity>
                 {error && (
                   <AppText style={styles.textError}>{error.message}</AppText>
@@ -376,7 +332,7 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
             }
           />
 
-          {selectedRole === 'LECTURER' && (
+          {selectedRole === 1 && (
             <>
               <AppTextInputController
                 name="department"
@@ -395,65 +351,88 @@ const AddEditUserModal: React.FC<AddEditUserModalProps> = ({
 
           <View style={styles.genderSection}>
             <AppText style={styles.label} variant="label16pxBold">
-              {' '}
-              Gender{' '}
+              Gender
             </AppText>
-            {['Male', 'Female'].map(
-              (
-                item, // Removed 'Others'
-              ) => (
-                <RadioWithTitle
-                  key={item}
-                  title={item}
-                  selected={item === selectedGender}
-                  onPress={() => setSelectedGender(item)}
-                />
-              ),
-            )}
+            <Controller
+              control={control}
+              name="gender"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  {[
+                    { label: 'Male', value: 0 },
+                    { label: 'Female', value: 1 },
+                    { label: 'Other', value: 2 },
+                  ].map(item => (
+                    <RadioWithTitle
+                      key={item.value}
+                      title={item.label}
+                      selected={value === item.value}
+                      onPress={
+                        isEditMode
+                          ? () => {}
+                          : () => {
+                              onChange(item.value);
+                              setSelectedGender(item.value);
+                            }
+                      }
+                      disabled={isEditMode}
+                    />
+                  ))}
+                </>
+              )}
+            />
           </View>
 
-          <AppText style={styles.roleLabel} variant="label16pxBold">
-            Role
-          </AppText>
-          <Controller
-            control={control}
-            name="role"
-            render={({ field: { onChange, value } }) => (
-              <SegmentedButtons
-                value={value ?? 'STUDENT'}
-                onValueChange={onChange}
-                style={styles.segmentedButtons}
-                buttons={Object.entries(RoleMap).map(([id, name]) => ({
-                  value: name,
-                  label: name.charAt(0) + name.slice(1).toLowerCase(),
-                  style: styles.segmentButton,
-                }))}
-              />
-            )}
-          />
+          <View style={styles.roleSection}>
+            <AppText style={styles.roleLabel} variant="label16pxBold">
+              Role
+            </AppText>
+            <Controller
+              control={control}
+              name="role"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  {[
+                    { label: 'Admin', value: 0 },
+                    { label: 'Lecturer', value: 1 },
+                    { label: 'Student', value: 2 },
+                    { label: 'HOD', value: 3 },
+                    { label: 'Examiner', value: 4 },
+                  ].map(item => (
+                    <RadioWithTitle
+                      key={item.value}
+                      title={item.label}
+                      selected={value === item.value}
+                      onPress={isEditMode ? () => {} : () => onChange(item.value)}
+                      disabled={isEditMode}
+                    />
+                  ))}
+                </>
+              )}
+            />
+          </View>
 
           <View style={styles.modalButtonRow}>
             <AppButton
               size="medium"
               title="Cancel"
               variant="secondary"
-              onPress={onClose}
+              onPress={onCancel}
               style={{
                 width: s(100),
-
                 minWidth: 0,
                 borderColor: AppColors.pr500,
               }}
               textColor={AppColors.pr500}
-              disabled={isSubmitting}
+              disabled={confirmLoading || isSubmitting}
             />
             <AppButton
               size="medium"
-              title={isEditMode ? 'Update' : 'Create'}
-              onPress={handleSubmit(onSubmit)}
+              title={isEditMode ? 'Update' : 'Add'}
+              onPress={handleOk}
               style={{ width: s(100), minWidth: 0 }}
-              loading={isSubmitting}
-              disabled={isSubmitting}
+              loading={confirmLoading || isSubmitting}
+              disabled={confirmLoading || isSubmitting}
             />
           </View>
         </ScrollView>
@@ -503,6 +482,13 @@ const styles = StyleSheet.create({
     fontSize: s(14),
     color: AppColors.n400,
   },
+  disabledInput: {
+    backgroundColor: AppColors.n100,
+    opacity: 0.6,
+  },
+  disabledText: {
+    color: AppColors.n500,
+  },
   errorBorder: {
     borderColor: AppColors.errorColor,
   },
@@ -518,16 +504,13 @@ const styles = StyleSheet.create({
     color: AppColors.n700,
     marginBottom: vs(4),
   },
+  roleSection: {
+    marginBottom: vs(10),
+  },
   roleLabel: {
     color: AppColors.n700,
     marginBottom: vs(4),
     marginTop: vs(5),
-  },
-  segmentedButtons: {
-    marginBottom: vs(10),
-  },
-  segmentButton: {
-    flex: 1,
   },
   modalButtonRow: {
     flexDirection: 'row',
@@ -538,3 +521,4 @@ const styles = StyleSheet.create({
 });
 
 export default AddEditUserModal;
+

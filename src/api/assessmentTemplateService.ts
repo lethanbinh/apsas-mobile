@@ -109,6 +109,9 @@ export const fetchAssessmentTemplates = async (
   }
 };
 
+// Alias for compatibility with web code
+export const getAssessmentTemplates = fetchAssessmentTemplates;
+
 export const getAssessmentTemplateById = async (
   assessmentTemplateId: number | string,
 ): Promise<AssessmentTemplateData> => {

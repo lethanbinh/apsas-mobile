@@ -1,4 +1,4 @@
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,37 +23,53 @@ import { AppColors } from '../styles/color';
 
 const CurriculumScreen = () => {
   const route = useRoute();
+  const navigation = useNavigation<any>();
   const semesterCourseId = (route.params as { semesterCourseId?: string })
     ?.semesterCourseId;
+  const classId = (route.params as { classId?: string | number })?.classId;
 
   const [isLoading, setIsLoading] = useState(true);
   const [courseElements, setCourseElements] = useState<CourseElementData[]>([]);
+  const [isMounted, setIsMounted] = useState(true);
 
   useEffect(() => {
+    setIsMounted(true);
     if (!semesterCourseId) {
-      showErrorToast('Error', 'No Semester Course ID provided.');
-      setIsLoading(false);
+      if (isMounted) {
+        showErrorToast('Error', 'No Semester Course ID provided.');
+        setIsLoading(false);
+      }
       return;
     }
 
     const loadElements = async () => {
+      if (!isMounted) return;
       setIsLoading(true);
       try {
         const allElements = await fetchCourseElements();
-        console.log(allElements, semesterCourseId);
-        const relevantElements = allElements.filter(
-          el => el.semesterCourseId.toString() === semesterCourseId,
+        if (!isMounted) return;
+
+        const relevantElements = (allElements || []).filter(
+          el => el && el.semesterCourseId && el.semesterCourseId.toString() === semesterCourseId,
         );
+        if (!isMounted) return;
         setCourseElements(relevantElements);
       } catch (error: any) {
-        showErrorToast('Error', 'Failed to load curriculum elements.');
         console.error(error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load curriculum elements.');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadElements();
+    return () => {
+      setIsMounted(false);
+    };
   }, [semesterCourseId]);
 
   const requestStoragePermission = async () => {
@@ -122,38 +138,72 @@ const CurriculumScreen = () => {
   const assignments = courseElements
     .filter(
       el =>
+        el &&
+        el.id &&
+        el.name &&
+        typeof el.name === 'string' &&
         !el.name.toLowerCase().includes('pe') &&
         !el.name.toLowerCase().includes('exam'),
     )
-    .map((item, index) => ({
-      id: item.id,
-      number: `0${index + 1}`,
-      title: item.name,
-      linkFile: item.description,
-      rightIcon: ViewIcon,
-      detailNavigation: 'AssignmentDetailScreen',
-      onAction: () => {
-        console.log('Navigate to AssignmentDetailScreen with ID:', item.id);
-      },
-    }));
+    .map((item, index) => {
+      try {
+        return {
+          id: item.id,
+          number: `0${index + 1}`,
+          title: item.name || 'Untitled',
+          linkFile: item.description || '',
+          rightIcon: ViewIcon,
+          detailNavigation: 'AssignmentDetailScreen',
+          onAction: () => {
+            if (item.id) {
+              navigation.navigate('AssignmentDetailScreen', {
+                elementId: item.id,
+                classId: classId,
+              });
+            }
+          },
+        };
+      } catch (err) {
+        console.error('Error mapping assignment:', err);
+        return null;
+      }
+    })
+    .filter((item): item is any => item !== null);
 
   const practicalExams = courseElements
     .filter(
       el =>
-        el.name.toLowerCase().includes('pe') ||
-        el.name.toLowerCase().includes('exam'),
+        el &&
+        el.id &&
+        el.name &&
+        typeof el.name === 'string' &&
+        (el.name.toLowerCase().includes('pe') ||
+        el.name.toLowerCase().includes('exam')),
     )
-    .map((item, index) => ({
-      id: item.id,
-      number: `0${index + 1}`,
-      title: item.name,
-      linkFile: item.description,
-      rightIcon: ViewIcon,
-      detailNavigation: 'AssignmentDetailScreen',
-      onAction: () => {
-        console.log('Navigate to PracticalExamDetailScreen with ID:', item.id);
-      },
-    }));
+    .map((item, index) => {
+      try {
+        return {
+          id: item.id,
+          number: `0${index + 1}`,
+          title: item.name || 'Untitled',
+          linkFile: item.description || '',
+          rightIcon: ViewIcon,
+          detailNavigation: 'AssignmentDetailScreen',
+          onAction: () => {
+            if (item.id) {
+              navigation.navigate('AssignmentDetailScreen', {
+                elementId: item.id,
+                classId: classId,
+              });
+            }
+          },
+        };
+      } catch (err) {
+        console.error('Error mapping practical exam:', err);
+        return null;
+      }
+    })
+    .filter((item): item is any => item !== null);
 
   const sections = [
     { title: 'Assignments', data: assignments },

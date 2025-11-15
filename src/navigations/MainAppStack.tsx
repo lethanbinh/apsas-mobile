@@ -8,6 +8,7 @@ import AdminStackNavigator from './AdminStack';
 import HeadDeptBottomTabs from './HeadDeptBottomTabs';
 import LecturerBottomTabs from './LecturerBottomTabs';
 import StudentBottomTabs from './StudentBottomTabs';
+import ExaminerBottomTabs from './ExaminerBottomTabs';
 
 const Stack = createStackNavigator();
 
@@ -26,6 +27,8 @@ const MainAppStack = () => {
         return StudentBottomTabs;
       case 'ADMIN':
         return AdminStackNavigator;
+      case 'EXAMINER':
+        return ExaminerBottomTabs;
       default:
         console.warn('Unknown role in MainAppStack:', userRole);
         return StudentBottomTabs;

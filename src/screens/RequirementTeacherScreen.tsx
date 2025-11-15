@@ -42,13 +42,15 @@ const RequirementTeacherScreen = () => {
 
   useEffect(() => {
     // Lấy questions từ template
-    if (assessmentTemplate && assessmentTemplate.papers.length > 0) {
+    if (assessmentTemplate && assessmentTemplate.papers && assessmentTemplate.papers.length > 0) {
       const paper = assessmentTemplate.papers[0];
-      setPaperName(paper.name || 'Requirement');
-      setQuestions(paper.questions || []);
-      // Tự động mở câu đầu tiên
-      if (paper.questions.length > 0) {
-        setExpandedId(paper.questions[0].id);
+      if (paper) {
+        setPaperName(paper.name || 'Requirement');
+        setQuestions(paper.questions || []);
+        // Tự động mở câu đầu tiên
+        if (paper.questions && paper.questions.length > 0 && paper.questions[0]?.id) {
+          setExpandedId(paper.questions[0].id);
+        }
       }
     }
   }, [assessmentTemplate]);
@@ -83,17 +85,19 @@ const RequirementTeacherScreen = () => {
             No questions found for this paper.
           </AppText>
         ) : (
-          questions.map((question, index) => (
-            <QuestionAccordion
-              key={question.id}
-              title={`Question ${index + 1}: ${question.questionText}`}
-              description={`Sample Input:\n${question.questionSampleInput}\n\nSample Output:\n${question.questionSampleOutput}`}
-              imageUrl={null} // Model không có imageUrl
-              isExpanded={expandedId === question.id}
-              onPress={() => handleToggle(question.id)}
-              onCriteriaPress={() => handleCriteriaPress(question.id, index)}
-            />
-          ))
+          questions
+            .filter(q => q && q.id)
+            .map((question, index) => (
+              <QuestionAccordion
+                key={question.id}
+                title={`Question ${index + 1}: ${question.questionText || 'No question text'}`}
+                description={`Sample Input:\n${question.questionSampleInput || 'N/A'}\n\nSample Output:\n${question.questionSampleOutput || 'N/A'}`}
+                imageUrl={null} // Model không có imageUrl
+                isExpanded={expandedId === question.id}
+                onPress={() => handleToggle(question.id)}
+                onCriteriaPress={() => handleCriteriaPress(question.id, index)}
+              />
+            ))
         )}
       </ScrollView>
 

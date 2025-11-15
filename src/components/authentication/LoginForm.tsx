@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import RNPickerSelect from 'react-native-picker-select';
 
 import {
   EmailInputIcon,
@@ -27,6 +28,35 @@ import { signInWithGoogle } from '../../utils/googleSignIn';
 
 dayjs.extend(utc);
 
+// Demo accounts data - giống hệt web
+interface DemoAccount {
+  accountCode: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
+const DEMO_ACCOUNTS: DemoAccount[] = [
+  { accountCode: 'ADM000001', email: 'admin1@system.com', password: 'admin@123', role: 'Admin' },
+  { accountCode: 'HOD000001', email: 'Hod1@example.com', password: 'Lenam2386', role: 'HOD' },
+  { accountCode: 'LEC000001', email: 'nguyenvana@example.com', password: '123456', role: 'Lecturer' },
+  { accountCode: 'LEC000002', email: 'Lecturer1@example.com', password: 'Lenam2385', role: 'Lecturer' },
+  { accountCode: 'LEC000003', email: 'tranthib@example.com', password: '123456', role: 'Lecturer' },
+  { accountCode: 'LEC000004', email: 'leminhc@example.com', password: '123456', role: 'Lecturer' },
+  { accountCode: 'LEC000005', email: 'phamthid@example.com', password: '123456', role: 'Lecturer' },
+  { accountCode: 'LEC000006', email: 'hoangvane@example.com', password: '123456', role: 'Lecturer' },
+  { accountCode: 'LEC000007', email: 'ngothif@example.com', password: '123456', role: 'Lecturer' },
+  { accountCode: 'EXA000001', email: 'examiner1@example.com', password: 'Lenam2385', role: 'Examiner' },
+  { accountCode: 'EXA000002', email: 'lehongt@example.com', password: 'Teach3r!', role: 'Examiner' },
+  { accountCode: 'STU000001', email: 'namle2385@gmail.com', password: 'Lenam235', role: 'Student' },
+  { accountCode: 'STU000002', email: 'dangthig@example.com', password: '123456', role: 'Student' },
+  { accountCode: 'STU000003', email: 'vutranh@example.com', password: '123456', role: 'Student' },
+  { accountCode: 'STU000004', email: 'doanthij@example.com', password: '123456', role: 'Student' },
+  { accountCode: 'STU000005', email: 'phamanhk@example.com', password: '123456', role: 'Student' },
+  { accountCode: 'STU000006', email: 'truongthil@example.com', password: '123456', role: 'Student' },
+  { accountCode: 'STU000007', email: 'nguyenthanhm@example.com', password: '123456', role: 'Student' },
+];
+
 const LoginForm = () => {
   type FormData = yup.InferType<typeof schema>;
 
@@ -37,7 +67,7 @@ const LoginForm = () => {
       .required('Password is required')
       .min(6, 'Password must be at least 6 characters'),
   });
-  const { control, handleSubmit } = useForm({
+  const { control, handleSubmit, setValue } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
       email: '',
@@ -47,6 +77,7 @@ const LoginForm = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [selectedDemoAccount, setSelectedDemoAccount] = useState<string | null>(null);
   const dispatch = useDispatch();
 
   const handleLoginSuccess = async (
@@ -161,6 +192,23 @@ const LoginForm = () => {
     setIsLoading(false);
   };
 
+  const handleDemoLogin = async (accountCode: string) => {
+    if (isLoading || isGoogleLoading) return;
+
+    const account = DEMO_ACCOUNTS.find(acc => acc.accountCode === accountCode);
+    if (!account) return;
+
+    // Set form values for display
+    setValue('email', account.email);
+    setValue('password', account.password);
+
+    // Call handleLogin directly with demo credentials
+    await handleLogin({
+      email: account.email,
+      password: account.password,
+    });
+  };
+
   return (
     <View style={styles.container}>
       <AppTextInputController
@@ -216,12 +264,79 @@ const LoginForm = () => {
           loading={isGoogleLoading}
           disabled={isLoading || isGoogleLoading}
         />
+
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: vs(20),
+          }}
+        >
+          <View style={styles.divider}></View>
+          <AppText style={{ color: AppColors.pr500 }}>Or login with demo account</AppText>
+          <View style={styles.divider}></View>
+        </View>
+
+        <View style={styles.demoAccountContainer}>
+          <RNPickerSelect
+            onValueChange={value => {
+              setSelectedDemoAccount(value);
+              if (value) {
+                handleDemoLogin(value);
+              }
+            }}
+            items={DEMO_ACCOUNTS.map(account => ({
+              label: `${account.accountCode} - ${account.role} (${account.email})`,
+              value: account.accountCode,
+            }))}
+            value={selectedDemoAccount}
+            placeholder={{
+              label: 'Demo Account',
+              value: null,
+            }}
+            style={pickerSelectStyles}
+            disabled={isLoading || isGoogleLoading}
+            useNativeAndroidPickerStyle={false}
+          />
+        </View>
       </View>
     </View>
   );
 };
 
 export default LoginForm;
+
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    fontSize: s(12),
+    paddingVertical: vs(8),
+    paddingHorizontal: s(8),
+    borderWidth: 1,
+    borderColor: AppColors.n300,
+    borderRadius: s(6),
+    color: AppColors.n800,
+    backgroundColor: AppColors.white,
+    width: s(150),
+    marginTop: vs(10),
+    alignSelf: 'center',
+  },
+  inputAndroid: {
+    fontSize: s(12),
+    paddingVertical: vs(8),
+    paddingHorizontal: s(8),
+    borderWidth: 1,
+    borderColor: AppColors.n300,
+    borderRadius: s(6),
+    color: AppColors.n800,
+    backgroundColor: AppColors.white,
+    width: s(150),
+    marginTop: vs(10),
+    alignSelf: 'center',
+  },
+  placeholder: {
+    color: AppColors.n400,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -234,5 +349,10 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.pr500,
     flex: 1,
     marginHorizontal: s(10),
+  },
+  demoAccountContainer: {
+    width: '100%',
+    marginTop: vs(10),
+    alignItems: 'center',
   },
 });

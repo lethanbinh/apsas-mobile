@@ -367,12 +367,25 @@ const ProfileForm = () => {
             )}
           </TouchableOpacity>
 
-          <AppButton
-            onPress={handleSaveAvatar}
-            style={{ width: s(120), marginTop: vs(20), alignSelf: 'center' }}
-            title="Save Avatar"
-            loading={isUploading}
-          />
+          <View style={styles.modalButtonRow}>
+            <AppButton
+              title="Cancel"
+              onPress={() => {
+                setUploadAvatarModal(false);
+                setTempFile(null);
+              }}
+              style={{ minWidth: 'auto', width: s(80) }}
+              size="small"
+              variant="secondary"
+            />
+            <AppButton
+              onPress={handleSaveAvatar}
+              style={{ minWidth: 'auto', width: s(80) }}
+              title="Save"
+              loading={isUploading}
+              size="small"
+            />
+          </View>
         </View>
       </CustomModal>
 

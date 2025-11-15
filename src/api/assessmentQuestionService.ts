@@ -5,6 +5,7 @@ export interface CreateAssessmentQuestionPayload {
   questionSampleInput: string;
   questionSampleOutput: string;
   score: number;
+  questionNumber?: number;
   assessmentPaperId: number;
 }
 
@@ -14,6 +15,7 @@ export interface AssessmentQuestionData {
   questionSampleInput: string;
   questionSampleOutput: string;
   score: number;
+  questionNumber?: number;
   assessmentPaperId: number;
   assessmentPaperName: string;
   rubricCount: number;
@@ -26,6 +28,7 @@ export interface UpdateAssessmentQuestionPayload {
   questionSampleInput: string;
   questionSampleOutput: string;
   score: number;
+  questionNumber?: number;
 }
 
 export interface AssessmentQuestionPaginatedResult {
@@ -113,3 +116,6 @@ export const fetchAssessmentQuestions = async (
     throw error;
   }
 };
+
+// Alias for compatibility with web code
+export const getAssessmentQuestions = fetchAssessmentQuestions;

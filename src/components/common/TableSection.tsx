@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -22,7 +22,7 @@ interface TableSectionProps {
   renderCellContent?: (item: any, key: string) => string;
 }
 
-const TableSection = ({
+const TableSection = React.memo(({
   title,
   data,
   columnConfig,
@@ -32,6 +32,47 @@ const TableSection = ({
   renderCellContent,
 }: TableSectionProps) => {
   const [viewAll, setViewAll] = useState(false);
+
+  // Memoize columns and dataKeys
+  const { columns, dataKeys } = useMemo(() => {
+    if (!data || data.length === 0) {
+      return { columns: [], dataKeys: [] };
+    }
+    return {
+      columns: columnConfig
+        ? columnConfig.map(c => c.label)
+        : Object.keys(data[0]),
+      dataKeys: columnConfig
+        ? columnConfig.map(c => c.key)
+        : Object.keys(data[0]),
+    };
+  }, [data, columnConfig]);
+
+  // Memoize visible data
+  const visibleData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    return viewAll ? data : data.slice(0, 3);
+  }, [data, viewAll]);
+
+  // Memoize cell renderer
+  const cellRenderer = useMemo(() => {
+    if (renderCellContent) return renderCellContent;
+    return (item: any, key: string) => {
+      const value = item[key];
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        if (key === 'lecturer' && value.account)
+          return value.account.fullName ?? value.account.username;
+        if (key === 'account' && value.fullName)
+          return value.fullName ?? value.username;
+        if (key === 'courseElement' && value.name) return value.name;
+      }
+      if (key === 'accountCode' && item.account) return item.account.accountCode;
+      if (key === 'email' && item.account) return item.account.email;
+      return String(value ?? '');
+    };
+  }, [renderCellContent]);
+
+  const hasActions = !!(onEdit || onDelete);
 
   if (!data || data.length === 0) {
     return (
@@ -48,28 +89,6 @@ const TableSection = ({
       </View>
     );
   }
-  const columns = columnConfig
-    ? columnConfig.map(c => c.label)
-    : Object.keys(data[0]);
-  const dataKeys = columnConfig
-    ? columnConfig.map(c => c.key)
-    : Object.keys(data[0]);
-  const hasActions = !!(onEdit || onDelete);
-  const visibleData = viewAll ? data : data.slice(0, 3);
-  const defaultRenderCell = (item: any, key: string) => {
-    const value = item[key];
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      if (key === 'lecturer' && value.account)
-        return value.account.fullName ?? value.account.username;
-      if (key === 'account' && value.fullName)
-        return value.fullName ?? value.username;
-      if (key === 'courseElement' && value.name) return value.name;
-    }
-    if (key === 'accountCode' && item.account) return item.account.accountCode;
-    if (key === 'email' && item.account) return item.account.email;
-    return String(value ?? '');
-  };
-  const cellRenderer = renderCellContent || defaultRenderCell;
   return (
     <View style={styles.section}>
       <SectionHeader
@@ -140,7 +159,9 @@ const TableSection = ({
       </ScrollView>
     </View>
   );
-};
+});
+
+TableSection.displayName = 'TableSection';
 
 const styles = StyleSheet.create({
   section: {

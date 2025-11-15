@@ -31,37 +31,61 @@ const TeachingClassScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
       if (!lecturerAccountCode) {
-        showErrorToast('Error', 'User account code not loaded.');
-        setIsLoading(false);
+        if (isMounted) {
+          showErrorToast('Error', 'User account code not loaded.');
+          setIsLoading(false);
+        }
         return;
       }
 
+      if (!isMounted) return;
       setIsLoading(true);
+      
       try {
         const [classList, semesterList] = await Promise.all([
           fetchClassList(),
           fetchSemesterList(),
         ]);
-        const filteredByLecturer = classList.filter(
+        
+        if (!isMounted) return;
+        
+        const filteredByLecturer = (classList || []).filter(
           cls => cls.lecturerCode === lecturerAccountCode,
         );
 
         setAllMyClasses(filteredByLecturer);
-        setSemesters(semesterList);
+        setSemesters(semesterList || []);
       } catch (error: any) {
-        showErrorToast('Error', 'Failed to load data.');
+        console.error('Failed to load data:', error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load data.');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [lecturerAccountCode]);
 
   const semesterNamesForDropdown = useMemo(() => {
-    const uniqueApiSemesters = [...new Set(semesters.map(s => s.semesterCode))];
+    const uniqueApiSemesters = [
+      ...new Set(
+        semesters
+          .map(s => s.semesterCode)
+          .filter((code): code is string => !!code),
+      ),
+    ];
     return uniqueApiSemesters.sort().reverse();
   }, [semesters]);
 
@@ -69,8 +93,8 @@ const TeachingClassScreen = () => {
     if (!selectedSemester) {
       return allMyClasses;
     }
-    return allMyClasses.filter(cls =>
-      cls.semesterName.startsWith(selectedSemester),
+    return allMyClasses.filter(
+      cls => cls.semesterName && cls.semesterName.startsWith(selectedSemester),
     );
   }, [allMyClasses, selectedSemester]);
 

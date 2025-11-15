@@ -7,7 +7,7 @@ import { Modal, Portal } from 'react-native-paper';
 import RNPickerSelect from 'react-native-picker-select';
 import { s, vs } from 'react-native-size-matters';
 import * as yup from 'yup';
-import { ClassDetailData } from '../../api/class';
+import { PlanDetailClassWithSemesterCourseId } from '../../hooks/usePlanDetails';
 import {
   createStudentEnrollment,
   StudentGroupData,
@@ -21,15 +21,15 @@ import AppText from '../texts/AppText';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 
 type FormData = {
-  classId: string | null; // <-- SỬA
-  studentId: string | null; // <-- SỬA
-  description: string; // <-- SỬA
+  classId: string | null;
+  studentId: string | null;
+  description: string | null;
 };
 const schema = yup
   .object({
-    classId: yup.string().nullable().required('Class is required'), // <-- SỬA
-    studentId: yup.string().nullable().required('Student is required'), // <-- SỬA
-    description: yup.string().nullable(), // <-- SỬA
+    classId: yup.string().nullable().required('Class is required'),
+    studentId: yup.string().nullable().required('Student is required'),
+    description: yup.string().nullable(),
   })
   .required();
 
@@ -38,7 +38,7 @@ interface StudentEnrollmentModalProps {
   onClose: () => void;
   onSuccess: () => void;
   initialData?: StudentGroupData | null; // Use StudentGroupData for editing
-  planClasses: ClassDetailData[]; // Pass available classes
+  planClasses: PlanDetailClassWithSemesterCourseId[]; // Pass available classes
 }
 
 const StudentEnrollmentModal: React.FC<StudentEnrollmentModalProps> = ({
@@ -57,7 +57,7 @@ const StudentEnrollmentModal: React.FC<StudentEnrollmentModalProps> = ({
     reset,
     formState: { isSubmitting },
   } = useForm<FormData>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: useMemo(
       () => ({
         classId: initialData?.classId ?? null, // <-- SỬA

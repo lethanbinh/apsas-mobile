@@ -20,6 +20,15 @@ const StatusTag = ({ status }: StatusTagProps) => {
   } else if (status === 'Rejected') {
     bg = AppColors.r100;
     color = AppColors.r500;
+  } else if (status === 'Ongoing') {
+    bg = AppColors.pr100;
+    color = AppColors.pr500;
+  } else if (status === 'Ended') {
+    bg = AppColors.n200;
+    color = AppColors.n700;
+  } else if (status === 'Upcoming') {
+    bg = '#FEF6E6';
+    color = '#FF9900';
   }
 
   return (

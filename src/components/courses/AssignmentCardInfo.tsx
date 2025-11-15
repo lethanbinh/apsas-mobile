@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import {
@@ -24,6 +25,7 @@ interface AssignmentCardInfoProps {
   isAssessment?: boolean;
   onAutoGradePress?: () => void;
   onDashboardPress?: () => void;
+  onDeadlineChange?: (date: string) => void;
 }
 
 const AssignmentCardInfo = ({
@@ -37,14 +39,22 @@ const AssignmentCardInfo = ({
   isAssessment = false,
   onAutoGradePress,
   onDashboardPress,
+  onDeadlineChange,
 }: AssignmentCardInfoProps) => {
   const [selectedDate, setSelectedDate] = useState(dueDate);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
+  useEffect(() => {
+    setSelectedDate(dueDate);
+  }, [dueDate]);
+
   const handleConfirm = (date: Date) => {
-    const formatted = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    const formatted = dayjs(date).format('DD/MM/YYYY');
     setSelectedDate(formatted);
     setDatePickerVisible(false);
+    if (onDeadlineChange) {
+      onDeadlineChange(formatted);
+    }
   };
 
   return (

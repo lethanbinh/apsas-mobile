@@ -7,10 +7,9 @@ import RNPickerSelect from 'react-native-picker-select';
 import { s, vs } from 'react-native-size-matters';
 import * as yup from 'yup';
 import {
-  AssignRequestData,
   createAssignRequest,
   PlanDetailAssignRequestInitial,
-  updateAssignRequest,
+  updateAssignRequest
 } from '../../api/assignRequestService';
 import { CourseElementData } from '../../api/courseElementService';
 import { fetchLecturerList, LecturerListData } from '../../api/lecturerService';
@@ -20,19 +19,15 @@ import AppTextInputController from '../inputs/AppTextInputController';
 import AppText from '../texts/AppText';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
 
-type FormData = {
-  courseElementId: string;
-  assignedLecturerId: string;
-  message: string | null;
-};
-
 const schema = yup
   .object({
     courseElementId: yup.string().required('Course Element is required'),
     assignedLecturerId: yup.string().required('Lecturer is required'),
-    message: yup.string().nullable().optional(),
+    message: yup.string().nullable().notRequired(),
   })
   .required();
+
+type FormData = yup.InferType<typeof schema>;
 
 interface AssignRequestCrudModalProps {
   visible: boolean;
@@ -59,7 +54,7 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
     reset,
     formState: { isSubmitting },
   } = useForm<FormData>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: useMemo(
       () => ({
         message: initialData?.message ?? null,
@@ -106,8 +101,12 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
           throw new Error('Invalid Assignment Request ID.');
         }
         const payload = {
-          message: data.message || '',
+          message: data.message || null,
           assignedLecturerId: assignedLecturerIdNum,
+          courseElementId: courseElementIdNum,
+          assignedByHODId: assignedByHODIdNum,
+          status: 1, // Default status for edit mode
+          assignedAt: new Date().toISOString(), // Use current timestamp
         };
         await updateAssignRequest(initialData.id, payload);
       } else {
@@ -115,10 +114,12 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
           throw new Error('Invalid HOD ID.');
         }
         const payload = {
-          message: data.message || '',
+          message: data.message || null,
           assignedLecturerId: assignedLecturerIdNum,
           courseElementId: courseElementIdNum,
-          assignedByHODId: assignedByHODIdNum, // Gửi dưới dạng SỐ
+          assignedByHODId: assignedByHODIdNum,
+          status: 1,
+          assignedAt: new Date().toISOString(),
         };
         await createAssignRequest(payload);
       }
@@ -134,10 +135,14 @@ const AssignRequestCrudModal: React.FC<AssignRequestCrudModalProps> = ({
     }
   };
 
-  const elementOptions = courseElements.map(el => ({
-    label: `${el.name} (Weight: ${el.weight}%)`,
-    value: String(el.id),
-  }));
+  const elementOptions = courseElements.map(el => {
+    // Convert decimal (0.25) to percentage (25%)
+    const weightPercent = typeof el.weight === 'number' ? el.weight * 100 : Number(el.weight) * 100 || 0;
+    return {
+      label: `${el.name} (Weight: ${weightPercent.toFixed(1)}%)`,
+      value: String(el.id),
+    };
+  });
 
   const lecturerOptions = lecturers.map(l => ({
     label: `${l.fullName} (${l.accountCode})`,

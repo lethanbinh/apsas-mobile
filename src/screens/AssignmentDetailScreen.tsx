@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { useSelector } from 'react-redux';
+import dayjs from 'dayjs';
 import {
   AssessmentTemplateData,
   fetchAssessmentTemplates,
@@ -17,60 +18,125 @@ import {
   CourseElementData,
   fetchCourseElementById,
 } from '../api/courseElementService';
+import { getClassAssessments, ClassAssessment } from '../api/classAssessmentService';
+import { getSubmissionList, Submission } from '../api/submissionService';
 import ScreenHeader from '../components/common/ScreenHeader';
 import AssignmentCardInfo from '../components/courses/AssignmentCardInfo';
 import CurriculumList from '../components/courses/CurriculumList';
 import AppText from '../components/texts/AppText';
 import { showErrorToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
-import { DocumentList, SubmissionList } from '../data/coursesData';
+import { DocumentList } from '../data/coursesData';
 import { RootState } from '../store/store';
 import { AppColors } from '../styles/color';
+import { useGetCurrentStudentId } from '../hooks/useGetCurrentStudentId';
 
 const AssignmentDetailScreen = () => {
   const [listHeight, setListHeight] = useState(0);
   const navigation = useNavigation<any>();
   const route = useRoute();
   const elementId = (route.params as { elementId?: string })?.elementId;
+  const classId = (route.params as { classId?: string | number })?.classId;
 
   const [elementData, setElementData] = useState<CourseElementData | null>(
     null,
   );
   const [templateData, setTemplateData] =
     useState<AssessmentTemplateData | null>(null);
+  const [classAssessment, setClassAssessment] = useState<ClassAssessment | null>(null);
+  const [latestSubmission, setLatestSubmission] = useState<Submission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(true);
   const userProfile = useSelector(
     (state: RootState) => state.userSlice.profile,
   );
+  const { studentId } = useGetCurrentStudentId();
 
   useEffect(() => {
+    setIsMounted(true);
     if (!elementId) {
       showErrorToast('Error', 'No Assignment ID provided.');
       setIsLoading(false);
       return;
     }
     const loadDetails = async () => {
+      if (!isMounted) return;
       setIsLoading(true);
       try {
         const element = await fetchCourseElementById(elementId);
+        if (!isMounted) return;
         setElementData(element);
+
         const templatesResponse = await fetchAssessmentTemplates({
           pageNumber: 1,
           pageSize: 1000,
         });
-        const foundTemplate = templatesResponse.items.find(
-          t => t.courseElementId === Number(elementId),
+        const foundTemplate = (templatesResponse?.items || []).find(
+          t => t && t.courseElementId === Number(elementId),
         );
+        if (!isMounted) return;
         setTemplateData(foundTemplate || null);
+
+        // Fetch class assessment to get deadline
+        if (classId && foundTemplate) {
+          try {
+            const classAssessmentsRes = await getClassAssessments({
+              classId: Number(classId),
+              assessmentTemplateId: foundTemplate.id,
+              pageNumber: 1,
+              pageSize: 1000,
+            });
+            const relevantAssessment = (classAssessmentsRes?.items || []).find(
+              ca => ca && ca.courseElementId === Number(elementId),
+            );
+            if (!isMounted) return;
+            if (relevantAssessment) {
+              setClassAssessment(relevantAssessment);
+
+              // Fetch latest submission for this student
+              if (studentId) {
+                try {
+                  const submissions = await getSubmissionList({
+                    classAssessmentId: relevantAssessment.id,
+                    studentId: studentId,
+                  });
+                  if (submissions && submissions.length > 0) {
+                    const sorted = submissions
+                      .filter(s => s && s.submittedAt)
+                      .sort((a, b) => {
+                        if (!a.submittedAt || !b.submittedAt) return 0;
+                        return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+                      });
+                    if (!isMounted) return;
+                    if (sorted.length > 0 && sorted[0]) {
+                      setLatestSubmission(sorted[0]);
+                    }
+                  }
+                } catch (err) {
+                  console.error('Failed to fetch submissions:', err);
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Failed to fetch class assessment:', err);
+          }
+        }
       } catch (error: any) {
-        showErrorToast('Error', 'Failed to load assignment details.');
-        console.error(error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load assignment details.');
+          console.error(error);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     loadDetails();
-  }, [elementId]);
+    return () => {
+      setIsMounted(false);
+    };
+  }, [elementId, classId, studentId]);
 
   const navigateToRequirement = () => {
     if (templateData) {
@@ -96,9 +162,30 @@ const AssignmentDetailScreen = () => {
     return item;
   });
 
+  // Build submission list dynamically
+  const submissionListData = latestSubmission && latestSubmission.id
+    ? [
+        {
+          id: latestSubmission.id,
+          number: '01',
+          title: 'Your Submission',
+          linkFile: latestSubmission.submissionFile?.name || 'submission.zip',
+          rightIcon: null,
+          detailNavigation: 'ScoreDetailScreen',
+          onAction: () => {
+            if (latestSubmission.id) {
+              navigation.navigate('ScoreDetailScreen', {
+                submissionId: latestSubmission.id,
+              });
+            }
+          },
+        },
+      ]
+    : [];
+
   const sections = [
     { title: 'Documents', data: dynamicDocumentList },
-    { title: 'Submissions', data: SubmissionList },
+    ...(submissionListData.length > 0 ? [{ title: 'Submissions', data: submissionListData }] : []),
   ];
 
   if (isLoading) {
@@ -133,14 +220,17 @@ const AssignmentDetailScreen = () => {
         <AssignmentCardInfo
           assignmentType="Assignment"
           assignmentTitle={elementData.name}
-          dueDate="N/A" // Add deadline if available in elementData
-          lecturerName={userProfile?.fullName || 'Lecturer'} // Use profile name if available
+          dueDate={classAssessment?.endAt ? dayjs(classAssessment.endAt).format('YYYY-MM-DD HH:mm') : 'N/A'}
+          lecturerName={classAssessment?.lecturerName || userProfile?.fullName || 'Lecturer'}
           description={elementData.description}
-          isSubmitted={false} // TODO: Add logic to check submission status
+          isSubmitted={!!latestSubmission}
           onSubmitPress={() => {
-            navigation.navigate('SubmissionScreen', {
-              elementId: elementData.id,
-            });
+            if (elementData?.id) {
+              navigation.navigate('SubmissionScreen', {
+                elementId: elementData.id,
+                classAssessmentId: classAssessment?.id,
+              });
+            }
           }}
           isAssessment={false}
         />

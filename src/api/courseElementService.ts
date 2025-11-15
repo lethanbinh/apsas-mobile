@@ -84,13 +84,10 @@ export const fetchCourseElementById = async (
 export const createCourseElement = async (
   data: CourseElementCrudPayload,
 ): Promise<ApiResponse<CourseElementData>> => {
-  const payloadToSend = {
-    ...data,
-    weight: data.weight / 100,
-  };
+  // Weight is already converted from percentage to decimal in the modal
   return ApiService.post<CourseElementData>(
     '/api/CourseElements',
-    payloadToSend,
+    data,
   );
 };
 
@@ -98,13 +95,10 @@ export const updateCourseElement = async (
   courseElementId: string | number,
   data: CourseElementCrudPayload,
 ): Promise<ApiResponse<any>> => {
-  const payloadToSend = {
-    ...data,
-    weight: data.weight / 100,
-  };
+  // Weight is already converted from percentage to decimal in the modal
   return ApiService.put(
     `/api/CourseElements/${courseElementId}`,
-    payloadToSend,
+    data,
   );
 };
 

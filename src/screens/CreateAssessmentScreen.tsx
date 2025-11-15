@@ -42,17 +42,25 @@ const CreateAssessmentScreen = () => {
   const { lecturerId: currentLecturerId } = useGetCurrentLecturerId(); // <-- Lấy currentLecturerId
 
   useEffect(() => {
+    let isMounted = true;
+
     if (!semesterCode) {
-      showErrorToast('Error', 'No semester selected.');
-      setIsLoading(false);
+      if (isMounted) {
+        showErrorToast('Error', 'No semester selected.');
+        setIsLoading(false);
+      }
       return;
     }
     if (!currentLecturerId) {
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+      }
       return;
     }
 
     const loadAssignments = async () => {
+      if (!isMounted) return;
+      
       setIsLoading(true);
       try {
         // Fetch assign requests
@@ -62,7 +70,9 @@ const CreateAssessmentScreen = () => {
           1,
           1000,
         );
-        const assignRequests = response.items;
+        const assignRequests = response?.items || [];
+        
+        if (!isMounted) return;
 
         if (!assignRequests || assignRequests.length === 0) {
           setCourses([]);
@@ -71,21 +81,23 @@ const CreateAssessmentScreen = () => {
         }
 
         // Fetch templates tương ứng
-        const templatePromises = assignRequests.map(ar =>
-          fetchAssessmentTemplates({
-            pageNumber: 1,
-            pageSize: 1, // Chỉ cần 1 template
-            assignRequestId: ar.id,
-          })
-            .then(res => ({
-              assignRequest: ar,
-              template: res.items[0] || null, // Lấy template hoặc null
-            }))
-            .catch(err => {
-              console.error(`Error fetching template for AR ${ar.id}:`, err);
-              return { assignRequest: ar, template: null }; // Trả về null nếu lỗi
-            }),
-        );
+        const templatePromises = assignRequests
+          .filter(ar => ar && ar.id)
+          .map(ar =>
+            fetchAssessmentTemplates({
+              pageNumber: 1,
+              pageSize: 1, // Chỉ cần 1 template
+              assignRequestId: ar.id,
+            })
+              .then(res => ({
+                assignRequest: ar,
+                template: (res?.items && res.items[0]) || null, // Lấy template hoặc null
+              }))
+              .catch(err => {
+                console.error(`Error fetching template for AR ${ar.id}:`, err);
+                return { assignRequest: ar, template: null }; // Trả về null nếu lỗi
+              }),
+          );
 
         const combinedData = await Promise.all(templatePromises);
 
@@ -99,38 +111,51 @@ const CreateAssessmentScreen = () => {
         >();
 
         combinedData.forEach(item => {
-          if (!coursesMap.has(item.assignRequest.courseName)) {
-            coursesMap.set(item.assignRequest.courseName, []);
+          if (item && item.assignRequest && item.assignRequest.courseName) {
+            const courseName = item.assignRequest.courseName;
+            if (!coursesMap.has(courseName)) {
+              coursesMap.set(courseName, []);
+            }
+            coursesMap.get(courseName)?.push(item);
           }
-          coursesMap.get(item.assignRequest.courseName)?.push(item);
         });
-        const coursesData: CourseUI[] = Array.from(coursesMap.entries()).map(
-          ([courseName, assignmentsData]) => ({
+        const coursesData: CourseUI[] = Array.from(coursesMap.entries())
+          .filter(([courseName]) => courseName)
+          .map(([courseName, assignmentsData]) => ({
             id: courseName,
             title: courseName,
             status: 'Pending',
-            assignmentsData: assignmentsData,
-          }),
-        );
+            assignmentsData: assignmentsData || [],
+          }));
 
+        if (!isMounted) return;
+        
         setCourses(coursesData);
-        if (coursesData.length > 0) {
+        if (coursesData.length > 0 && coursesData[0]) {
           setExpandedCourse(coursesData[0].id);
-          if (coursesData[0].assignmentsData.length > 0) {
+          if (coursesData[0].assignmentsData && coursesData[0].assignmentsData.length > 0 && coursesData[0].assignmentsData[0]?.assignRequest?.id) {
             setExpandedAssignment(
               String(coursesData[0].assignmentsData[0].assignRequest.id),
             );
           }
         }
       } catch (error: any) {
-        showErrorToast('Error', 'Failed to load assignments.');
         console.error(error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load assignments.');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadAssignments();
+
+    return () => {
+      isMounted = false;
+    };
   }, [semesterCode, currentLecturerId]);
 
   return (
