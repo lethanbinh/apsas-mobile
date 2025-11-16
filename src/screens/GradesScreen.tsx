@@ -37,7 +37,7 @@ const GradesScreen = () => {
       try {
         // Fetch all graded submissions (status = 2 means graded)
         const allSubmissions = await getSubmissionList({
-          studentId: studentId,
+          studentId: Number(studentId),
           status: 2, // Only graded submissions
         });
 
@@ -45,7 +45,7 @@ const GradesScreen = () => {
 
         // Fetch class assessments to get assignment details
         const classAssessmentsRes = await getClassAssessments({
-          studentId: studentId,
+          studentId: Number(studentId),
           pageNumber: 1,
           pageSize: 1000,
         });
@@ -79,27 +79,40 @@ const GradesScreen = () => {
         let exerciseIndex = 1;
 
         gradedSubmissionsMap.forEach((sub, classAssessmentId) => {
-          if (!sub || !sub.id) return;
+          if (!sub || !sub.id || !sub.submittedAt) return;
           const assessment = assessmentMap.get(classAssessmentId);
-          if (!assessment) return;
+          if (!assessment || !assessment.id) return;
 
           try {
-            const courseElementName = assessment.courseElementName || '';
+            const courseElementName = (assessment.courseElementName && typeof assessment.courseElementName === 'string') 
+              ? assessment.courseElementName 
+              : 'Unknown Assignment';
             const isExercise = courseElementName.toLowerCase().includes('exercise') ||
                               courseElementName.toLowerCase().includes('lab');
 
+            const grade = (typeof sub.lastGrade === 'number' && sub.lastGrade >= 0) ? sub.lastGrade : 0;
+            const itemNumber = isExercise ? exerciseIndex++ : assignmentIndex++;
+            const formattedNumber = itemNumber < 10 ? `0${itemNumber}` : String(itemNumber);
+
             const item = {
               id: sub.id,
-              number: `0${isExercise ? exerciseIndex++ : assignmentIndex++}`,
-              title: courseElementName || 'Unknown Assignment',
-              linkFile: `${sub.lastGrade || 0}/100`,
+              number: formattedNumber,
+              title: courseElementName,
+              linkFile: `${grade}/100`,
               rightIcon: ViewIcon,
               detailNavigation: 'ScoreDetailScreen',
               onAction: () => {
-                if (sub.id) {
-                  navigation.navigate('ScoreDetailScreen', {
-                    submissionId: sub.id,
-                  });
+                try {
+                  if (sub && sub.id) {
+                    navigation.navigate('ScoreDetailScreen', {
+                      submissionId: sub.id,
+                    });
+                  } else {
+                    showErrorToast('Error', 'Invalid submission data.');
+                  }
+                } catch (navErr) {
+                  console.error('Error navigating to score detail:', navErr);
+                  showErrorToast('Error', 'Failed to open score details.');
                 }
               },
             };

@@ -126,8 +126,8 @@ const AssignmentCardInfo = ({
       </View>
 
       <View style={styles.descriptionContainer}>
-        <AppText>
-          {description}{' '}
+        <AppText style={styles.descriptionText} numberOfLines={undefined}>
+          {description}
         </AppText>
       </View>
 
@@ -139,6 +139,7 @@ const AssignmentCardInfo = ({
             marginTop: vs(10),
             left: 20,
             borderRadius: s(10),
+            marginBottom: vs(30),
           }}
           textVariant="body14pxRegular"
           size="small"
@@ -148,7 +149,7 @@ const AssignmentCardInfo = ({
       )}
 
       {isAssessment && (
-        <View style={{ flexDirection: 'row', gap: s(10) }}>
+        <View style={{ flexDirection: 'row', gap: s(10), marginBottom: vs(30) }}>
           <AppButton
             style={{
               width: s(110),
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: vs(100),
     width: s(300),
-    height: s(200),
+    minHeight: vs(200),
     borderRadius: s(30),
     backgroundColor: AppColors.white,
     alignSelf: 'center',
@@ -219,5 +220,9 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     paddingHorizontal: vs(20),
+    paddingBottom: vs(10),
+  },
+  descriptionText: {
+    lineHeight: vs(22),
   },
 });

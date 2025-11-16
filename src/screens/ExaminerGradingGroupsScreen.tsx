@@ -117,16 +117,22 @@ const ExaminerGradingGroupsScreen = () => {
       // Map grading groups to semester codes
       const groupToSemesterMap = new Map<number, string>();
       (groupsRes || []).forEach(group => {
-        if (!group || group.assessmentTemplateId === null || group.assessmentTemplateId === undefined) {
+        if (!group || !group.id || group.assessmentTemplateId === null || group.assessmentTemplateId === undefined) {
           return;
         }
         try {
-          const assessmentTemplate = assessmentTemplateMap.get(Number(group.assessmentTemplateId));
+          const templateId = Number(group.assessmentTemplateId);
+          if (isNaN(templateId)) return;
+          
+          const assessmentTemplate = assessmentTemplateMap.get(templateId);
           if (assessmentTemplate && assessmentTemplate.courseElementId) {
-            const courseElement = courseElementMap.get(Number(assessmentTemplate.courseElementId));
+            const elementId = Number(assessmentTemplate.courseElementId);
+            if (isNaN(elementId)) return;
+            
+            const courseElement = courseElementMap.get(elementId);
             if (courseElement?.semesterCourse?.semester?.semesterCode) {
               const semesterCode = courseElement.semesterCourse.semester.semesterCode;
-              if (semesterCode) {
+              if (semesterCode && typeof semesterCode === 'string') {
                 groupToSemesterMap.set(Number(group.id), semesterCode);
               }
             }
@@ -181,9 +187,12 @@ const ExaminerGradingGroupsScreen = () => {
     const lecturerMap = new Map<number, GroupedByLecturer>();
 
     (allGroups || []).forEach(group => {
-      if (!group || !group.lecturerId) return;
+      if (!group || !group.id || !group.lecturerId) return;
 
-      const semesterCode = gradingGroupToSemesterMap.get(Number(group.id));
+      const groupId = Number(group.id);
+      if (isNaN(groupId)) return;
+
+      const semesterCode = gradingGroupToSemesterMap.get(groupId);
 
       // Filter by selected semester
       if (selectedSemester !== 'all') {
@@ -194,37 +203,51 @@ const ExaminerGradingGroupsScreen = () => {
 
       // Get submission count for this group
       const groupSubmissions = (allSubmissions || []).filter(
-        s => s && s.gradingGroupId === group.id,
+        s => s && s.id && s.gradingGroupId === group.id,
       );
       const submissionCount = groupSubmissions.length;
 
       if (!lecturerMap.has(group.lecturerId)) {
         lecturerMap.set(group.lecturerId, {
           lecturerId: group.lecturerId,
-          lecturerName: group.lecturerName || 'Unknown',
-          lecturerCode: group.lecturerCode,
+          lecturerName: (group.lecturerName && typeof group.lecturerName === 'string') ? group.lecturerName : 'Unknown',
+          lecturerCode: (group.lecturerCode && typeof group.lecturerCode === 'string') ? group.lecturerCode : null,
           groups: [],
         });
       }
 
-      const lecturerData = lecturerMap.get(group.lecturerId)!;
-      lecturerData.groups.push({
-        ...group,
-        semesterCode,
-        submissionCount,
-      });
+      const lecturerData = lecturerMap.get(group.lecturerId);
+      if (lecturerData) {
+        lecturerData.groups.push({
+          ...group,
+          semesterCode,
+          submissionCount,
+        });
+      }
     });
 
     return Array.from(lecturerMap.values());
   }, [allGroups, allSubmissions, gradingGroupToSemesterMap, selectedSemester]);
 
   const availableSemesters = useMemo(() => {
-    return (allSemesters || []).map(sem => sem.semesterCode).sort();
+    return (allSemesters || [])
+      .filter(sem => sem && sem.semesterCode && typeof sem.semesterCode === 'string')
+      .map(sem => sem.semesterCode)
+      .sort();
   }, [allSemesters]);
 
   const handleOpenAssign = (group: GradingGroup) => {
-    setSelectedGroup(group);
-    setIsAssignModalOpen(true);
+    try {
+      if (group && group.id) {
+        setSelectedGroup(group);
+        setIsAssignModalOpen(true);
+      } else {
+        showErrorToast('Error', 'Invalid grading group data.');
+      }
+    } catch (err) {
+      console.error('Error opening assign modal:', err);
+      showErrorToast('Error', 'Failed to open assignment modal.');
+    }
   };
 
   const handleModalCancel = () => {
@@ -241,31 +264,47 @@ const ExaminerGradingGroupsScreen = () => {
   };
 
   const handleDeleteGroup = async (group: GradingGroup) => {
-    Alert.alert(
-      'Delete Assignment',
-      `Are you sure you want to delete this assignment for ${group.lecturerName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (!group || !group.id) return;
-              await deleteGradingGroup(group.id);
-              showSuccessToast('Success', 'Assignment deleted successfully');
-              fetchData();
-            } catch (error: any) {
-              console.error('Failed to delete grading group:', error);
-              showErrorToast('Error', error.message || 'Failed to delete assignment.');
-            }
+    try {
+      if (!group || !group.id) {
+        showErrorToast('Error', 'Invalid grading group data.');
+        return;
+      }
+      
+      const lecturerName = (group.lecturerName && typeof group.lecturerName === 'string') 
+        ? group.lecturerName 
+        : 'Unknown';
+      
+      Alert.alert(
+        'Delete Assignment',
+        `Are you sure you want to delete this assignment for ${lecturerName}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                if (!group || !group.id) return;
+                await deleteGradingGroup(group.id);
+                showSuccessToast('Success', 'Assignment deleted successfully');
+                fetchData();
+              } catch (error: any) {
+                console.error('Failed to delete grading group:', error);
+                showErrorToast('Error', error.message || 'Failed to delete assignment.');
+              }
+            },
           },
-        },
-      ],
-    );
+        ],
+      );
+    } catch (err) {
+      console.error('Error showing delete confirmation:', err);
+      showErrorToast('Error', 'Failed to show delete confirmation.');
+    }
   };
 
   const renderLecturerGroup = ({ item }: { item: GroupedByLecturer }) => {
+    if (!item || !item.lecturerId) return null;
+    
     return (
       <View style={styles.lecturerSection}>
         <View style={styles.lecturerHeader}>
@@ -275,7 +314,7 @@ const ExaminerGradingGroupsScreen = () => {
             </View>
             <View style={styles.lecturerNameContainer}>
               <AppText variant="body16pxBold" style={styles.lecturerName}>
-                {item.lecturerName}
+                {item.lecturerName || 'Unknown'}
               </AppText>
               {item.lecturerCode && (
                 <AppText style={styles.lecturerCode}>({item.lecturerCode})</AppText>
@@ -294,51 +333,55 @@ const ExaminerGradingGroupsScreen = () => {
           <View style={styles.statBadge}>
             <Feather name="inbox" size={s(16)} color={AppColors.g500} />
             <AppText style={styles.statText}>
-              {item.groups.reduce((sum, g) => sum + g.submissionCount, 0)} submissions
+              {item.groups.reduce((sum, g) => sum + (g.submissionCount || 0), 0)} submissions
             </AppText>
           </View>
         </View>
 
         <View style={styles.groupsContainer}>
-          {item.groups.map((group, index) => (
-            <View key={group.id} style={styles.groupCard}>
-              <AppText variant="body16pxBold" style={styles.groupTitle}>
-                {group.assessmentTemplateName || 'No Template'}
-              </AppText>
-              <View style={styles.tagsContainer}>
-                {group.semesterCode && (
-                  <View style={styles.semesterTag}>
-                    <Feather name="calendar" size={s(11)} color={AppColors.pr500} />
-                    <AppText style={styles.semesterText}>{group.semesterCode}</AppText>
+          {item.groups
+            .filter(g => g && g.id)
+            .map((group) => (
+              <View key={group.id} style={styles.groupCard}>
+                <AppText variant="body16pxBold" style={styles.groupTitle}>
+                  {(group.assessmentTemplateName && typeof group.assessmentTemplateName === 'string') 
+                    ? group.assessmentTemplateName 
+                    : 'No Template'}
+                </AppText>
+                <View style={styles.tagsContainer}>
+                  {group.semesterCode && typeof group.semesterCode === 'string' && (
+                    <View style={styles.semesterTag}>
+                      <Feather name="calendar" size={s(11)} color={AppColors.pr500} />
+                      <AppText style={styles.semesterText}>{group.semesterCode}</AppText>
+                    </View>
+                  )}
+                  <View style={styles.submissionCountTag}>
+                    <Feather name="file" size={s(11)} color={AppColors.g500} />
+                    <AppText style={styles.submissionCountText}>
+                      {group.submissionCount || 0} submission{(group.submissionCount || 0) !== 1 ? 's' : ''}
+                    </AppText>
                   </View>
-                )}
-                <View style={styles.submissionCountTag}>
-                  <Feather name="file" size={s(11)} color={AppColors.g500} />
-                  <AppText style={styles.submissionCountText}>
-                    {group.submissionCount} submission{group.submissionCount !== 1 ? 's' : ''}
-                  </AppText>
+                </View>
+                <View style={styles.groupActions}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleOpenAssign(group)}
+                    activeOpacity={0.6}
+                  >
+                    <Feather name="edit-3" size={s(16)} color={AppColors.pr500} />
+                    <AppText style={styles.actionText}>Manage</AppText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteGroup(group)}
+                    activeOpacity={0.6}
+                  >
+                    <Feather name="trash-2" size={s(16)} color={AppColors.r500} />
+                    <AppText style={styles.deleteText}>Delete</AppText>
+                  </TouchableOpacity>
                 </View>
               </View>
-              <View style={styles.groupActions}>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => handleOpenAssign(group)}
-                  activeOpacity={0.6}
-                >
-                  <Feather name="edit-3" size={s(16)} color={AppColors.pr500} />
-                  <AppText style={styles.actionText}>Manage</AppText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => handleDeleteGroup(group)}
-                  activeOpacity={0.6}
-                >
-                  <Feather name="trash-2" size={s(16)} color={AppColors.r500} />
-                  <AppText style={styles.deleteText}>Delete</AppText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+            ))}
         </View>
       </View>
     );
@@ -375,10 +418,12 @@ const ExaminerGradingGroupsScreen = () => {
             placeholder={{ label: 'All Semesters', value: 'all' }}
             items={[
               { label: 'All Semesters', value: 'all' },
-              ...availableSemesters.map(sem => ({
-                label: sem,
-                value: sem,
-              })),
+              ...availableSemesters
+                .filter(sem => sem && typeof sem === 'string')
+                .map(sem => ({
+                  label: sem,
+                  value: sem,
+                })),
             ]}
             value={selectedSemester}
             style={pickerSelectStyles}

@@ -1,30 +1,28 @@
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  ScrollView,
   ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  View
 } from 'react-native';
-import React, { useState, useEffect } from 'react';
-import { AppColors } from '../styles/color';
 import { s, vs } from 'react-native-size-matters';
+import { ClassData, fetchClassById } from '../api/class';
 import {
-  CourseUnEnrollIcon,
   LecturerIcon,
   NavigationIcon,
-  SemesterIcon,
+  SemesterIcon
 } from '../assets/icons/courses';
-import AppText from '../components/texts/AppText';
-import CourseCardItem from '../components/courses/CourseCardItem';
-import { navigationList } from '../data/coursesData';
-import CustomModal from '../components/modals/CustomModal';
 import { QuestionMarkIcon } from '../assets/icons/input-icon';
 import AppButton from '../components/buttons/AppButton';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { ClassData, fetchClassById } from '../api/class';
+import CourseCardItem from '../components/courses/CourseCardItem';
+import CustomModal from '../components/modals/CustomModal';
+import AppText from '../components/texts/AppText';
 import { showErrorToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
+import { navigationList } from '../data/coursesData';
+import { AppColors } from '../styles/color';
 
 const CourseDetailScreen = () => {
   const [unEnrollModalVisible, setUnEnrollModalVisible] =
@@ -36,6 +34,7 @@ const CourseDetailScreen = () => {
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
+  const [cardHeight, setCardHeight] = useState(0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -96,13 +95,13 @@ const CourseDetailScreen = () => {
         style={styles.image}
         source={require('../assets/images/classimage.png')}
       />
-      <View style={styles.classInfoContainer}>
-        <TouchableOpacity
-          onPress={() => setUnEnrollModalVisible(true)}
-          style={styles.courseUnEnrollIcon}
-        >
-          <CourseUnEnrollIcon />
-        </TouchableOpacity>
+      <View 
+        style={styles.classInfoContainer}
+        onLayout={(e) => {
+          const { height } = e.nativeEvent.layout;
+          setCardHeight(height);
+        }}
+      >
         <View
           style={{
             padding: s(20),
@@ -171,15 +170,15 @@ const CourseDetailScreen = () => {
           </View>
         </View>
         <View style={styles.descriptionContainer}>
-          <AppText>
+          <AppText style={styles.descriptionText} numberOfLines={undefined}>
             {classData.description ||
-              'No description available for this class.'}{' '}
+              'No description available for this class.'}
           </AppText>
         </View>
       </View>
       <View
         style={{
-          marginTop: vs(170),
+          marginTop: cardHeight > 0 ? vs(20) + cardHeight - vs(50) : vs(200),
           width: s(300),
           alignSelf: 'center',
           paddingBottom: vs(50),
@@ -270,6 +269,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: vs(100),
     width: s(300),
+    minHeight: vs(200),
     borderRadius: s(30),
     backgroundColor: AppColors.white,
     alignSelf: 'center',
@@ -304,5 +304,10 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     padding: s(20),
+    paddingTop: vs(10),
+    paddingBottom: vs(20),
+  },
+  descriptionText: {
+    lineHeight: vs(22),
   },
 });

@@ -20,6 +20,15 @@ const ExaminerHomeScreen = () => {
       : Array.isArray(profile?.role)
       ? profile.role.join(', ')
       : 'Role not set';
+  
+  const handleNavigateToGradingGroups = () => {
+    try {
+      navigation.navigate('ExaminerGradingGroupsScreen');
+    } catch (err) {
+      console.error('Error navigating to grading groups:', err);
+    }
+  };
+  
   return (
     <AppSafeView>
       <LecturerHeader title={`Hi, ${userName}`} role={userRole} />
@@ -31,7 +40,7 @@ const ExaminerHomeScreen = () => {
           <SemesterCard
             title="Current Semester"
             actionLabel="Grading Groups"
-            onPressAction={() => navigation.navigate('ExaminerGradingGroupsScreen')}
+            onPressAction={handleNavigateToGradingGroups}
             semesterName="Fall 2025"
           />
         </View>
@@ -39,7 +48,7 @@ const ExaminerHomeScreen = () => {
           <LearningCard
             title="What do you want to do today?"
             buttonLabel="Grading Groups"
-            onPress={() => navigation.navigate('ExaminerGradingGroupsScreen')}
+            onPress={handleNavigateToGradingGroups}
             backgroundColor={AppColors.pr100}
             imageSource={require('../assets/images/illu1.png')}
           />

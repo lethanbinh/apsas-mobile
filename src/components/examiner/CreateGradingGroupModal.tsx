@@ -173,35 +173,59 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
     try {
       // Validate duplicate assignment
       if (data.lecturerId && data.assessmentTemplateId) {
-        const newSemesterCode = getSemesterCodeForTemplate(data.assessmentTemplateId);
+        try {
+          const newSemesterCode = getSemesterCodeForTemplate(data.assessmentTemplateId);
 
-        if (newSemesterCode) {
-          const duplicateGroup = existingGroups.find(group => {
-            if (group.lecturerId !== Number(data.lecturerId) || group.assessmentTemplateId !== data.assessmentTemplateId) {
-              return false;
+          if (newSemesterCode) {
+            const lecturerIdNum = Number(data.lecturerId);
+            if (isNaN(lecturerIdNum)) {
+              showErrorToast('Error', 'Invalid lecturer ID.');
+              setIsLoading(false);
+              return;
             }
-            const existingSemester = gradingGroupToSemesterMap.get(group.id);
-            return existingSemester === newSemesterCode;
-          });
 
-          if (duplicateGroup) {
-            showErrorToast(
-              'Error',
-              `This teacher has already been assigned this assessment template for semester ${newSemesterCode}!`,
-            );
-            setIsLoading(false);
-            return;
+            const duplicateGroup = existingGroups.find(group => {
+              if (!group || !group.id) return false;
+              if (group.lecturerId !== lecturerIdNum || group.assessmentTemplateId !== data.assessmentTemplateId) {
+                return false;
+              }
+              const existingSemester = gradingGroupToSemesterMap.get(group.id);
+              return existingSemester === newSemesterCode;
+            });
+
+            if (duplicateGroup) {
+              showErrorToast(
+                'Error',
+                `This teacher has already been assigned this assessment template for semester ${newSemesterCode}!`,
+              );
+              setIsLoading(false);
+              return;
+            }
           }
+        } catch (validationErr) {
+          console.error('Error validating duplicate assignment:', validationErr);
         }
       }
 
       // Create grading group
+      const lecturerIdNum = Number(data.lecturerId);
+      if (isNaN(lecturerIdNum)) {
+        showErrorToast('Error', 'Invalid lecturer ID.');
+        setIsLoading(false);
+        return;
+      }
+
       const payload: CreateGradingGroupPayload = {
-        lecturerId: Number(data.lecturerId),
+        lecturerId: lecturerIdNum,
         assessmentTemplateId: data.assessmentTemplateId || null,
       };
 
       const group = await createGradingGroup(payload);
+      if (!group || !group.id) {
+        showErrorToast('Error', 'Failed to create grading group.');
+        setIsLoading(false);
+        return;
+      }
       showSuccessToast('Success', 'Teacher assigned successfully!');
 
       // Upload ZIP files if provided
@@ -241,9 +265,9 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
           // Upload test file for each submission
           const uploadPromises: Promise<any>[] = [];
           for (const submission of submissions) {
-            if (!submission || !submission.studentCode) continue;
+            if (!submission || !submission.id || !submission.studentCode) continue;
             const testFile = fileMap.get(submission.studentCode);
-            if (testFile) {
+            if (testFile && testFile.uri && testFile.name) {
               uploadPromises.push(
                 uploadTestFile(submission.id, testFile).catch(err => {
                   console.error(`Failed to upload test file for submission ${submission.id}:`, err);
@@ -276,17 +300,20 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
     }
   };
 
-  const lecturerOptions = allLecturers.map(l => ({
-    label: `${l.fullName || 'Unknown'} (${l.accountCode})`,
-    value: Number(l.lecturerId),
-  }));
+  const lecturerOptions = (allLecturers || [])
+    .filter(l => l && l.lecturerId)
+    .map(l => ({
+      label: `${(l.fullName && typeof l.fullName === 'string') ? l.fullName : 'Unknown'} (${l.accountCode || 'N/A'})`,
+      value: Number(l.lecturerId),
+    }))
+    .filter(opt => !isNaN(opt.value));
 
   const templateOptions = [
     { label: 'None', value: null },
-    ...assessmentTemplates
-      .filter(t => t && t.id)
+    ...(assessmentTemplates || [])
+      .filter(t => t && t.id && typeof t.id === 'number')
       .map(t => ({
-        label: `${t.name || 'Unknown'} - ${t.courseElementName || 'N/A'}`,
+        label: `${(t.name && typeof t.name === 'string') ? t.name : 'Unknown'} - ${(t.courseElementName && typeof t.courseElementName === 'string') ? t.courseElementName : 'N/A'}`,
         value: t.id,
       })),
   ];

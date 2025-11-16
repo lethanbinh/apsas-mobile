@@ -69,27 +69,42 @@ const MembersScreen = () => {
         if (!isMounted) return;
 
         const combinedData: Member[] = (studentGroup || [])
-          .filter(s => s && s.id)
+          .filter(s => s && s.id && s.studentId)
           .map((enrolledStudent, index) => {
-            const detail = studentDetails.find(
-              d => d && d.studentId && enrolledStudent.studentId && d.studentId === enrolledStudent.studentId.toString(),
-            );
+            try {
+              const detail = studentDetails.find(
+                d => d && d.studentId && enrolledStudent.studentId && d.studentId === enrolledStudent.studentId.toString(),
+              );
 
-            return {
-              key: enrolledStudent.id.toString(),
-              no: index + 1,
-              email: detail ? detail.email : 'N/A',
-              fullName: detail
-                ? detail.fullName
-                : enrolledStudent.studentName || 'N/A',
-              date: enrolledStudent.enrollmentDate
-                ? enrolledStudent.enrollmentDate.split(' ')[0]
-                : 'N/A',
-              role: 'Student' as const,
-              class: enrolledStudent.classCode || 'N/A',
-            };
-          },
-        );
+              let enrollmentDate = 'N/A';
+              try {
+                if (enrolledStudent.enrollmentDate && typeof enrolledStudent.enrollmentDate === 'string') {
+                  const dateParts = enrolledStudent.enrollmentDate.split(' ');
+                  if (dateParts.length > 0 && dateParts[0]) {
+                    enrollmentDate = dateParts[0];
+                  }
+                }
+              } catch (dateErr) {
+                console.error('Error parsing enrollment date:', dateErr);
+              }
+
+              return {
+                key: String(enrolledStudent.id),
+                no: index + 1,
+                email: (detail && detail.email) ? detail.email : 'N/A',
+                fullName: (detail && detail.fullName) 
+                  ? detail.fullName
+                  : (enrolledStudent.studentName || 'N/A'),
+                date: enrollmentDate,
+                role: 'Student' as const,
+                class: enrolledStudent.classCode || 'N/A',
+              };
+            } catch (itemErr) {
+              console.error('Error processing member item:', itemErr);
+              return null;
+            }
+          })
+          .filter((item): item is Member => item !== null);
 
         setMemberData(combinedData);
       } catch (error: any) {
@@ -112,10 +127,17 @@ const MembersScreen = () => {
     };
   }, [classId]);
 
-  const filteredData = memberData.filter(member =>
-    member.fullName.toLowerCase().includes(searchText.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchText.toLowerCase()),
-  );
+  const filteredData = memberData.filter(member => {
+    try {
+      if (!member || !member.fullName || !member.email) return false;
+      const searchLower = searchText.toLowerCase();
+      return member.fullName.toLowerCase().includes(searchLower) ||
+             member.email.toLowerCase().includes(searchLower);
+    } catch (err) {
+      console.error('Error filtering members:', err);
+      return false;
+    }
+  });
 
   const renderMemberItem = ({ item }: { item: Member }) => (
     <View style={styles.memberCard}>

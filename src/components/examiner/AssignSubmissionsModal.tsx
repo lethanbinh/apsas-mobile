@@ -172,12 +172,12 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
       });
 
       // Upload test file for each submission
-      if (allSubs && allSubs.length > 0) {
+      if (allSubs && Array.isArray(allSubs) && allSubs.length > 0) {
         const uploadPromises: Promise<any>[] = [];
         for (const submission of allSubs) {
-          if (!submission || !submission.studentCode) continue;
+          if (!submission || !submission.id || !submission.studentCode) continue;
           const testFile = fileMap.get(submission.studentCode);
-          if (testFile) {
+          if (testFile && testFile.uri && testFile.name) {
             uploadPromises.push(
               uploadTestFile(submission.id, testFile).catch(err => {
                 console.error(`Failed to upload test file for submission ${submission.id}:`, err);
@@ -234,27 +234,51 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
   };
 
   const renderSubmissionItem = ({ item }: { item: Submission }) => {
-    const statusText = item.status === 0 ? 'On Time' : 'Late';
-    const submittedDate = item.submittedAt
-      ? dayjs(item.submittedAt).format('DD/MM/YYYY HH:mm')
-      : 'N/A';
+    if (!item || !item.id) return null;
+    
+    const statusText = (item.status === 0 || item.status === '0') ? 'On Time' : 'Late';
+    let submittedDate = 'N/A';
+    
+    try {
+      if (item.submittedAt) {
+        const date = dayjs(item.submittedAt);
+        if (date.isValid()) {
+          submittedDate = date.format('DD/MM/YYYY HH:mm');
+        }
+      }
+    } catch (dateErr) {
+      console.error('Error formatting submission date:', dateErr);
+    }
 
     return (
       <View style={styles.submissionItem}>
         <View style={styles.submissionInfo}>
           <View style={styles.submissionHeader}>
-            <AppText variant="body16pxBold">{item.studentName || 'Unknown'}</AppText>
+            <AppText variant="body16pxBold">
+              {(item.studentName && typeof item.studentName === 'string') ? item.studentName : 'Unknown'}
+            </AppText>
             <StatusTag status={statusText} />
           </View>
-          <AppText style={styles.studentCode}>{item.studentCode || 'N/A'}</AppText>
+          <AppText style={styles.studentCode}>
+            {(item.studentCode && typeof item.studentCode === 'string') ? item.studentCode : 'N/A'}
+          </AppText>
           <AppText style={styles.submittedAt}>Submitted: {submittedDate}</AppText>
-          {item.lastGrade !== null && item.lastGrade !== undefined && (
+          {item.lastGrade !== null && item.lastGrade !== undefined && typeof item.lastGrade === 'number' && (
             <AppText style={styles.grade}>Score: {item.lastGrade}/100</AppText>
           )}
         </View>
         <TouchableOpacity
           style={styles.deleteButton}
-          onPress={() => handleDeleteSubmission(item.id)}
+          onPress={() => {
+            try {
+              if (item && item.id) {
+                handleDeleteSubmission(item.id);
+              }
+            } catch (err) {
+              console.error('Error deleting submission:', err);
+              showErrorToast('Error', 'Failed to delete submission.');
+            }
+          }}
         >
           <Feather name="trash-2" size={s(16)} color={AppColors.r500} />
         </TouchableOpacity>
@@ -271,7 +295,7 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
       >
         <View style={styles.header}>
           <AppText variant="h4" style={styles.title}>
-            Manage Submissions - {group.lecturerName || 'Unknown'}
+            Manage Submissions - {(group && group.lecturerName && typeof group.lecturerName === 'string') ? group.lecturerName : 'Unknown'}
           </AppText>
         </View>
 
@@ -323,8 +347,8 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
                 </View>
               ) : (
                 <FlatList
-                  data={submissions}
-                  keyExtractor={item => item.id.toString()}
+                  data={submissions.filter(s => s && s.id)}
+                  keyExtractor={item => String(item.id)}
                   renderItem={renderSubmissionItem}
                   scrollEnabled={false}
                 />

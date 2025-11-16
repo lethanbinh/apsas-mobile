@@ -86,17 +86,33 @@ const PracticalExamListScreen = () => {
         // Fetch class data
         const classInfo = await fetchClassById(selectedClassId);
         if (!isMounted) return;
+        if (!classInfo || !classInfo.id) {
+          if (isMounted) {
+            showErrorToast('Error', 'Invalid class data.');
+            setIsLoading(false);
+          }
+          return;
+        }
         setClassData(classInfo);
+
+        if (!classInfo.semesterCourseId) {
+          if (isMounted) {
+            setExams([]);
+            setIsLoading(false);
+          }
+          return;
+        }
 
         // Fetch all course elements
         const allElements = await fetchCourseElements();
+        if (!isMounted) return;
         
         // Filter practical exams for this class's semester course
         const practicalExams = (allElements || []).filter(
           el =>
             el &&
+            el.id &&
             el.semesterCourseId &&
-            classInfo.semesterCourseId &&
             el.semesterCourseId.toString() === classInfo.semesterCourseId.toString() &&
             isPracticalExam(el),
         );
@@ -194,11 +210,15 @@ const PracticalExamListScreen = () => {
 
         // Combine exams with their data
         const examsWithData: ExamWithSubmissions[] = practicalExams
-          .filter(exam => exam && exam.id)
+          .filter(exam => exam && exam.id && exam.name)
           .map(exam => {
+            if (!exam || !exam.id) return null;
+            
             const templateId = templateMap.get(exam.id);
             const classAssessmentId = assessmentMap.get(exam.id);
-            const submissions = submissionsByCourseElement.get(exam.id) || [];
+            const submissions = (submissionsByCourseElement.get(exam.id) || []).filter(
+              s => s && s.id
+            );
 
             return {
               exam,
@@ -207,7 +227,8 @@ const PracticalExamListScreen = () => {
               submissions,
               submissionCount: submissions.length,
             };
-          });
+          })
+          .filter((item): item is ExamWithSubmissions => item !== null);
 
         if (!isMounted) return;
         setExams(examsWithData);
@@ -264,27 +285,38 @@ const PracticalExamListScreen = () => {
       <FlatList
         data={data}
         keyExtractor={item => item.exam.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('PracticalExamDetailScreen', {
-                elementId: item.exam.id.toString(),
-                classId: classId || classData?.id,
-              });
-            }}
-          >
-            <SubmissionItem
-              fileName={item.exam.name}
-              title={`${item.submissionCount} submission(s)`}
-              onNavigate={() => {
-                navigation.navigate('PracticalExamDetailScreen', {
-                  elementId: item.exam.id.toString(),
-                  classId: classId || classData?.id,
-                });
-              }}
-            />
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          if (!item || !item.exam || !item.exam.id) return null;
+          
+          const handleNavigate = () => {
+            try {
+              if (item.exam && item.exam.id) {
+                const targetClassId = classId || classData?.id;
+                if (targetClassId) {
+                  navigation.navigate('PracticalExamDetailScreen', {
+                    elementId: String(item.exam.id),
+                    classId: targetClassId,
+                  });
+                } else {
+                  showErrorToast('Error', 'Class ID not available.');
+                }
+              }
+            } catch (err) {
+              console.error('Error navigating to exam detail:', err);
+              showErrorToast('Error', 'Failed to open exam details.');
+            }
+          };
+          
+          return (
+            <TouchableOpacity onPress={handleNavigate}>
+              <SubmissionItem
+                fileName={item.exam.name || 'Unknown Exam'}
+                title={`${item.submissionCount} submission(s)`}
+                onNavigate={handleNavigate}
+              />
+            </TouchableOpacity>
+          );
+        }}
         showsVerticalScrollIndicator={false}
         ItemSeparatorComponent={() => <View style={{ height: s(12) }} />}
         contentContainerStyle={{

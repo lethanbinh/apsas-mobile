@@ -89,9 +89,9 @@ const SubmissionHistoryScreen = () => {
         const colorOptions = [AppColors.pr100, AppColors.g100, AppColors.pur100, AppColors.b100];
 
         submissionMap.forEach((sub, classAssessmentId) => {
-          if (!sub || !sub.id) return;
+          if (!sub || !sub.id || !sub.submittedAt) return;
           const assessment = assessmentMap.get(classAssessmentId);
-          if (!assessment) return;
+          if (!assessment || !assessment.id) return;
 
           try {
             // Determine status
@@ -110,18 +110,41 @@ const SubmissionHistoryScreen = () => {
 
             // Count submission number
             const allSubsForAssignment = (allSubmissions || []).filter(
-              s => s && s.classAssessmentId === classAssessmentId && s.submittedAt,
+              s => s && s.id && s.classAssessmentId === classAssessmentId && s.submittedAt,
             );
             const submissionNumber = allSubsForAssignment.length;
 
             const colorIndex = historyItems.length % colorOptions.length;
+            
+            let submissionTime = 'N/A';
+            try {
+              if (sub.submittedAt) {
+                const formatted = dayjs(sub.submittedAt).format('DD/MM/YYYY – HH:mm');
+                if (formatted && formatted !== 'Invalid Date') {
+                  submissionTime = formatted;
+                }
+              }
+            } catch (timeErr) {
+              console.error('Error formatting submission time:', timeErr);
+            }
+            
+            let courseCode = 'N/A';
+            try {
+              if (assessment.courseName && typeof assessment.courseName === 'string') {
+                const parts = assessment.courseName.split(' ');
+                if (parts.length > 0 && parts[0]) {
+                  courseCode = parts[0];
+                }
+              }
+            } catch (codeErr) {
+              console.error('Error extracting course code:', codeErr);
+            }
+            
             historyItems.push({
               id: sub.id,
               backgroundColor: colorOptions[colorIndex] || AppColors.pr100,
-              submissionTime: sub.submittedAt
-                ? dayjs(sub.submittedAt).format('DD/MM/YYYY – HH:mm')
-                : 'N/A',
-              courseCode: (assessment.courseName && typeof assessment.courseName === 'string' && assessment.courseName.split(' ')[0]) || 'N/A',
+              submissionTime,
+              courseCode,
               courseName: assessment.courseName || 'Unknown Course',
               assignmentTitle: assessment.courseElementName || 'Unknown Assignment',
               teacherName: assessment.lecturerName || 'Unknown Teacher',
@@ -129,10 +152,15 @@ const SubmissionHistoryScreen = () => {
               status,
               timeSubmit: `Submission ${submissionNumber}`,
               onNavigate: () => {
-                if (sub.id) {
-                  navigation.navigate('ScoreDetailScreen', {
-                    submissionId: sub.id,
-                  });
+                try {
+                  if (sub && sub.id) {
+                    navigation.navigate('ScoreDetailScreen', {
+                      submissionId: sub.id,
+                    });
+                  }
+                } catch (navErr) {
+                  console.error('Error navigating to score detail:', navErr);
+                  showErrorToast('Error', 'Failed to open score details.');
                 }
               },
             });
@@ -145,9 +173,15 @@ const SubmissionHistoryScreen = () => {
         try {
           historyItems.sort((a, b) => {
             try {
-              const timeA = dayjs(a.submissionTime.split(' – ')[0], 'DD/MM/YYYY').valueOf();
-              const timeB = dayjs(b.submissionTime.split(' – ')[0], 'DD/MM/YYYY').valueOf();
-              return timeB - timeA;
+              if (!a.submissionTime || !b.submissionTime || a.submissionTime === 'N/A' || b.submissionTime === 'N/A') {
+                return 0;
+              }
+              const timeA = dayjs(a.submissionTime.split(' – ')[0], 'DD/MM/YYYY');
+              const timeB = dayjs(b.submissionTime.split(' – ')[0], 'DD/MM/YYYY');
+              if (!timeA.isValid() || !timeB.isValid()) {
+                return 0;
+              }
+              return timeB.valueOf() - timeA.valueOf();
             } catch (sortErr) {
               return 0;
             }

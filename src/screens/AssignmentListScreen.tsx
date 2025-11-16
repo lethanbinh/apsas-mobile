@@ -100,14 +100,40 @@ const AssignmentListScreen = () => {
         // 1) Get class info to find semesterCourseId
         const classInfo = await fetchClassById(selectedClassId);
         if (!isMounted) return;
+        if (!classInfo || !classInfo.id) {
+          if (isMounted) {
+            showErrorToast('Error', 'Invalid class data.');
+            setIsLoading(false);
+          }
+          return;
+        }
         setClassData(classInfo);
-        const semesterCourseId = parseInt(classInfo.semesterCourseId, 10);
+        
+        if (!classInfo.semesterCourseId) {
+          if (isMounted) {
+            setAssignments([]);
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        const semesterCourseId = parseInt(String(classInfo.semesterCourseId), 10);
+        if (isNaN(semesterCourseId)) {
+          if (isMounted) {
+            setAssignments([]);
+            setIsLoading(false);
+          }
+          return;
+        }
 
         // 2) Get all course elements and filter by this class's semesterCourseId (exclude practical exams)
         const allElements = await fetchCourseElements();
+        if (!isMounted) return;
+        
         const classElements = (allElements || []).filter(
           el =>
             el &&
+            el.id &&
             el.semesterCourseId &&
             el.semesterCourseId.toString() === semesterCourseId.toString() &&
             !isPracticalExam(el),
@@ -203,20 +229,26 @@ const AssignmentListScreen = () => {
         // 5) Fetch class assessments for this class
         let classAssessmentMap = new Map<number, any>();
         try {
-          const classAssessmentRes = await getClassAssessments({
-            classId: Number(classInfo.id),
-            pageNumber: 1,
-            pageSize: 1000,
-          });
-          for (const assessment of classAssessmentRes?.items || []) {
-            if (assessment.courseElementId) {
-              classAssessmentMap.set(assessment.courseElementId, assessment);
+          if (classInfo.id) {
+            const classAssessmentRes = await getClassAssessments({
+              classId: Number(classInfo.id),
+              pageNumber: 1,
+              pageSize: 1000,
+            });
+            if (!isMounted) return;
+            
+            for (const assessment of classAssessmentRes?.items || []) {
+              if (assessment && assessment.courseElementId && assessment.id) {
+                classAssessmentMap.set(assessment.courseElementId, assessment);
+              }
             }
           }
         } catch (err) {
           console.error('Failed to fetch class assessments:', err);
           // Continue without class assessments
         }
+        
+        if (!isMounted) return;
 
         // 6) Map all course elements to AssignmentItem
         // Logic same as web: 
@@ -224,7 +256,10 @@ const AssignmentListScreen = () => {
         // 2. If no classAssessment or template not found, find template by courseElementId in approved templates
         // Only use classAssessment if approved template exists AND matches classAssessment's template
         const mappedAssignments: AssignmentItem[] = classElements
+          .filter(el => el && el.id && el.name)
           .map((el): AssignmentItem | null => {
+            if (!el || !el.id) return null;
+            
             const classAssessment = classAssessmentMap.get(el.id);
             let approvedTemplate: any | undefined;
             
@@ -334,20 +369,40 @@ const AssignmentListScreen = () => {
   };
 
   const handleViewDetails = (assignment: AssignmentItem) => {
-    if (assignment.courseElementId && classData?.id) {
-      navigation.navigate('AssignmentDetailScreen', {
-        elementId: assignment.courseElementId.toString(),
-        classId: classData.id,
-      });
+    try {
+      if (assignment && assignment.courseElementId && classData && classData.id) {
+        navigation.navigate('AssignmentDetailScreen', {
+          elementId: String(assignment.courseElementId),
+          classId: classData.id,
+        });
+      } else {
+        showErrorToast('Error', 'Invalid assignment data.');
+      }
+    } catch (err) {
+      console.error('Error navigating to assignment details:', err);
+      showErrorToast('Error', 'Failed to open assignment details.');
     }
   };
 
   const renderAssignment = ({ item }: { item: AssignmentItem }) => {
+    if (!item || !item.id) return null;
+    
     const isExpanded = expandedId === item.id;
     const hasDeadline = !!item.deadline;
-    const deadlineDate = item.deadline ? dayjs(item.deadline) : null;
-    const now = dayjs();
-    const isOverdue = deadlineDate ? now.isAfter(deadlineDate) : false;
+    let deadlineDate: dayjs.Dayjs | null = null;
+    let isOverdue = false;
+    
+    try {
+      if (item.deadline) {
+        deadlineDate = dayjs(item.deadline);
+        if (deadlineDate.isValid()) {
+          const now = dayjs();
+          isOverdue = now.isAfter(deadlineDate);
+        }
+      }
+    } catch (err) {
+      console.error('Error parsing deadline:', err);
+    }
 
     return (
       <View style={styles.assignmentCard}>
