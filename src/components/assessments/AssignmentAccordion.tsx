@@ -1,10 +1,9 @@
 import { pick, types } from '@react-native-documents/picker';
 import React, { useEffect, useState } from 'react';
-import { useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -76,10 +75,7 @@ interface QuestionFormData {
   sampleInput: string;
   sampleOutput: string;
   score: string;
-  fileUri: string | null;
-  fileName: string | null;
-  width?: number | null;
-  height?: number | null;
+  questionNumber?: number;
   criteria: CriteriaFormData[];
 }
 interface AssessmentFormData {
@@ -177,7 +173,6 @@ const AssignmentAccordion = ({
     control,
     name: 'questions',
   });
-  const watchedQuestions = useWatch({ control, name: 'questions' });
   useEffect(() => {
     const initializeForm = async () => {
       setIsInitializing(true);
@@ -193,9 +188,14 @@ const AssignmentAccordion = ({
               type: '', // File đã tồn tại không cần type
             })),
           );
-        } catch (fileError) {
-          console.error('Failed to fetch existing files:', fileError);
-          setAttachedFiles([]); // Set rỗng nếu lỗi
+        } catch (fileError: any) {
+          // 404 is expected when template has no files - just set empty array
+          if (fileError?.response?.status === 404 || fileError?.message?.includes('404')) {
+            setAttachedFiles([]);
+          } else {
+            console.error('Failed to fetch existing files:', fileError);
+            setAttachedFiles([]); // Set rỗng nếu lỗi
+          }
         }
         const paper = template.papers?.[0];
         let questionsWithCriteria: QuestionFormData[] = [];
@@ -214,7 +214,7 @@ const AssignmentAccordion = ({
           const results = await Promise.all(criteriaPromises);
           const criteriaMap = new Map<number, RubricItemData[]>();
           results.forEach(res => criteriaMap.set(res.questionId, res.rubrics));
-          questionsWithCriteria = paper.questions.map(q => {
+          questionsWithCriteria = paper.questions.map((q, index) => {
             const fetchedCriteria = criteriaMap.get(q.id) || [];
             return {
               id: q.id,
@@ -223,8 +223,7 @@ const AssignmentAccordion = ({
               sampleInput: q.questionSampleInput || '',
               sampleOutput: q.questionSampleOutput || '',
               score: String(q.score ?? '0'),
-              fileUri: null,
-              fileName: null,
+              questionNumber: index + 1,
               criteria: fetchedCriteria.map(c => ({
                 id: c.id,
                 input: c.input || '',
@@ -266,27 +265,6 @@ const AssignmentAccordion = ({
     };
     if (template !== undefined) initializeForm();
   }, [template, reset]);
-  const handleQuestionFileUpload = async (index: number) => {
-    if (isReadOnly) return;
-    try {
-      const result = await pick({ type: [types.images] });
-      if (result?.[0]) {
-        const file = result[0];
-        Image.getSize(file.uri, (width, height) => {
-          setValue(`questions.${index}.fileUri`, file.uri, {
-            shouldDirty: true,
-          });
-          setValue(`questions.${index}.fileName`, file.name, {
-            shouldDirty: true,
-          });
-          setValue(`questions.${index}.width`, width, { shouldDirty: true });
-          setValue(`questions.${index}.height`, height, { shouldDirty: true });
-        });
-      }
-    } catch (err: any) {
-      console.error('File picker error:', err);
-    }
-  };
   // SỬA ĐỔI: Hàm upload file đính kèm
   const handleAttachedFilesUpload = async () => {
     if (isReadOnly) return;
@@ -358,16 +336,14 @@ const AssignmentAccordion = ({
   };
   const handleAddQuestion = () => {
     if (isReadOnly) return;
+    const nextQuestionNumber = fields.length + 1;
     append({
       title: '',
       content: '',
       sampleInput: '',
       sampleOutput: '',
       score: '',
-      fileUri: null,
-      fileName: null,
-      width: null,
-      height: null,
+      questionNumber: nextQuestionNumber,
       criteria: [],
     });
   };
@@ -447,12 +423,15 @@ const AssignmentAccordion = ({
               (paperRes.errorMessages?.join(', ') || 'Unknown error'),
           );
         currentPaperId = paperRes.result.id;
-        for (const questionData of formData.questions) {
+        for (let index = 0; index < formData.questions.length; index++) {
+          const questionData = formData.questions[index];
+          const questionNumber = questionData.questionNumber ?? index + 1;
           const questionPayload: CreateAssessmentQuestionPayload = {
             questionText: questionData.title,
             questionSampleInput: questionData.sampleInput,
             questionSampleOutput: questionData.sampleOutput,
             score: Number(questionData.score) || 0,
+            questionNumber: questionNumber > 0 ? questionNumber : index + 1,
             assessmentPaperId: currentPaperId,
           };
           const questionRes = await createAssessmentQuestion(questionPayload);
@@ -563,12 +542,17 @@ const AssignmentAccordion = ({
           );
 
           // Process Updates
-          for (const qData of questionsToUpdate) {
+          for (let index = 0; index < questionsToUpdate.length; index++) {
+            const qData = questionsToUpdate[index];
+            // Find the index of this question in formQuestions to determine questionNumber
+            const formIndex = formQuestions.findIndex(q => q.id === qData.id);
+            const questionNumber = qData.questionNumber ?? (formIndex >= 0 ? formIndex + 1 : index + 1);
             const updatePayload: UpdateAssessmentQuestionPayload = {
               questionText: qData.title,
               questionSampleInput: qData.sampleInput,
               questionSampleOutput: qData.sampleOutput,
               score: Number(qData.score) || 0,
+              questionNumber: questionNumber > 0 ? questionNumber : (formIndex >= 0 ? formIndex + 1 : index + 1),
             };
             await updateAssessmentQuestion(qData.id!, updatePayload); // Assume success
 
@@ -625,12 +609,17 @@ const AssignmentAccordion = ({
           }
 
           // Process Creates
-          for (const qData of questionsToCreate) {
+          for (let index = 0; index < questionsToCreate.length; index++) {
+            const qData = questionsToCreate[index];
+            // Find the index of this question in formQuestions to determine questionNumber
+            const formIndex = formQuestions.findIndex(q => q.id === qData.id || (!q.id && !qData.id && q === qData));
+            const questionNumber = qData.questionNumber ?? (formIndex >= 0 ? formIndex + 1 : index + 1);
             const createPayload: CreateAssessmentQuestionPayload = {
               questionText: qData.title,
               questionSampleInput: qData.sampleInput,
               questionSampleOutput: qData.sampleOutput,
               score: Number(qData.score) || 0,
+              questionNumber: questionNumber > 0 ? questionNumber : (formIndex >= 0 ? formIndex + 1 : index + 1),
               assessmentPaperId: currentPaperId,
             };
             const qCreateRes = await createAssessmentQuestion(createPayload);
@@ -788,7 +777,6 @@ const AssignmentAccordion = ({
           </View>
 
           {fields.map((field, index) => {
-            const watchedFileUri = watchedQuestions?.[index]?.fileUri;
             return (
               <QuestionItem
                 key={field.id}
@@ -800,10 +788,8 @@ const AssignmentAccordion = ({
                     prevId === field.id ? null : field.id,
                   )
                 }
-                onFileUpload={() => handleQuestionFileUpload(index)}
                 onRemove={() => handleRemoveQuestion(index)}
                 canRemove={fields.length > 1}
-                initialFileUri={watchedFileUri}
                 isEditable={!isReadOnly}
               />
             );

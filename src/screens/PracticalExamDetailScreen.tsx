@@ -28,8 +28,11 @@ import {
 } from '../api/assessmentTemplateService';
 import { getSubmissionList, Submission } from '../api/submissionService';
 import { getClassAssessments, ClassAssessment } from '../api/classAssessmentService';
-import { ViewIcon } from '../assets/icons/courses';
+import { getFilesForTemplate, FileTemplate, AssessmentFileData } from '../api/assessmentFileService';
+import { ViewIcon, DownloadIcon } from '../assets/icons/courses';
 import { useGetCurrentStudentId } from '../hooks/useGetCurrentStudentId';
+import { Platform, Alert, PermissionsAndroid } from 'react-native';
+import ReactNativeBlobUtil from 'react-native-blob-util';
 
 const PracticalExamDetailScreen = () => {
   const [listHeight, setListHeight] = useState(0);
@@ -42,6 +45,7 @@ const PracticalExamDetailScreen = () => {
   const [templateData, setTemplateData] = useState<AssessmentTemplateData | null>(null);
   const [classAssessment, setClassAssessment] = useState<ClassAssessment | null>(null);
   const [latestSubmission, setLatestSubmission] = useState<Submission | null>(null);
+  const [assessmentFiles, setAssessmentFiles] = useState<AssessmentFileData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
   const [deadline, setDeadline] = useState<string>('N/A');
@@ -87,23 +91,51 @@ const PracticalExamDetailScreen = () => {
         if (!isMounted) return;
         setTemplateData(foundTemplate || null);
 
+        // Fetch assessment files (requirement and database files)
+        if (foundTemplate && foundTemplate.id) {
+          try {
+            const filesResponse = await getFilesForTemplate({
+              assessmentTemplateId: foundTemplate.id,
+              pageNumber: 1,
+              pageSize: 100,
+            });
+            if (!isMounted) return;
+            setAssessmentFiles(filesResponse?.items || []);
+          } catch (err) {
+            console.error('Failed to fetch assessment files:', err);
+            if (!isMounted) return;
+            setAssessmentFiles([]);
+          }
+        }
+
         // Fetch class assessment to get deadline
-        if (classId && foundTemplate && foundTemplate.id) {
+        if (classId) {
           try {
             const classIdNum = Number(classId);
             if (!isNaN(classIdNum)) {
+              // Fetch all class assessments for this class
               const classAssessmentsRes = await getClassAssessments({
                 classId: classIdNum,
-                assessmentTemplateId: foundTemplate.id,
                 pageNumber: 1,
                 pageSize: 1000,
               });
               if (!isMounted) return;
               
               const elementIdNum = Number(elementId);
+              console.log('Fetching class assessments for classId:', classIdNum, 'elementId:', elementIdNum);
+              console.log('Class assessments found:', classAssessmentsRes?.items?.length || 0);
+              
+              // Find assessment that matches this course element
               const relevantAssessment = (classAssessmentsRes?.items || []).find(
                 ca => ca && ca.id && ca.courseElementId === elementIdNum,
               );
+              
+              console.log('Relevant assessment found:', relevantAssessment ? {
+                id: relevantAssessment.id,
+                courseElementId: relevantAssessment.courseElementId,
+                endAt: relevantAssessment.endAt,
+                lecturerName: relevantAssessment.lecturerName
+              } : 'Not found');
               
               if (relevantAssessment && relevantAssessment.id) {
                 setClassAssessment(relevantAssessment);
@@ -112,8 +144,25 @@ const PracticalExamDetailScreen = () => {
                 if (relevantAssessment.endAt) {
                   try {
                     const date = dayjs(relevantAssessment.endAt);
-                    setDeadline(date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A');
-                  } catch {
+                    const formatted = date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A';
+                    setDeadline(formatted);
+                    console.log('Deadline set from classAssessment:', formatted);
+                  } catch (err) {
+                    console.error('Error formatting deadline:', err);
+                    setDeadline('N/A');
+                  }
+                } else {
+                  console.log('No endAt in relevantAssessment, using fallback');
+                  // Fallback to semester end date
+                  if (data.semesterCourse?.semester?.endDate) {
+                    try {
+                      const fallback = dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+                      setDeadline(fallback);
+                      console.log('Deadline set from semester endDate (no endAt):', fallback);
+                    } catch {
+                      setDeadline('N/A');
+                    }
+                  } else {
                     setDeadline('N/A');
                   }
                 }
@@ -147,10 +196,49 @@ const PracticalExamDetailScreen = () => {
                     console.error('Failed to fetch submissions:', err);
                   }
                 }
+              } else {
+                console.log('No relevant assessment found for elementId:', elementIdNum);
+                // Fallback: keep deadline from semester end date if already set
+                if (!deadline || deadline === 'N/A') {
+                  if (data.semesterCourse?.semester?.endDate) {
+                    try {
+                      const fallback = dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+                      setDeadline(fallback);
+                      console.log('Deadline set from semester endDate (no assessment found):', fallback);
+                    } catch {
+                      setDeadline('N/A');
+                    }
+                  }
+                }
               }
             }
           } catch (err) {
             console.error('Failed to fetch class assessment:', err);
+            // Fallback on error
+            if (!deadline || deadline === 'N/A') {
+              if (data.semesterCourse?.semester?.endDate) {
+                try {
+                  const fallback = dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+                  setDeadline(fallback);
+                } catch {
+                  setDeadline('N/A');
+                }
+              }
+            }
+          }
+        } else {
+          console.log('No classId provided, using fallback deadline');
+          // Keep deadline from semester end date if already set
+          if (!deadline || deadline === 'N/A') {
+            if (data.semesterCourse?.semester?.endDate) {
+              try {
+                const fallback = dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+                setDeadline(fallback);
+                console.log('Deadline set from semester endDate (no classId):', fallback);
+              } catch {
+                setDeadline('N/A');
+              }
+            }
           }
         }
       } catch (error: any) {
@@ -190,18 +278,125 @@ const PracticalExamDetailScreen = () => {
     }
   };
 
-  // Build document list for PE (student view: only Results section)
-  const dynamicDocumentList = [
-    {
-      id: 1,
-      number: '01',
-      title: 'View Score & Feedback',
-      linkFile: '',
-      rightIcon: (props: any) => <ViewIcon {...props} />,
-      onPress: navigateToScoreFeedback,
+  const requestStoragePermission = async () => {
+    if (Platform.OS !== 'android') return true;
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission Required',
+          message: 'This app needs access to your storage to download files.',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  };
+
+  const handleDownloadFile = async (fileUrl: string, fileName: string) => {
+    try {
+      const hasPermission = await requestStoragePermission();
+      if (!hasPermission) {
+        Alert.alert(
+          'Permission Denied',
+          'Storage permission is required to download files.',
+        );
+        return;
+      }
+      const { dirs } = ReactNativeBlobUtil.fs;
+      const dirToSave =
+        Platform.OS === 'ios' ? dirs.DocumentDir : dirs.DownloadDir;
+      const config = {
+        fileCache: true,
+        path: `${dirToSave}/${fileName}`,
+        addAndroidDownloads: {
+          useDownloadManager: true,
+          notification: true,
+          path: `${dirToSave}/${fileName}`,
+          description: 'Downloading file.',
+        },
+      };
+
+      ReactNativeBlobUtil.config(config)
+        .fetch('GET', fileUrl)
+        .then(res => {
+          if (Platform.OS === 'ios') {
+            ReactNativeBlobUtil.ios.previewDocument(res.path());
+          }
+          Alert.alert(
+            'Download Complete',
+            `${fileName} has been saved to your Downloads folder.`,
+          );
+        })
+        .catch(error => {
+          console.error(error);
+          Alert.alert(
+            'Download Error',
+            'An error occurred while downloading the file.',
+          );
+        });
+    } catch (error: any) {
+      console.error('Download error:', error);
+      showErrorToast('Error', 'Failed to download file.');
+    }
+  };
+
+  // Build document list for PE (student view)
+  const requirementFile = assessmentFiles.find(f => f.fileTemplate === FileTemplate.DATABASE);
+  const databaseFile = assessmentFiles.find(f => f.fileTemplate === FileTemplate.TESTFILE);
+
+  const dynamicDocumentList: any[] = [];
+  let itemNumber = 1;
+
+  // Requirement file download
+  if (requirementFile) {
+    dynamicDocumentList.push({
+      id: itemNumber,
+      number: String(itemNumber).padStart(2, '0'),
+      title: requirementFile.name || 'Requirement File',
+      linkFile: requirementFile.name || '',
+      rightIcon: DownloadIcon,
+      onPress: () => {
+        if (requirementFile.fileUrl) {
+          handleDownloadFile(requirementFile.fileUrl, requirementFile.name || 'requirement.pdf');
+        }
+      },
       onAction: () => {},
-    },
-  ];
+    });
+    itemNumber++;
+  }
+
+  // Database file download
+  if (databaseFile) {
+    dynamicDocumentList.push({
+      id: itemNumber,
+      number: String(itemNumber).padStart(2, '0'),
+      title: databaseFile.name || 'Database File',
+      linkFile: databaseFile.name || '',
+      rightIcon: DownloadIcon,
+      onPress: () => {
+        if (databaseFile.fileUrl) {
+          handleDownloadFile(databaseFile.fileUrl, databaseFile.name || 'database.sql');
+        }
+      },
+      onAction: () => {},
+    });
+    itemNumber++;
+  }
+
+  // View Score & Feedback button
+  dynamicDocumentList.push({
+    id: itemNumber,
+    number: String(itemNumber).padStart(2, '0'),
+    title: 'View Score & Feedback',
+    linkFile: '',
+    rightIcon: (props: any) => <ViewIcon {...props} />,
+    onPress: navigateToScoreFeedback,
+    onAction: () => {},
+  });
 
   if (isLoading) {
     return (
@@ -245,10 +440,11 @@ const PracticalExamDetailScreen = () => {
           isSubmitted={!!latestSubmission}
           onSubmitPress={() => {
             try {
-              if (elementData && elementData.id) {
+              if (elementData && elementData.id && classAssessment && classAssessment.id) {
                 navigation.navigate('SubmissionScreen', {
                   elementId: elementData.id,
-                  classAssessmentId: classAssessment?.id,
+                  classAssessmentId: classAssessment.id,
+                  classId: classId,
                 });
               } else {
                 showErrorToast('Error', 'Invalid exam data.');
@@ -259,6 +455,8 @@ const PracticalExamDetailScreen = () => {
             }
           }}
           isAssessment={true}
+          showEditButton={false}
+          showAutoGrade={false}
         />
         <View />
         <View

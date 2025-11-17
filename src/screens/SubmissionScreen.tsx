@@ -19,13 +19,17 @@ import { BACKEND_API_URL } from '@env';
 import { Platform } from 'react-native';
 import { IS_ANDROID } from '../constants/constants';
 import AppText from '../components/texts/AppText';
+import { getClassAssessments } from '../api/classAssessmentService';
+import { fetchAssessmentTemplates } from '../api/assessmentTemplateService';
 
 const SubmissionScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
-  const classAssessmentId = (route.params as { classAssessmentId?: number })?.classAssessmentId;
+  const routeClassAssessmentId = (route.params as { classAssessmentId?: number })?.classAssessmentId;
   const elementId = (route.params as { elementId?: number })?.elementId;
+  const classId = (route.params as { classId?: string | number })?.classId;
 
+  const [classAssessmentId, setClassAssessmentId] = useState<number | undefined>(routeClassAssessmentId);
   const [submittedFile, setSubmittedFile] = useState<{
     name: string;
     uri: string;
@@ -34,6 +38,7 @@ const SubmissionScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
+  const [isLoadingAssessmentId, setIsLoadingAssessmentId] = useState(false);
 
   const handleFilePicked = (file: {
     name: string;
@@ -83,6 +88,71 @@ const SubmissionScreen = () => {
       setIsMounted(false);
     };
   }, []);
+
+  // Fetch classAssessmentId if not provided but elementId and classId are available
+  useEffect(() => {
+    const fetchClassAssessmentId = async () => {
+      if (classAssessmentId || !elementId || !classId) return;
+
+      setIsLoadingAssessmentId(true);
+      try {
+        const elementIdNum = Number(elementId);
+        const classIdNum = Number(classId);
+        
+        if (isNaN(elementIdNum) || isNaN(classIdNum)) {
+          console.error('Invalid elementId or classId');
+          return;
+        }
+
+        // Fetch assessment template
+        const templatesResponse = await fetchAssessmentTemplates({
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+        
+        const foundTemplate = (templatesResponse?.items || []).find(
+          t => t && t.courseElementId === elementIdNum,
+        );
+
+        if (!foundTemplate || !foundTemplate.id) {
+          console.error('Assessment template not found for elementId:', elementId);
+          return;
+        }
+
+        // Fetch class assessments
+        const classAssessmentsRes = await getClassAssessments({
+          classId: classIdNum,
+          assessmentTemplateId: foundTemplate.id,
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+
+        const relevantAssessment = (classAssessmentsRes?.items || []).find(
+          ca => ca && ca.id && ca.courseElementId === elementIdNum,
+        );
+
+        if (relevantAssessment && relevantAssessment.id && isMounted) {
+          setClassAssessmentId(relevantAssessment.id);
+        } else {
+          console.error('Class assessment not found');
+          if (isMounted) {
+            showErrorToast('Error', 'Could not find assignment information.');
+          }
+        }
+      } catch (error: any) {
+        console.error('Failed to fetch classAssessmentId:', error);
+        if (isMounted) {
+          showErrorToast('Error', 'Failed to load assignment information.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingAssessmentId(false);
+        }
+      }
+    };
+
+    fetchClassAssessmentId();
+  }, [elementId, classId, classAssessmentId, isMounted]);
 
   const handleSubmit = async () => {
     if (!isMounted) return;
@@ -134,12 +204,16 @@ const SubmissionScreen = () => {
     }
   };
 
-  if (!classAssessmentId && !elementId) {
+  if ((!classAssessmentId && !elementId) || isLoadingAssessmentId) {
     return (
       <AppSafeView>
         <ScreenHeader title="Submission" />
         <View style={styles.errorContainer}>
-          <AppText style={styles.errorText}>No assignment ID provided.</AppText>
+          {isLoadingAssessmentId ? (
+            <ActivityIndicator size="large" color={AppColors.pr500} />
+          ) : (
+            <AppText style={styles.errorText}>No assignment ID provided.</AppText>
+          )}
         </View>
       </AppSafeView>
     );

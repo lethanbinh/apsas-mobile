@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Control } from 'react-hook-form';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { NavigationIcon } from '../../assets/icons/courses';
-import { SubmissionIcon, TestCaseIcon } from '../../assets/icons/icon';
+import { TestCaseIcon } from '../../assets/icons/icon';
 import { AppColors } from '../../styles/color';
 import CourseCardItem from '../courses/CourseCardItem';
 import AppTextInputController from '../inputs/AppTextInputController';
@@ -16,10 +16,8 @@ interface QuestionItemProps {
   isExpanded: boolean;
   control: Control<any>;
   onToggle: () => void;
-  onFileUpload: () => void;
   onRemove: () => void;
   canRemove: boolean;
-  initialFileUri: string | null | undefined;
   isEditable?: boolean; // <-- Thêm prop
 }
 
@@ -28,18 +26,11 @@ const QuestionItem = ({
   isExpanded,
   control,
   onToggle,
-  onFileUpload,
   onRemove,
   canRemove,
-  initialFileUri,
   isEditable = true,
 }: QuestionItemProps) => {
   const [isCriteriaSheetVisible, setCriteriaSheetVisible] = useState(false);
-  const [currentFileUri, setCurrentFileUri] = useState(initialFileUri);
-
-  useEffect(() => {
-    setCurrentFileUri(initialFileUri);
-  }, [initialFileUri]);
 
   return (
     <>
@@ -105,30 +96,6 @@ const QuestionItem = ({
               }}
               editable={isEditable} // <-- Truyền prop
             />
-            <TouchableOpacity
-              style={styles.uploadBox}
-              onPress={onFileUpload}
-              disabled={!isEditable} // <-- Thêm disabled
-            >
-              {currentFileUri ? (
-                <Image
-                  source={{ uri: currentFileUri }}
-                  style={styles.previewImage}
-                />
-              ) : (
-                <>
-                  <SubmissionIcon />
-                  <AppText variant="body14pxBold" style={{ marginTop: vs(8) }}>
-                    Click here to Upload
-                  </AppText>
-                  <AppText
-                    variant="body12pxRegular"
-                    style={{ color: AppColors.n600, marginTop: vs(4) }}>
-                    Upload Image file. Size must be less than 5mb
-                  </AppText>
-                </>
-              )}
-            </TouchableOpacity>
 
             <CourseCardItem
               title={'Criteria'}
@@ -192,24 +159,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  uploadBox: {
-    borderWidth: 1,
-    borderColor: AppColors.n200,
-    borderRadius: 10,
-    padding: vs(20),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: vs(16),
-    overflow: 'hidden',
-    backgroundColor: AppColors.n100,
-  },
   criteriaCard: {
     marginTop: vs(16),
-  },
-  previewImage: {
-    width: '100%',
-    height: vs(150),
-    borderRadius: 10,
   },
 });
 

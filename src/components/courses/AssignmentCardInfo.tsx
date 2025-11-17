@@ -26,6 +26,9 @@ interface AssignmentCardInfoProps {
   onAutoGradePress?: () => void;
   onDashboardPress?: () => void;
   onDeadlineChange?: (date: string) => void;
+  showEditButton?: boolean;
+  submitDisabled?: boolean;
+  showAutoGrade?: boolean;
 }
 
 const AssignmentCardInfo = ({
@@ -40,6 +43,9 @@ const AssignmentCardInfo = ({
   onAutoGradePress,
   onDashboardPress,
   onDeadlineChange,
+  showEditButton = true,
+  submitDisabled = false,
+  showAutoGrade = true,
 }: AssignmentCardInfoProps) => {
   const [selectedDate, setSelectedDate] = useState(dueDate);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
@@ -81,7 +87,7 @@ const AssignmentCardInfo = ({
           </View>
         )}
 
-        {isAssessment && (
+        {isAssessment && showEditButton && (
           <TouchableOpacity
             style={{
               position: 'absolute',
@@ -145,25 +151,28 @@ const AssignmentCardInfo = ({
           size="small"
           title="Submit"
           onPress={onSubmitPress}
+          disabled={submitDisabled}
         />
       )}
 
       {isAssessment && (
         <View style={{ flexDirection: 'row', gap: s(10), marginBottom: vs(30) }}>
-          <AppButton
-            style={{
-              width: s(110),
-              alignSelf: 'start',
-              marginTop: vs(10),
-              left: 20,
-              borderRadius: s(10),
-            }}
-            textVariant="body14pxRegular"
-            size="small"
-            title="Auto Grade"
-            onPress={onAutoGradePress ?? (() => {})}
-            leftIcon={<AutoGradeIcon />}
-          />
+          {showAutoGrade && (
+            <AppButton
+              style={{
+                width: s(110),
+                alignSelf: 'start',
+                marginTop: vs(10),
+                left: 20,
+                borderRadius: s(10),
+              }}
+              textVariant="body14pxRegular"
+              size="small"
+              title="Auto Grade"
+              onPress={onAutoGradePress ?? (() => {})}
+              leftIcon={<AutoGradeIcon />}
+            />
+          )}
           <AppButton
             style={{
               width: s(110),

@@ -1,4 +1,8 @@
 import { ApiResponse, ApiService } from '../utils/ApiService';
+import { Platform } from 'react-native';
+import RNBlobUtil from 'react-native-blob-util';
+import { BACKEND_API_URL } from '@env';
+import { SecureStorage } from '../utils/SecureStorage';
 
 export interface GradingGroupSubmission {
   id: number;
@@ -101,28 +105,73 @@ export const deleteGradingGroup = async (id: number): Promise<void> => {
 
 export const addSubmissionsByFile = async (
   gradingGroupId: number,
-  files: any[],
+  files: Array<{ uri: string; name: string; type: string }>,
 ): Promise<AssignSubmissionsResponse> => {
+  const token = await SecureStorage.getCredentials('authToken');
+  if (!token) {
+    throw new Error('No auth token found for upload.');
+  }
+
+  const url = `${BACKEND_API_URL}/api/GradingGroup/${gradingGroupId}/add-submissions`;
+
   try {
-    const formData = new FormData();
+    // Build form data array with multiple files
+    const formDataArray: any[] = [];
     files.forEach((file) => {
-      formData.append('Files', file);
+      const filePath = Platform.OS === 'android' 
+        ? file.uri 
+        : file.uri.replace('file://', '');
+      formDataArray.push({
+        name: 'Files',
+        filename: file.name,
+        type: file.type || 'application/zip',
+        data: RNBlobUtil.wrap(filePath),
+      });
     });
 
-    const response = await ApiService.post<AssignSubmissionsResponse>(
-      `/api/GradingGroup/${gradingGroupId}/add-submissions`,
-      formData,
+    const resp = await RNBlobUtil.fetch(
+      'POST',
+      url,
       {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
       },
+      formDataArray,
     );
-    if (response.result) return response.result;
-    throw new Error('Failed to add submissions by file.');
+
+    const status = resp.info().status;
+    const data = resp.data;
+
+    // Check for HTTP errors
+    if (status < 200 || status >= 300) {
+      let errorMessage = `Server error: ${status}`;
+      try {
+        const errorJson = JSON.parse(data);
+        errorMessage =
+          errorJson.errorMessages?.join(', ') || errorJson.title || data;
+      } catch (e) {
+        errorMessage = data || errorMessage;
+      }
+      console.error('Upload Submissions HTTP Error:', status, data);
+      throw new Error(errorMessage);
+    }
+
+    // Parse JSON response
+    if (!data) {
+      throw new Error('Server returned empty response.');
+    }
+
+    const jsonResp = JSON.parse(data) as ApiResponse<AssignSubmissionsResponse>;
+    if (jsonResp.isSuccess && jsonResp.result) {
+      return jsonResp.result;
+    } else {
+      throw new Error(
+        jsonResp.errorMessages?.join(', ') || 'Failed to add submissions by file.',
+      );
+    }
   } catch (error: any) {
     console.error('Failed to add submissions by file:', error);
-    throw error;
+    throw new Error(error.message || 'Failed to upload files. Please try again.');
   }
 };
 

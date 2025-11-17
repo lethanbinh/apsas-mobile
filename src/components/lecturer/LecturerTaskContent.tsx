@@ -141,6 +141,7 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
         const questions = questionsMap[paper.id] || [];
         for (const question of questions) {
           if (!isMounted) return;
+          if (!question || !question.id) continue;
           try {
             const rubricResponse = await rubricItemService.getRubricsForQuestion({
               assessmentQuestionId: question.id,
@@ -148,9 +149,14 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
               pageSize: 100,
             });
             rubricsMap[question.id] = rubricResponse?.items || [];
-          } catch (error) {
-            console.error(`Failed to fetch rubrics for question ${question.id}:`, error);
-            rubricsMap[question.id] = [];
+          } catch (error: any) {
+            // 404 or empty result is expected when question has no rubrics
+            if (error?.response?.status === 404 || error?.message?.includes('404')) {
+              rubricsMap[question.id] = [];
+            } else {
+              console.error(`Failed to fetch rubrics for question ${question.id}:`, error);
+              rubricsMap[question.id] = [];
+            }
           }
         }
       }
@@ -184,7 +190,7 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
   };
 
   const refreshRubrics = async (questionId: number) => {
-    if (!isMounted) return;
+    if (!isMounted || !questionId) return;
     try {
       const rubricResponse = await rubricItemService.getRubricsForQuestion({
         assessmentQuestionId: questionId,
@@ -196,8 +202,22 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
         ...prev,
         [questionId]: rubricResponse?.items || [],
       }));
-    } catch (error) {
-      console.error(`Failed to refresh rubrics for question ${questionId}:`, error);
+    } catch (error: any) {
+      // 404 or empty result is expected when question has no rubrics
+      if (error?.response?.status === 404 || error?.message?.includes('404')) {
+        if (!isMounted) return;
+        setRubrics(prev => ({
+          ...prev,
+          [questionId]: [],
+        }));
+      } else {
+        console.error(`Failed to refresh rubrics for question ${questionId}:`, error);
+        if (!isMounted) return;
+        setRubrics(prev => ({
+          ...prev,
+          [questionId]: [],
+        }));
+      }
     }
   };
 
@@ -601,64 +621,69 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
                     </TouchableOpacity>
                   )}
                 </View>
-                {questions.map((question) => (
-                  <View key={question.id} style={styles.questionCard}>
-                    <View style={styles.questionHeader}>
-                      <AppText variant="body14pxBold" style={styles.questionTitle}>
-                        Q{question.questionNumber || '?'}: {(question.questionText || '').substring(0, 50)}
-                        {(question.questionText || '').length > 50 ? '...' : ''}
-                      </AppText>
-                      {isCurrentTemplateEditable && (
-                        <View style={styles.questionActions}>
-                          <TouchableOpacity onPress={() => handleEditQuestion(question)} style={styles.iconButton}>
-                            <Feather name="edit-2" size={s(14)} color={AppColors.pr500} />
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => handleDeleteQuestion(question)} style={styles.iconButton}>
-                            <Feather name="trash-2" size={s(14)} color={AppColors.errorColor} />
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                    <AppText variant="body12pxRegular" style={styles.questionScore}>
-                      Score: {question.score}
-                    </AppText>
-                    <View style={styles.rubricsContainer}>
-                      <AppText variant="body12pxRegular" style={styles.rubricsLabel}>
-                        Rubrics: {(rubrics[question.id] || []).length}
-                      </AppText>
-                      {isCurrentTemplateEditable && (
-                        <TouchableOpacity onPress={() => handleCreateRubric(question.id)} style={styles.addRubricButton}>
-                          <Feather name="plus" size={s(12)} color={AppColors.pr500} />
-                          <AppText variant="body12pxRegular" style={{ color: AppColors.pr500, marginLeft: s(4) }}>
-                            Add Rubric
-                          </AppText>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    {(rubrics[question.id] || []).map((rubric) => (
-                      <View key={rubric.id} style={styles.rubricCard}>
-                        <View style={styles.rubricHeader}>
-                          <AppText variant="body12pxRegular" style={styles.rubricDescription}>
-                            {rubric.description}
+                {questions
+                  .filter(q => q && q.id)
+                  .map((question) => {
+                    const questionRubrics = (rubrics[question.id] || []).filter(r => r && r.id);
+                    return (
+                      <View key={question.id} style={styles.questionCard}>
+                        <View style={styles.questionHeader}>
+                          <AppText variant="body14pxBold" style={styles.questionTitle}>
+                            Q{question.questionNumber || '?'}: {(question.questionText || '').substring(0, 50)}
+                            {(question.questionText || '').length > 50 ? '...' : ''}
                           </AppText>
                           {isCurrentTemplateEditable && (
-                            <View style={styles.rubricActions}>
-                              <TouchableOpacity onPress={() => handleEditRubric(rubric)} style={styles.iconButton}>
-                                <Feather name="edit-2" size={s(12)} color={AppColors.pr500} />
+                            <View style={styles.questionActions}>
+                              <TouchableOpacity onPress={() => handleEditQuestion(question)} style={styles.iconButton}>
+                                <Feather name="edit-2" size={s(14)} color={AppColors.pr500} />
                               </TouchableOpacity>
-                              <TouchableOpacity onPress={() => handleDeleteRubric(rubric)} style={styles.iconButton}>
-                                <Feather name="trash-2" size={s(12)} color={AppColors.errorColor} />
+                              <TouchableOpacity onPress={() => handleDeleteQuestion(question)} style={styles.iconButton}>
+                                <Feather name="trash-2" size={s(14)} color={AppColors.errorColor} />
                               </TouchableOpacity>
                             </View>
                           )}
                         </View>
-                        <AppText variant="body12pxRegular" style={styles.rubricScore}>
-                          Score: {rubric.score}
+                        <AppText variant="body12pxRegular" style={styles.questionScore}>
+                          Score: {question.score || 0}
                         </AppText>
+                        <View style={styles.rubricsContainer}>
+                          <AppText variant="body12pxRegular" style={styles.rubricsLabel}>
+                            Rubrics: {questionRubrics.length}
+                          </AppText>
+                          {isCurrentTemplateEditable && (
+                            <TouchableOpacity onPress={() => handleCreateRubric(question.id)} style={styles.addRubricButton}>
+                              <Feather name="plus" size={s(12)} color={AppColors.pr500} />
+                              <AppText variant="body12pxRegular" style={{ color: AppColors.pr500, marginLeft: s(4) }}>
+                                Add Rubric
+                              </AppText>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        {questionRubrics.map((rubric) => (
+                          <View key={rubric.id} style={styles.rubricCard}>
+                            <View style={styles.rubricHeader}>
+                              <AppText variant="body12pxRegular" style={styles.rubricDescription}>
+                                {rubric.description || 'No description'}
+                              </AppText>
+                              {isCurrentTemplateEditable && (
+                                <View style={styles.rubricActions}>
+                                  <TouchableOpacity onPress={() => handleEditRubric(rubric)} style={styles.iconButton}>
+                                    <Feather name="edit-2" size={s(12)} color={AppColors.pr500} />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity onPress={() => handleDeleteRubric(rubric)} style={styles.iconButton}>
+                                    <Feather name="trash-2" size={s(12)} color={AppColors.errorColor} />
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+                            </View>
+                            <AppText variant="body12pxRegular" style={styles.rubricScore}>
+                              Score: {rubric.score || 0}
+                            </AppText>
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                ))}
+                    );
+                  })}
               </View>
             );
           })

@@ -51,6 +51,7 @@ const AssignmentDetailScreen = () => {
   const [classAssessment, setClassAssessment] = useState<ClassAssessment | null>(null);
   const [latestSubmission, setLatestSubmission] = useState<Submission | null>(null);
   const [assessmentFiles, setAssessmentFiles] = useState<AssessmentFileData[]>([]);
+  const [deadline, setDeadline] = useState<string>('N/A');
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
   const userProfile = useSelector(
@@ -110,27 +111,55 @@ const AssignmentDetailScreen = () => {
         }
 
         // Fetch class assessment to get deadline
-        if (classId && foundTemplate && foundTemplate.id) {
+        if (classId) {
           try {
             const classIdNum = Number(classId);
             if (isNaN(classIdNum)) {
               console.error('Invalid classId:', classId);
             } else {
+              // Fetch all class assessments for this class
               const classAssessmentsRes = await getClassAssessments({
                 classId: classIdNum,
-                assessmentTemplateId: foundTemplate.id,
                 pageNumber: 1,
                 pageSize: 1000,
               });
               if (!isMounted) return;
               
               const elementIdNum = Number(elementId);
+              console.log('Fetching class assessments for classId:', classIdNum, 'elementId:', elementIdNum);
+              console.log('Class assessments found:', classAssessmentsRes?.items?.length || 0);
+              
+              // Find assessment that matches this course element
               const relevantAssessment = (classAssessmentsRes?.items || []).find(
                 ca => ca && ca.id && ca.courseElementId === elementIdNum,
               );
               
+              console.log('Relevant assessment found:', relevantAssessment ? {
+                id: relevantAssessment.id,
+                courseElementId: relevantAssessment.courseElementId,
+                endAt: relevantAssessment.endAt,
+                lecturerName: relevantAssessment.lecturerName
+              } : 'Not found');
+              
               if (relevantAssessment && relevantAssessment.id) {
                 setClassAssessment(relevantAssessment);
+                console.log('Class assessment set, endAt:', relevantAssessment.endAt);
+                
+                // Set deadline from class assessment
+                if (relevantAssessment.endAt) {
+                  try {
+                    const date = dayjs(relevantAssessment.endAt);
+                    const formatted = date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A';
+                    setDeadline(formatted);
+                    console.log('Deadline set from classAssessment:', formatted);
+                  } catch (err) {
+                    console.error('Error formatting deadline:', err);
+                    setDeadline('N/A');
+                  }
+                } else {
+                  console.log('No endAt in relevantAssessment');
+                  setDeadline('N/A');
+                }
 
                 // Fetch latest submission for this student
                 if (studentId) {
@@ -161,10 +190,43 @@ const AssignmentDetailScreen = () => {
                     console.error('Failed to fetch submissions:', err);
                   }
                 }
+              } else {
+                console.log('No relevant assessment found for elementId:', elementIdNum);
+                // Fallback: try to get deadline from element data
+                if (element && element.semesterCourse?.semester?.endDate) {
+                  try {
+                    const fallback = dayjs(element.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+                    setDeadline(fallback);
+                    console.log('Deadline set from semester endDate (fallback):', fallback);
+                  } catch {
+                    setDeadline('N/A');
+                  }
+                }
               }
             }
           } catch (err) {
             console.error('Failed to fetch class assessment:', err);
+            // Fallback on error
+            if (element && element.semesterCourse?.semester?.endDate) {
+              try {
+                const fallback = dayjs(element.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+                setDeadline(fallback);
+              } catch {
+                setDeadline('N/A');
+              }
+            }
+          }
+        } else {
+          console.log('No classId provided, using fallback deadline');
+          // Fallback: try to get deadline from element data
+          if (element && element.semesterCourse?.semester?.endDate) {
+            try {
+              const fallback = dayjs(element.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+              setDeadline(fallback);
+              console.log('Deadline set from semester endDate (no classId):', fallback);
+            } catch {
+              setDeadline('N/A');
+            }
           }
         }
       } catch (error: any) {
@@ -415,23 +477,38 @@ const AssignmentDetailScreen = () => {
         <AssignmentCardInfo
           assignmentType="Assignment"
           assignmentTitle={elementData.name}
-          dueDate={classAssessment?.endAt ? (() => {
-            try {
-              const date = dayjs(classAssessment.endAt);
-              return date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A';
-            } catch {
-              return 'N/A';
-            }
-          })() : 'N/A'}
+          dueDate={deadline}
           lecturerName={classAssessment?.lecturerName || userProfile?.fullName || 'Lecturer'}
           description={elementData.description}
           isSubmitted={!!latestSubmission}
           onSubmitPress={() => {
             try {
-              if (elementData && elementData.id) {
+              if (!classAssessment || !classAssessment.id) {
+                showErrorToast('Error', 'No deadline set for this assignment.');
+                return;
+              }
+              
+              if (!classAssessment.endAt) {
+                showErrorToast('Error', 'No deadline set for this assignment.');
+                return;
+              }
+
+              // Check if deadline has passed
+              try {
+                const deadlineDate = dayjs(classAssessment.endAt);
+                if (deadlineDate.isValid() && deadlineDate.isBefore(dayjs())) {
+                  showErrorToast('Error', 'The submission deadline has passed.');
+                  return;
+                }
+              } catch (dateErr) {
+                console.error('Error checking deadline:', dateErr);
+              }
+
+              if (elementData && elementData.id && classAssessment && classAssessment.id) {
                 navigation.navigate('SubmissionScreen', {
                   elementId: elementData.id,
-                  classAssessmentId: classAssessment?.id,
+                  classAssessmentId: classAssessment.id,
+                  classId: classId,
                 });
               } else {
                 showErrorToast('Error', 'Invalid assignment data.');
@@ -442,6 +519,17 @@ const AssignmentDetailScreen = () => {
             }
           }}
           isAssessment={false}
+          submitDisabled={!classAssessment || !classAssessment.id || !classAssessment.endAt || (() => {
+            try {
+              if (classAssessment?.endAt) {
+                const deadlineDate = dayjs(classAssessment.endAt);
+                return deadlineDate.isValid() && deadlineDate.isBefore(dayjs());
+              }
+              return true; // Disable if no deadline
+            } catch {
+              return true; // Disable on error
+            }
+          })()}
         />
         <View />
         <View

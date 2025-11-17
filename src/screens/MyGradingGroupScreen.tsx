@@ -816,13 +816,18 @@ const ViewExamModal: React.FC<{
         questionsMap[paper.id] = questionsData;
 
         for (const question of questionsData) {
-          const rubricsRes = await rubricItemService.getRubricsForQuestion({
-            assessmentQuestionId: question.id,
-            pageNumber: 1,
-            pageSize: 100,
-          });
-          const rubricsData = rubricsRes?.items || [];
-          rubricsMap[question.id] = rubricsData;
+          try {
+            const rubricsRes = await rubricItemService.getRubricsForQuestion({
+              assessmentQuestionId: question.id,
+              pageNumber: 1,
+              pageSize: 100,
+            });
+            const rubricsData = rubricsRes?.items || [];
+            rubricsMap[question.id] = rubricsData;
+          } catch (error) {
+            console.error(`Failed to fetch rubrics for question ${question.id}:`, error);
+            rubricsMap[question.id] = [];
+          }
         }
       }
 

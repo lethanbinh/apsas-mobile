@@ -60,6 +60,7 @@ const AssignmentDetailTeacherScreen = () => {
   const [dynamicDocumentList, setDynamicDocumentList] = useState<any[]>([]);
   const [submissionList, setSubmissionList] = useState<SubmissionItem[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [classAssessment, setClassAssessment] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
   const [deadline, setDeadline] = useState<string>('N/A');
@@ -104,6 +105,64 @@ const AssignmentDetailTeacherScreen = () => {
           t => t.courseElementId === Number(elementId),
         );
         setTemplateData(foundTemplate || null);
+
+        // Fetch class assessment to get deadline and lecturer name
+        try {
+          // Fetch all class assessments and find the one matching this course element
+          const classAssessmentsRes = await getClassAssessments({
+            pageNumber: 1,
+            pageSize: 1000,
+          });
+          if (!isMounted) return;
+          
+          const elementIdNum = Number(elementId);
+          console.log('Fetching class assessments for elementId:', elementIdNum);
+          console.log('Class assessments found:', classAssessmentsRes?.items?.length || 0);
+          
+          const relevantAssessment = (classAssessmentsRes?.items || []).find(
+            ca => ca && ca.id && ca.courseElementId === elementIdNum,
+          );
+          
+          console.log('Relevant assessment found:', relevantAssessment ? {
+            id: relevantAssessment.id,
+            courseElementId: relevantAssessment.courseElementId,
+            endAt: relevantAssessment.endAt,
+            lecturerName: relevantAssessment.lecturerName
+          } : 'Not found');
+          
+          if (relevantAssessment && relevantAssessment.id) {
+            setClassAssessment(relevantAssessment);
+            
+            // Set deadline from class assessment
+            if (relevantAssessment.endAt) {
+              try {
+                const date = dayjs(relevantAssessment.endAt);
+                const formatted = date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A';
+                setDeadline(formatted);
+                console.log('Deadline set from classAssessment:', formatted);
+              } catch (err) {
+                console.error('Error formatting deadline:', err);
+                setDeadline('N/A');
+              }
+            } else if (data.semesterCourse?.semester?.endDate) {
+              // Fallback to semester end date
+              const fallback = dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+              setDeadline(fallback);
+              console.log('Deadline set from semester endDate (fallback):', fallback);
+            }
+          } else if (data.semesterCourse?.semester?.endDate) {
+            // Fallback to semester end date if no class assessment found
+            const fallback = dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+            setDeadline(fallback);
+            console.log('Deadline set from semester endDate (no assessment found):', fallback);
+          }
+        } catch (err) {
+          console.error('Failed to fetch class assessment:', err);
+          // Fallback to semester end date on error
+          if (data.semesterCourse?.semester?.endDate) {
+            setDeadline(dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY'));
+          }
+        }
 
         // Set up document list
         const navigateToRequirement = () => {
@@ -445,6 +504,15 @@ const AssignmentDetailTeacherScreen = () => {
   };
 
   const handleDeadlineChange = (newDeadline: string) => {
+    // Check if template exists
+    if (!templateData) {
+      showErrorToast(
+        'Error',
+        'This assignment does not have an assessment template. Please create a template first to set the deadline.',
+      );
+      return;
+    }
+    
     setDeadline(newDeadline);
     // TODO: Save deadline to backend if API supports it
     showSuccessToast('Success', 'Deadline updated successfully.');
@@ -492,7 +560,7 @@ const AssignmentDetailTeacherScreen = () => {
           assignmentType="Assignment"
           assignmentTitle={elementData.name}
           dueDate={deadline}
-          lecturerName={userProfile?.name || 'Lecturer'}
+          lecturerName={classAssessment?.lecturerName || userProfile?.name || 'Lecturer'}
           description={elementData.description}
           isSubmitted={false}
           onSubmitPress={() => {
@@ -520,20 +588,6 @@ const AssignmentDetailTeacherScreen = () => {
               }
             }}
           />
-          {submissionList.length > 0 && (
-            <TouchableOpacity
-              style={styles.downloadButton}
-              onPress={handleDownloadAllSubmissions}
-            >
-              <DownloadIcon />
-              <AppText
-                variant="body14pxBold"
-                style={{ color: AppColors.pr500, marginLeft: s(8) }}
-              >
-                Download All Submissions ({submissionList.length})
-              </AppText>
-            </TouchableOpacity>
-          )}
         </View>
       </ScrollView>
     </View>
@@ -562,16 +616,5 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-  },
-  downloadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: s(16),
-    marginHorizontal: s(20),
-    marginTop: vs(10),
-    marginBottom: vs(20),
-    backgroundColor: AppColors.pr100,
-    borderRadius: s(12),
   },
 });

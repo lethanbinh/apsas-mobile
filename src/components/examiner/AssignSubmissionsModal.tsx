@@ -135,7 +135,17 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
       return;
     }
 
-    if (!group?.id) return;
+    if (!group?.id) {
+      showErrorToast('Error', 'Invalid grading group. Please try again.');
+      return;
+    }
+
+    // Validate all files have required properties
+    const invalidFiles = selectedFiles.filter(f => !f.uri || !f.name || !f.type);
+    if (invalidFiles.length > 0) {
+      showErrorToast('Error', 'Some selected files are invalid. Please reselect them.');
+      return;
+    }
 
     setIsLoading(true);
 
@@ -144,10 +154,15 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
       const files = selectedFiles.map(f => ({
         uri: f.uri,
         name: f.name,
-        type: f.type,
+        type: f.type || 'application/zip',
       }));
 
+      console.log('Uploading files:', files.map(f => ({ name: f.name, hasUri: !!f.uri, type: f.type })));
+      console.log('Grading group ID:', group.id);
+      
       const result = await addSubmissionsByFile(group.id, files);
+      console.log('Upload result:', result);
+      
       showSuccessToast(
         'Success',
         `Added ${result.createdSubmissionsCount} submissions from ${selectedFiles.length} file(s) successfully!`,
@@ -202,7 +217,13 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
       onSuccess();
     } catch (err: any) {
       console.error('Failed to upload files:', err);
-      showErrorToast('Error', err.message || 'Failed to upload files. Please try again.');
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      });
+      const errorMessage = err.message || 'Failed to upload files. Please try again.';
+      showErrorToast('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -236,7 +257,7 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
   const renderSubmissionItem = ({ item }: { item: Submission }) => {
     if (!item || !item.id) return null;
     
-    const statusText = (item.status === 0 || item.status === '0') ? 'On Time' : 'Late';
+    const statusText = item.status === 0 ? 'On Time' : 'Late';
     let submittedDate = 'N/A';
     
     try {
@@ -392,7 +413,7 @@ const AssignSubmissionsModal: React.FC<AssignSubmissionsModalProps> = ({
                 <AppButton
                   title="Cancel"
                   onPress={onDismiss}
-                  variant="outline"
+                  variant="secondary"
                   style={styles.cancelButton}
                 />
                 <AppButton
@@ -484,7 +505,7 @@ const styles = StyleSheet.create({
     padding: s(15),
     marginHorizontal: s(20),
     marginBottom: vs(10),
-    backgroundColor: AppColors.n50,
+    backgroundColor: AppColors.n100,
     borderRadius: s(8),
   },
   submissionInfo: {
@@ -552,7 +573,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: vs(8),
-    backgroundColor: AppColors.n50,
+    backgroundColor: AppColors.n100,
     borderRadius: s(6),
     marginBottom: vs(6),
   },

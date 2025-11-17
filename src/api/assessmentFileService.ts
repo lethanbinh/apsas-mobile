@@ -206,7 +206,14 @@ export const getAssessmentFilesByTemplateId = async (
       );
       return [];
     }
-  } catch (error) {
+  } catch (error: any) {
+    // 404 is expected when template has no files - return empty array
+    if (error?.response?.status === 404 || error?.message?.includes('404')) {
+      console.warn(
+        `No files found for template ${templateId} (404 - expected when template has no files)`,
+      );
+      return [];
+    }
     console.error(
       `Failed to fetch assessment files for template ${templateId}:`,
       error,
