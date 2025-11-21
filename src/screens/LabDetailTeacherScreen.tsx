@@ -55,7 +55,7 @@ interface SubmissionItem {
   onPress?: () => void;
 }
 
-const AssignmentDetailTeacherScreen = () => {
+const LabDetailTeacherScreen = () => {
   const [listHeight, setListHeight] = useState(0);
   const navigation = useNavigation<any>();
   const route = useRoute();
@@ -82,7 +82,7 @@ const AssignmentDetailTeacherScreen = () => {
 
     if (!elementId) {
       if (isMounted) {
-        showErrorToast('Error', 'No Assignment ID provided.');
+        showErrorToast('Error', 'No Lab ID provided.');
         setIsLoading(false);
       }
       return;
@@ -117,7 +117,6 @@ const AssignmentDetailTeacherScreen = () => {
 
         // Fetch class assessment to get deadline and lecturer name
         try {
-          // Fetch all class assessments and find the one matching this course element
           const classAssessmentsRes = await getClassAssessments({
             pageNumber: 1,
             pageSize: 1000,
@@ -125,19 +124,9 @@ const AssignmentDetailTeacherScreen = () => {
           if (!isMounted) return;
           
           const elementIdNum = Number(elementId);
-          console.log('Fetching class assessments for elementId:', elementIdNum);
-          console.log('Class assessments found:', classAssessmentsRes?.items?.length || 0);
-          
           const relevantAssessment = (classAssessmentsRes?.items || []).find(
             ca => ca && ca.id && ca.courseElementId === elementIdNum,
           );
-          
-          console.log('Relevant assessment found:', relevantAssessment ? {
-            id: relevantAssessment.id,
-            courseElementId: relevantAssessment.courseElementId,
-            endAt: relevantAssessment.endAt,
-            lecturerName: relevantAssessment.lecturerName
-          } : 'Not found');
           
           if (relevantAssessment && relevantAssessment.id) {
             setClassAssessment(relevantAssessment);
@@ -145,203 +134,32 @@ const AssignmentDetailTeacherScreen = () => {
             // Set deadline from class assessment
             if (relevantAssessment.endAt) {
               try {
-                const date = dayjs(relevantAssessment.endAt);
+                const date = dayjs.utc(relevantAssessment.endAt).tz('Asia/Ho_Chi_Minh');
                 const formatted = date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A';
                 setDeadline(formatted);
-                console.log('Deadline set from classAssessment:', formatted);
               } catch (err) {
                 console.error('Error formatting deadline:', err);
                 setDeadline('N/A');
               }
             } else if (data.semesterCourse?.semester?.endDate) {
-              // Fallback to semester end date
               const fallback = dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY');
               setDeadline(fallback);
-              console.log('Deadline set from semester endDate (fallback):', fallback);
             }
-          } else if (data.semesterCourse?.semester?.endDate) {
-            // Fallback to semester end date if no class assessment found
-            const fallback = dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY');
-            setDeadline(fallback);
-            console.log('Deadline set from semester endDate (no assessment found):', fallback);
           }
         } catch (err) {
           console.error('Failed to fetch class assessment:', err);
-          // Fallback to semester end date on error
-          if (data.semesterCourse?.semester?.endDate) {
-            setDeadline(dayjs(data.semesterCourse.semester.endDate).format('DD/MM/YYYY'));
-          }
         }
-
-        // Set up document list
-        const navigateToRequirement = () => {
-          if (foundTemplate) {
-            navigation.navigate('RequirementTeacherScreen', {
-              assessmentTemplate: foundTemplate,
-            });
-          } else {
-            showErrorToast(
-              'Error',
-              'No requirement template found for this assignment.',
-            );
-          }
-        };
-
-        const updatedList = [
-          {
-            id: 1,
-            number: '01',
-            title: 'Requirement',
-            linkFile: '',
-            rightIcon: ViewIcon,
-            onPress: navigateToRequirement,
-            onAction: () => {},
-          },
-        ];
-        if (!isMounted) return;
-        setDynamicDocumentList(updatedList);
 
         // Fetch submissions
         await fetchSubmissions(Number(elementId), foundTemplate?.id);
       } catch (error: any) {
-        console.error(error);
+        console.error('Failed to load lab details:', error);
         if (isMounted) {
-          showErrorToast('Error', 'Failed to load assignment details.');
+          showErrorToast('Error', 'Failed to load lab details.');
         }
       } finally {
         if (isMounted) {
           setIsLoading(false);
-        }
-      }
-    };
-
-    const fetchSubmissions = async (courseElementId: number, templateId?: number) => {
-      try {
-        let allSubmissions: Submission[] = [];
-
-        // Try to fetch from grading groups
-        if (templateId) {
-          try {
-            const gradingGroups = await getGradingGroups({});
-            const relevantGroups = gradingGroups.filter(
-              g => g.assessmentTemplateId === templateId,
-            );
-
-            for (const group of relevantGroups) {
-              const groupSubmissions = await getSubmissionList({
-                gradingGroupId: group.id,
-              });
-              allSubmissions = [...allSubmissions, ...groupSubmissions];
-            }
-          } catch (err) {
-            console.error('Failed to fetch from grading groups:', err);
-          }
-        }
-
-        // Try to fetch from class assessments
-        try {
-          const classAssessmentsRes = await getClassAssessments({
-            pageNumber: 1,
-            pageSize: 1000,
-          });
-          const relevantAssessments = (classAssessmentsRes?.items || []).filter(
-            ca => {
-              // We need to match by course element - this might require additional API calls
-              // For now, we'll use all submissions
-              return true;
-            },
-          );
-
-          for (const assessment of relevantAssessments) {
-            try {
-              const assessmentSubmissions = await getSubmissionList({
-                classAssessmentId: assessment.id,
-              });
-              allSubmissions = [...allSubmissions, ...assessmentSubmissions];
-            } catch (err) {
-              console.error(`Failed to fetch submissions for assessment ${assessment.id}:`, err);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to fetch from class assessments:', err);
-        }
-
-        // Get latest submission per student
-        const studentSubmissions = new Map<number, Submission>();
-        for (const sub of allSubmissions) {
-          if (!sub || !sub.studentId || !sub.submittedAt) continue;
-          const existing = studentSubmissions.get(sub.studentId);
-          if (
-            !existing ||
-            (existing.submittedAt && new Date(sub.submittedAt).getTime() > new Date(existing.submittedAt).getTime())
-          ) {
-            studentSubmissions.set(sub.studentId, sub);
-          }
-        }
-        const uniqueSubmissions = Array.from(studentSubmissions.values())
-          .filter(s => s && s.submittedAt)
-          .sort(
-            (a, b) => {
-              if (!a.submittedAt || !b.submittedAt) return 0;
-              return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
-            }
-          );
-
-        if (!isMounted) return;
-        setSubmissions(uniqueSubmissions);
-
-        // Convert to submission list items
-        const submissionItems: SubmissionItem[] = uniqueSubmissions
-          .filter(sub => sub && sub.id)
-          .map((sub, index) => ({
-            id: sub.id,
-            number: String(index + 1).padStart(2, '0'),
-            title: `${sub.studentName || 'Unknown'} (${sub.studentCode || 'N/A'})`,
-            linkFile: sub.submissionFile?.name || 'No file',
-            rightIcon: sub.submissionFile ? DownloadIcon : ViewIcon,
-            onAction: () => {
-              if (sub.submissionFile) {
-                handleDownloadFile(sub.submissionFile, sub);
-              }
-            },
-            onPress: () => {
-              if (sub?.id) {
-                navigation.navigate('AssignmentGradingScreen', {
-                  submissionId: Number(sub.id),
-                });
-              }
-            },
-          }));
-
-        // Add sample data if no submissions
-        if (submissionItems.length === 0) {
-          submissionItems.push({
-            id: 999,
-            number: '01',
-            title: 'Sample Student (SE12345)',
-            linkFile: 'sample_submission.zip',
-            rightIcon: DownloadIcon,
-            onAction: () => {
-              handleDownloadFile({
-                id: 1,
-                name: 'sample_submission.zip',
-                submissionUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-              }, null);
-            },
-            onPress: () => {
-              navigation.navigate('AssignmentGradingScreen', {
-                submissionId: 999,
-              });
-            },
-          });
-        }
-
-        if (!isMounted) return;
-        setSubmissionList(submissionItems);
-      } catch (error: any) {
-        console.error('Failed to fetch submissions:', error);
-        if (isMounted) {
-          showErrorToast('Error', 'Failed to load submissions.');
         }
       }
     };
@@ -352,6 +170,110 @@ const AssignmentDetailTeacherScreen = () => {
       setIsMounted(false);
     };
   }, [elementId, navigation]);
+
+  const fetchSubmissions = async (courseElementId: number, templateId?: number) => {
+    try {
+      let allSubmissions: Submission[] = [];
+
+      // Try to fetch from grading groups
+      if (templateId) {
+        try {
+          const gradingGroups = await getGradingGroups({});
+          const relevantGroups = gradingGroups.filter(
+            g => g.assessmentTemplateId === templateId,
+          );
+
+          for (const group of relevantGroups) {
+            const groupSubmissions = await getSubmissionList({
+              gradingGroupId: group.id,
+            });
+            allSubmissions = [...allSubmissions, ...groupSubmissions];
+          }
+        } catch (err) {
+          console.error('Failed to fetch from grading groups:', err);
+        }
+      }
+
+      // Try to fetch from class assessments
+      try {
+        const classAssessmentsRes = await getClassAssessments({
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+        const relevantAssessments = (classAssessmentsRes?.items || []).filter(
+          ca => ca && ca.courseElementId === courseElementId,
+        );
+
+        for (const assessment of relevantAssessments) {
+          try {
+            const assessmentSubmissions = await getSubmissionList({
+              classAssessmentId: assessment.id,
+            });
+            allSubmissions = [...allSubmissions, ...assessmentSubmissions];
+          } catch (err) {
+            console.error(`Failed to fetch submissions for assessment ${assessment.id}:`, err);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch from class assessments:', err);
+      }
+
+      // Get latest submission per student
+      const studentSubmissions = new Map<number, Submission>();
+      for (const sub of allSubmissions) {
+        if (!sub || !sub.studentId || !sub.submittedAt) continue;
+        const existing = studentSubmissions.get(sub.studentId);
+        if (
+          !existing ||
+          (existing.submittedAt && new Date(sub.submittedAt).getTime() < new Date(sub.submittedAt).getTime())
+        ) {
+          studentSubmissions.set(sub.studentId, sub);
+        }
+      }
+      const uniqueSubmissions = Array.from(studentSubmissions.values())
+        .filter(s => s && s.submittedAt)
+        .sort(
+          (a, b) => {
+            if (!a.submittedAt || !b.submittedAt) return 0;
+            return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+          }
+        );
+
+      if (!isMounted) return;
+      setSubmissions(uniqueSubmissions);
+
+      // Convert to submission list items
+      const submissionItems: SubmissionItem[] = uniqueSubmissions
+        .filter(sub => sub && sub.id)
+        .map((sub, index) => ({
+          id: sub.id,
+          number: String(index + 1).padStart(2, '0'),
+          title: `${sub.studentName || 'Unknown'} (${sub.studentCode || 'N/A'})`,
+          linkFile: sub.submissionFile?.name || 'No file',
+          rightIcon: sub.submissionFile ? DownloadIcon : ViewIcon,
+          onAction: () => {
+            if (sub.submissionFile) {
+              handleDownloadFile(sub.submissionFile, sub);
+            }
+          },
+          onPress: () => {
+            if (sub?.id) {
+              navigation.navigate('AssignmentGradingScreen', {
+                submissionId: Number(sub.id),
+              });
+            }
+          },
+        }));
+
+      if (!isMounted) return;
+      setSubmissionList(submissionItems);
+    } catch (error: any) {
+      console.error('Failed to fetch submissions:', error);
+      if (isMounted) {
+        showErrorToast('Error', 'Failed to load submissions.');
+      }
+    }
+  };
 
   const requestStoragePermission = async () => {
     if (Platform.OS !== 'android') return true;
@@ -425,24 +347,7 @@ const AssignmentDetailTeacherScreen = () => {
   };
 
   const handleDownloadAllSubmissions = async () => {
-    const submissionsToDownload = submissions.length > 0 ? submissions : [
-      {
-        id: 999,
-        studentId: 1,
-        studentName: 'Sample Student',
-        studentCode: 'SE12345',
-        submittedAt: new Date().toISOString(),
-        status: 1,
-        lastGrade: 0,
-        submissionFile: {
-          id: 1,
-          name: 'sample_submission.zip',
-          submissionUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+    const submissionsToDownload = submissions.length > 0 ? submissions : [];
 
     if (submissionsToDownload.length === 0) {
       showErrorToast('Error', 'No submissions to download.');
@@ -514,21 +419,16 @@ const AssignmentDetailTeacherScreen = () => {
 
   const handleDeadlineChange = async (newDeadline: string) => {
     if (!elementId) {
-      showErrorToast('Error', 'No assignment ID provided.');
+      showErrorToast('Error', 'No lab ID provided.');
       return;
     }
 
     try {
-      // Parse the deadline string to dayjs object
-      // Format from AssignmentCardInfo: "DD/MM/YYYY" or "YYYY-MM-DD HH:mm"
       let deadlineDate: dayjs.Dayjs;
       
-      // Try different formats
       if (newDeadline.includes('/')) {
-        // DD/MM/YYYY format - convert to Vietnam timezone first, then to UTC
         deadlineDate = dayjs(newDeadline, 'DD/MM/YYYY').tz('Asia/Ho_Chi_Minh');
       } else if (newDeadline.includes('-') && newDeadline.includes(':')) {
-        // YYYY-MM-DD HH:mm format - assume it's already in Vietnam timezone
         deadlineDate = dayjs.tz(newDeadline, 'YYYY-MM-DD HH:mm', 'Asia/Ho_Chi_Minh');
       } else {
         deadlineDate = dayjs(newDeadline);
@@ -539,12 +439,9 @@ const AssignmentDetailTeacherScreen = () => {
         return;
       }
 
-      // Convert Vietnam time to UTC ISO string (like web version)
       const utcDeadline = deadlineDate.utc().toISOString();
 
-      // Check if classAssessment exists
       if (classAssessment && classAssessment.id) {
-        // Update existing class assessment
         await updateClassAssessment(classAssessment.id, {
           classId: classAssessment.classId,
           assessmentTemplateId: classAssessment.assessmentTemplateId,
@@ -553,8 +450,6 @@ const AssignmentDetailTeacherScreen = () => {
         });
         showSuccessToast('Success', 'Deadline updated successfully.');
       } else if (templateData && templateData.id) {
-        // Create new class assessment if it doesn't exist
-        // Need to get classId from AsyncStorage
         const classId = await AsyncStorage.getItem('selectedClassId');
         if (!classId) {
           showErrorToast('Error', 'Cannot find class ID. Please select a class first.');
@@ -571,23 +466,20 @@ const AssignmentDetailTeacherScreen = () => {
       } else {
         showErrorToast(
           'Error',
-          'This assignment does not have an assessment template. Please create a template first to set the deadline.',
+          'This lab does not have an assessment template. Please create a template first to set the deadline.',
         );
         return;
       }
 
-      // Update local state with formatted deadline
       const formattedDeadline = deadlineDate.format('YYYY-MM-DD HH:mm');
       setDeadline(formattedDeadline);
       
-      // Refresh data to get updated classAssessment
       if (elementId) {
         const data = await fetchCourseElementById(elementId);
         if (isMounted) {
           setElementData(data);
         }
         
-        // Re-fetch class assessment
         const classAssessmentsRes = await getClassAssessments({
           pageNumber: 1,
           pageSize: 1000,
@@ -598,7 +490,6 @@ const AssignmentDetailTeacherScreen = () => {
         );
         if (isMounted && relevantAssessment) {
           setClassAssessment(relevantAssessment);
-          // Update deadline display
           if (relevantAssessment.endAt) {
             const date = dayjs.utc(relevantAssessment.endAt).tz('Asia/Ho_Chi_Minh');
             const formatted = date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A';
@@ -618,7 +509,6 @@ const AssignmentDetailTeacherScreen = () => {
       return;
     }
 
-    // Get assessmentTemplateId
     const assessmentTemplateId = templateData?.id || classAssessment?.assessmentTemplateId;
     if (!assessmentTemplateId) {
       showErrorToast('Error', 'Cannot find assessment template. Please contact administrator.');
@@ -629,7 +519,6 @@ const AssignmentDetailTeacherScreen = () => {
       setBatchGradingLoading(true);
       showSuccessToast('Info', `Starting batch grading for ${submissions.length} submission(s)...`);
 
-      // Call auto grading for each submission
       const gradingPromises = submissions.map(async (submission) => {
         try {
           await gradingService.autoGrading({
@@ -674,7 +563,7 @@ const AssignmentDetailTeacherScreen = () => {
     return (
       <AppSafeView style={styles.loadingContainer}>
         <AppText style={styles.errorText}>
-          Failed to load assignment data.
+          Failed to load lab data.
         </AppText>
       </AppSafeView>
     );
@@ -701,7 +590,7 @@ const AssignmentDetailTeacherScreen = () => {
           source={require('../assets/images/assignment.png')}
         />
         <AssignmentCardInfo
-          assignmentType="Assignment"
+          assignmentType="Lab"
           assignmentTitle={elementData.name}
           dueDate={deadline}
           lecturerName={classAssessment?.lecturerName || userProfile?.name || 'Lecturer'}
@@ -739,7 +628,7 @@ const AssignmentDetailTeacherScreen = () => {
   );
 };
 
-export default AssignmentDetailTeacherScreen;
+export default LabDetailTeacherScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -763,3 +652,4 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 });
+

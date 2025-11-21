@@ -131,6 +131,8 @@ const styles = StyleSheet.create({
     gap: s(8),
     borderWidth: 1, // Add default border width
     borderColor: 'transparent', // Default transparent
+    minWidth: 0, // Allow button to shrink below minWidth
+    flexShrink: 1, // Allow button to shrink
   },
   textTitle: {
     textAlign: 'center', // Ensure text is centered

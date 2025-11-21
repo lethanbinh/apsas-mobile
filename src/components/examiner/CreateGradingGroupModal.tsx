@@ -1,27 +1,46 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View, TouchableOpacity, Alert } from 'react-native';
-import { Modal, Portal } from 'react-native-paper';
-import { Controller, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { s, vs } from 'react-native-size-matters';
 import { pick } from '@react-native-documents/picker';
-import RNPickerSelect from 'react-native-picker-select';
-import AppButton from '../buttons/AppButton';
-import AppText from '../texts/AppText';
-import { AppColors } from '../../styles/color';
-import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Modal, Portal } from 'react-native-paper';
+import { s, vs } from 'react-native-size-matters';
+import * as yup from 'yup';
+import { assessmentTemplateService } from '../../api/assessmentTemplateServiceWrapper';
 import {
+  addSubmissionsByFile,
   createGradingGroup,
   CreateGradingGroupPayload,
   GradingGroup,
 } from '../../api/gradingGroupService';
-import { fetchLecturerList, LecturerListData } from '../../api/lecturerService';
-import { assessmentTemplateService } from '../../api/assessmentTemplateServiceWrapper';
-import { addSubmissionsByFile } from '../../api/gradingGroupService';
-import { getSubmissionList } from '../../api/submissionService';
 import { uploadTestFile } from '../../api/gradingService';
-import Feather from 'react-native-vector-icons/Feather';
+import { LecturerListData } from '../../api/lecturerService';
+import { getSubmissionList } from '../../api/submissionService';
+import { AppColors } from '../../styles/color';
+import AppText from '../texts/AppText';
+import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
+import AssessmentTemplatePicker from './AssessmentTemplatePicker';
+import FileUploadSection from './FileUploadSection';
+import LecturerPicker from './LecturerPicker';
+import ModalActions from './ModalActions';
+
+// Helper function to check if an assessment template is a PE (Practical Exam)
+function isPracticalExamTemplate(template: any): boolean {
+  const name = (template.courseElementName || '').toLowerCase();
+  const keywords = [
+    'exam',
+    'pe',
+    'practical exam',
+    'practical',
+    'test',
+    'kiểm tra thực hành',
+    'thi thực hành',
+    'bài thi',
+    'bài kiểm tra',
+    'thực hành',
+  ];
+  return keywords.some((keyword) => name.includes(keyword));
+}
 
 const schema = yup
   .object({
@@ -45,9 +64,9 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
   visible,
   onDismiss,
   onSuccess,
-  allLecturers,
-  existingGroups,
-  gradingGroupToSemesterMap,
+  allLecturers = [],
+  existingGroups = [],
+  gradingGroupToSemesterMap = new Map(),
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [assessmentTemplates, setAssessmentTemplates] = useState<any[]>([]);
@@ -59,7 +78,9 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
     handleSubmit,
     reset,
     watch,
-    formState: { isSubmitting },
+    setError,
+    clearErrors,
+    formState: { isSubmitting, errors },
   } = useForm<FormData>({
     resolver: yupResolver(schema) as any,
     defaultValues: {
@@ -68,43 +89,66 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
     },
   });
 
+  const selectedLecturerId = watch('lecturerId');
   const selectedTemplateId = watch('assessmentTemplateId');
-  const selectedTemplate = useMemo(() => {
-    return assessmentTemplates.find(t => t && t.id === selectedTemplateId);
-  }, [assessmentTemplates, selectedTemplateId]);
 
-  const isWebApiTemplate = selectedTemplate?.templateType === 1;
-
-  useEffect(() => {
-    if (visible) {
-      reset({
-        lecturerId: undefined,
-        assessmentTemplateId: null,
-      });
-      setSelectedFiles([]);
-      fetchAssessmentTemplates();
-    }
-  }, [visible, reset]);
-
-  const fetchAssessmentTemplates = async () => {
+  const fetchAssessmentTemplates = useCallback(async () => {
     setLoadingTemplates(true);
     try {
       const response = await assessmentTemplateService.getAssessmentTemplates({
         pageNumber: 1,
         pageSize: 1000,
       });
-      setAssessmentTemplates(response.items || []);
+      // Filter PE templates by keywords in courseElementName
+      const peTemplates = (response?.items || []).filter(
+        t => t && isPracticalExamTemplate(t)
+      );
+      setAssessmentTemplates(peTemplates);
     } catch (err) {
       console.error('Failed to fetch assessment templates:', err);
+      showErrorToast('Error', 'Failed to load assessment templates.');
     } finally {
       setLoadingTemplates(false);
     }
-  };
+  }, []);
 
-  const getSemesterCodeForTemplate = (templateId: number): string | null => {
-    // This would need course element data, simplified for now
-    return null;
-  };
+  useEffect(() => {
+    if (visible) {
+      try {
+        reset({
+          lecturerId: undefined,
+          assessmentTemplateId: null,
+        });
+        setSelectedFiles([]);
+        fetchAssessmentTemplates();
+      } catch (err) {
+        console.error('Error initializing modal:', err);
+      }
+    }
+  }, [visible, reset, clearErrors, fetchAssessmentTemplates]);
+
+  // Validate duplicate assignment when lecturer or template changes
+  useEffect(() => {
+    const lecturerId = selectedLecturerId;
+    const templateId = selectedTemplateId;
+    
+    if (lecturerId && templateId) {
+      const isDuplicate = (existingGroups || []).some(group => {
+        if (!group || !group.id) return false;
+        return group.lecturerId === Number(lecturerId) && 
+               group.assessmentTemplateId === templateId;
+      });
+      
+      if (isDuplicate) {
+        setError('assessmentTemplateId', {
+          type: 'manual',
+          message: 'This teacher has already been assigned this assessment template.',
+        });
+      } else {
+        clearErrors('assessmentTemplateId');
+      }
+    }
+  }, [selectedLecturerId, selectedTemplateId, existingGroups, setError, clearErrors]);
 
   const validateFileName = (fileName: string): boolean => {
     const pattern = /^STU\d{6}\.zip$/i;
@@ -171,40 +215,35 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
     setIsLoading(true);
 
     try {
-      // Validate duplicate assignment
+      // Validate duplicate assignment (already checked in form, but double-check here)
       if (data.lecturerId && data.assessmentTemplateId) {
-        try {
-          const newSemesterCode = getSemesterCodeForTemplate(data.assessmentTemplateId);
-
-          if (newSemesterCode) {
-            const lecturerIdNum = Number(data.lecturerId);
-            if (isNaN(lecturerIdNum)) {
-              showErrorToast('Error', 'Invalid lecturer ID.');
-              setIsLoading(false);
-              return;
-            }
-
-            const duplicateGroup = existingGroups.find(group => {
-              if (!group || !group.id) return false;
-              if (group.lecturerId !== lecturerIdNum || group.assessmentTemplateId !== data.assessmentTemplateId) {
-                return false;
-              }
-              const existingSemester = gradingGroupToSemesterMap.get(group.id);
-              return existingSemester === newSemesterCode;
-            });
-
-            if (duplicateGroup) {
-              showErrorToast(
-                'Error',
-                `This teacher has already been assigned this assessment template for semester ${newSemesterCode}!`,
-              );
-              setIsLoading(false);
-              return;
-            }
-          }
-        } catch (validationErr) {
-          console.error('Error validating duplicate assignment:', validationErr);
+        const lecturerIdNum = Number(data.lecturerId);
+        if (isNaN(lecturerIdNum)) {
+          showErrorToast('Error', 'Invalid lecturer ID.');
+          setIsLoading(false);
+          return;
         }
+
+        const duplicateGroup = (existingGroups || []).find(group => {
+          if (!group || !group.id) return false;
+          return group.lecturerId === lecturerIdNum && 
+                 group.assessmentTemplateId === data.assessmentTemplateId;
+        });
+
+        if (duplicateGroup) {
+          showErrorToast(
+            'Error',
+            'This teacher has already been assigned this assessment template!',
+          );
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (!data.assessmentTemplateId) {
+        showErrorToast('Error', 'Assessment template is required.');
+        setIsLoading(false);
+        return;
       }
 
       // Create grading group
@@ -217,7 +256,7 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
 
       const payload: CreateGradingGroupPayload = {
         lecturerId: lecturerIdNum,
-        assessmentTemplateId: data.assessmentTemplateId || null,
+        assessmentTemplateId: data.assessmentTemplateId,
       };
 
       const group = await createGradingGroup(payload);
@@ -300,23 +339,10 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
     }
   };
 
-  const lecturerOptions = (allLecturers || [])
-    .filter(l => l && l.lecturerId)
-    .map(l => ({
-      label: `${(l.fullName && typeof l.fullName === 'string') ? l.fullName : 'Unknown'} (${l.accountCode || 'N/A'})`,
-      value: Number(l.lecturerId),
-    }))
-    .filter(opt => !isNaN(opt.value));
 
-  const templateOptions = [
-    { label: 'None', value: null },
-    ...(assessmentTemplates || [])
-      .filter(t => t && t.id && typeof t.id === 'number')
-      .map(t => ({
-        label: `${(t.name && typeof t.name === 'string') ? t.name : 'Unknown'} - ${(t.courseElementName && typeof t.courseElementName === 'string') ? t.courseElementName : 'N/A'}`,
-        value: t.id,
-      })),
-  ];
+  if (!visible) {
+    return null;
+  }
 
   return (
     <Portal>
@@ -334,86 +360,33 @@ const CreateGradingGroupModal: React.FC<CreateGradingGroupModalProps> = ({
             Assign Teacher
           </AppText>
 
-          <View style={styles.formGroup}>
-            <AppText style={styles.label}>Select Teacher *</AppText>
-            <Controller
+          <LecturerPicker
               control={control}
-              name="lecturerId"
-              render={({ field: { onChange, value } }) => (
-                <RNPickerSelect
-                  onValueChange={onChange}
-                  value={value}
-                  placeholder={{ label: 'Select teacher', value: null }}
-                  items={lecturerOptions}
-                  style={pickerSelectStyles}
+            allLecturers={allLecturers}
                 />
-              )}
-            />
-          </View>
 
-          <View style={styles.formGroup}>
-            <AppText style={styles.label}>Assessment Template (Optional)</AppText>
-            <Controller
-              control={control}
-              name="assessmentTemplateId"
-              render={({ field: { onChange, value } }) => (
-                <RNPickerSelect
-                  onValueChange={onChange}
-                  value={value}
-                  placeholder={{ label: 'Select assessment template', value: null }}
-                  items={templateOptions}
-                  style={pickerSelectStyles}
-                  disabled={loadingTemplates}
-                />
-              )}
-            />
-          </View>
+          <AssessmentTemplatePicker
+                  control={control}
+            assessmentTemplates={assessmentTemplates}
+            loadingTemplates={loadingTemplates}
+            selectedLecturerId={selectedLecturerId}
+            existingGroups={existingGroups}
+            errors={errors}
+            clearErrors={clearErrors}
+          />
 
-          <View style={styles.formGroup}>
-            <AppText style={styles.label}>Upload Submissions (Optional)</AppText>
-            <AppText style={styles.helpText}>
-              ZIP files will be extracted and submissions will be created automatically.
-              File names must be in format STUXXXXXX.zip (e.g., STU123456.zip)
-            </AppText>
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={handlePickFiles}
-            >
-              <Feather name="upload" size={s(20)} color={AppColors.pr500} />
-              <AppText style={styles.uploadButtonText}>Select ZIP Files</AppText>
-            </TouchableOpacity>
+          <FileUploadSection
+            selectedFiles={selectedFiles}
+            onPickFiles={handlePickFiles}
+            onRemoveFile={removeFile}
+          />
 
-            {selectedFiles.length > 0 && (
-              <View style={styles.fileList}>
-                {selectedFiles.map((file, index) => (
-                  <View key={index} style={styles.fileItem}>
-                    <Feather name="file" size={s(16)} color={AppColors.n600} />
-                    <AppText style={styles.fileName} numberOfLines={1}>
-                      {file.name}
-                    </AppText>
-                    <TouchableOpacity onPress={() => removeFile(index)}>
-                      <Feather name="x" size={s(16)} color={AppColors.r500} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-
-          <View style={styles.buttonContainer}>
-            <AppButton
-              title="Cancel"
-              onPress={onDismiss}
-              variant="outline"
-              style={styles.cancelButton}
+          <ModalActions
+            onCancel={onDismiss}
+            onSubmit={handleSubmit(onSubmit)}
+            isLoading={isLoading}
+            isSubmitting={isSubmitting}
             />
-            <AppButton
-              title="Assign"
-              onPress={handleSubmit(onSubmit)}
-              loading={isLoading || isSubmitting}
-              style={styles.submitButton}
-            />
-          </View>
         </ScrollView>
       </Modal>
     </Portal>
@@ -436,90 +409,5 @@ const styles = StyleSheet.create({
     marginBottom: vs(20),
     color: AppColors.n900,
   },
-  formGroup: {
-    marginBottom: vs(15),
-  },
-  label: {
-    fontSize: s(14),
-    fontWeight: '600',
-    color: AppColors.n700,
-    marginBottom: vs(8),
-  },
-  helpText: {
-    fontSize: s(12),
-    color: AppColors.n500,
-    marginBottom: vs(8),
-  },
-  uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: vs(12),
-    backgroundColor: AppColors.pr100,
-    borderRadius: s(8),
-    borderWidth: 1,
-    borderColor: AppColors.pr300,
-    borderStyle: 'dashed',
-  },
-  uploadButtonText: {
-    marginLeft: s(8),
-    color: AppColors.pr500,
-    fontWeight: '600',
-  },
-  fileList: {
-    marginTop: vs(10),
-  },
-  fileItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: vs(8),
-    backgroundColor: AppColors.n50,
-    borderRadius: s(6),
-    marginBottom: vs(6),
-  },
-  fileName: {
-    flex: 1,
-    marginLeft: s(8),
-    fontSize: s(12),
-    color: AppColors.n700,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: vs(20),
-    gap: s(12),
-  },
-  cancelButton: {
-    flex: 1,
-  },
-  submitButton: {
-    flex: 1,
-  },
 });
-
-const pickerSelectStyles = {
-  inputIOS: {
-    fontSize: s(14),
-    paddingVertical: vs(12),
-    paddingHorizontal: s(12),
-    borderWidth: 1,
-    borderColor: AppColors.n200,
-    borderRadius: s(8),
-    color: AppColors.n900,
-    backgroundColor: AppColors.white,
-  },
-  inputAndroid: {
-    fontSize: s(14),
-    paddingVertical: vs(12),
-    paddingHorizontal: s(12),
-    borderWidth: 1,
-    borderColor: AppColors.n200,
-    borderRadius: s(8),
-    color: AppColors.n900,
-    backgroundColor: AppColors.white,
-  },
-  placeholder: {
-    color: AppColors.n500,
-  },
-};
 

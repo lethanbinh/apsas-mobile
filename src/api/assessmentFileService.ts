@@ -234,16 +234,57 @@ export interface GetFilesForTemplateResponse {
   total: number;
 }
 
+export interface AssessmentFileListResult {
+  currentPage: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  items: AssessmentFileData[];
+}
+
+export interface AssessmentFileListApiResponse {
+  statusCode: number;
+  isSuccess: boolean;
+  errorMessages: any[];
+  result: AssessmentFileListResult;
+}
+
 export const getFilesForTemplate = async (
   params: GetFilesForTemplateParams,
 ): Promise<GetFilesForTemplateResponse> => {
   try {
-    const files = await getAssessmentFilesByTemplateId(params.assessmentTemplateId);
-    return {
-      items: files,
-      total: files.length,
-    };
+    // Use /AssessmentFile/page endpoint with query params (same as web version)
+    const queryParams = new URLSearchParams({
+      assessmentTemplateId: params.assessmentTemplateId.toString(),
+      pageNumber: params.pageNumber.toString(),
+      pageSize: params.pageSize.toString(),
+    });
+    
+    const response = await ApiService.get<AssessmentFileListResult>(
+      `/api/AssessmentFile/page?${queryParams.toString()}`,
+    );
+    
+    if (response.result && response.result.items) {
+      return {
+        items: response.result.items,
+        total: response.result.totalCount,
+      };
+    } else {
+      console.warn('getFilesForTemplate: API returned no result array.');
+      return {
+        items: [],
+        total: 0,
+      };
+    }
   } catch (error: any) {
+    // 404 is expected when template has no files - return empty array
+    if (error?.response?.status === 404 || error?.message?.includes('404')) {
+      console.warn(`No files found for template ${params.assessmentTemplateId} (404 - expected when template has no files)`);
+      return {
+        items: [],
+        total: 0,
+      };
+    }
     console.error('Failed to fetch files for template:', error);
     throw error;
   }

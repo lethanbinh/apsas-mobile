@@ -48,6 +48,8 @@ const TaskListScreen = () => {
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<string | null>(semesterCode || null);
   const [semesterList, setSemesterList] = useState<SemesterData[]>([]);
+  const [templateMap, setTemplateMap] = useState<Map<number, AssessmentTemplateData | null>>(new Map());
+  const [loadingTemplates, setLoadingTemplates] = useState<Set<number>>(new Set());
 
   // Fetch semester list on mount
   useEffect(() => {
@@ -115,26 +117,12 @@ const TaskListScreen = () => {
           return;
         }
 
-        // Fetch templates tương ứng
-        const templatePromises = assignRequests
-          .filter(ar => ar && ar.id)
-          .map(ar =>
-            fetchAssessmentTemplates({
-              pageNumber: 1,
-              pageSize: 1,
-              assignRequestId: ar.id,
-            })
-              .then(res => ({
-                assignRequest: ar,
-                template: (res?.items && res.items[0]) || null,
-              }))
-              .catch(err => {
-                console.error(`Error fetching template for AR ${ar.id}:`, err);
-                return { assignRequest: ar, template: null };
-              }),
-          );
-
-        const combinedData = await Promise.all(templatePromises);
+        // Don't fetch templates upfront - lazy load when needed
+        // This prevents crashes and improves performance
+        const combinedData = assignRequests.map(ar => ({
+          assignRequest: ar,
+          template: null as AssessmentTemplateData | null,
+        }));
 
         // Group data theo courseName
         const coursesMap = new Map<
@@ -284,24 +272,51 @@ const TaskListScreen = () => {
                       {(course.assignmentsData || [])
                         .filter(item => item && item.assignRequest && item.assignRequest.id)
                         .map(
-                          ({ assignRequest, template }) => (
-                            <AssignmentAccordion
-                              key={assignRequest.id}
-                              assignRequest={assignRequest}
-                              template={template || null}
-                              isExpanded={
-                                expandedAssignment === String(assignRequest.id)
-                              }
-                              onToggle={() =>
-                                setExpandedAssignment(prevId =>
-                                  prevId === String(assignRequest.id)
+                          ({ assignRequest }) => {
+                            const template = templateMap.get(assignRequest.id) ?? null;
+                            const isLoadingTemplate = loadingTemplates.has(assignRequest.id);
+                            
+                            return (
+                              <AssignmentAccordion
+                                key={assignRequest.id}
+                                assignRequest={assignRequest}
+                                template={template}
+                                isExpanded={
+                                  expandedAssignment === String(assignRequest.id)
+                                }
+                                onToggle={async () => {
+                                  const newExpandedId = expandedAssignment === String(assignRequest.id)
                                     ? null
-                                    : String(assignRequest.id),
-                                )
-                              }
-                              onSuccess={handleRefresh}
-                            />
-                          ),
+                                    : String(assignRequest.id);
+                                  setExpandedAssignment(newExpandedId);
+                                  
+                                  // Lazy load template when expanding
+                                  if (newExpandedId && !templateMap.has(assignRequest.id) && !isLoadingTemplate) {
+                                    setLoadingTemplates(prev => new Set(prev).add(assignRequest.id));
+                                    try {
+                                      const res = await fetchAssessmentTemplates({
+                                        pageNumber: 1,
+                                        pageSize: 1,
+                                        assignRequestId: assignRequest.id,
+                                      });
+                                      const fetchedTemplate = (res?.items && res.items[0]) || null;
+                                      setTemplateMap(prev => new Map(prev).set(assignRequest.id, fetchedTemplate));
+                                    } catch (err) {
+                                      console.error(`Error fetching template for AR ${assignRequest.id}:`, err);
+                                      setTemplateMap(prev => new Map(prev).set(assignRequest.id, null));
+                                    } finally {
+                                      setLoadingTemplates(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(assignRequest.id);
+                                        return newSet;
+                                      });
+                                    }
+                                  }
+                                }}
+                                onSuccess={handleRefresh}
+                              />
+                            );
+                          }
                         )}
                     </View>
                   )}

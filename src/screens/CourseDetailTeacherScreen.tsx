@@ -23,6 +23,7 @@ import AppText from '../components/texts/AppText';
 import { showErrorToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
+import ReadMoreText from '../components/common/ReadMoreText';
 
 const CourseDetailTeacherScreen = () => {
   const navigation = useNavigation<any>();
@@ -182,10 +183,11 @@ const CourseDetailTeacherScreen = () => {
           </View>
         </View>
         <View style={styles.descriptionContainer}>
-          <AppText>
-            {classData.description ||
-              'No description available for this class.'}{' '}
-          </AppText>
+          <ReadMoreText
+            text={classData.description || 'No description available for this class.'}
+            numberOfLines={1}
+            textStyle={styles.descriptionText}
+          />
         </View>
       </View>
       <View style={styles.navigationWrapper}>
@@ -270,6 +272,12 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     padding: s(20),
+    paddingTop: vs(10),
+  },
+  descriptionText: {
+    fontSize: s(14),
+    lineHeight: vs(22),
+    color: AppColors.n900,
   },
   navigationWrapper: {
     marginTop: vs(200),

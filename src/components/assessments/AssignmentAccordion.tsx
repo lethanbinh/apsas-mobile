@@ -56,7 +56,7 @@ import QuestionItem from './QuestionItem';
 import StatusTag from './StatusTag';
 import {
   deleteAssessmentFile,
-  getAssessmentFilesByTemplateId,
+  getFilesForTemplate,
   uploadAssessmentFile,
 } from '../../api/assessmentFileService';
 
@@ -178,9 +178,14 @@ const AssignmentAccordion = ({
       setIsInitializing(true);
       if (template) {
         try {
-          const files = await getAssessmentFilesByTemplateId(template.id);
+          // Use /AssessmentFile/page endpoint (same as web version)
+          const filesResponse = await getFilesForTemplate({
+            assessmentTemplateId: template.id,
+            pageNumber: 1,
+            pageSize: 100,
+          });
           setAttachedFiles(
-            files.map(f => ({
+            filesResponse.items.map(f => ({
               id: f.id,
               name: f.name,
               fileUrl: f.fileUrl,

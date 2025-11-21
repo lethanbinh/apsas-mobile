@@ -11,7 +11,17 @@ import { getClassAssessments } from '../api/classAssessmentService';
 import { useGetCurrentStudentId } from '../hooks/useGetCurrentStudentId';
 import { showErrorToast } from '../components/toasts/AppToast';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import AppText from '../components/texts/AppText';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// Helper function to convert UTC to Vietnam time (UTC+7)
+const toVietnamTime = (dateString: string) => {
+  return dayjs.utc(dateString).tz('Asia/Ho_Chi_Minh');
+};
 
 interface SubmissionHistoryItemData {
   id: number;
@@ -94,14 +104,18 @@ const SubmissionHistoryScreen = () => {
           if (!assessment || !assessment.id) return;
 
           try {
-            // Determine status
+            // Determine status using Vietnam timezone
             let status: 'Late' | 'On time' | 'Missing' = 'On time';
             if (sub.submittedAt && assessment.endAt) {
               try {
-                const submittedDate = dayjs(sub.submittedAt);
-                const deadlineDate = dayjs(assessment.endAt);
-                if (submittedDate.isValid() && deadlineDate.isValid() && submittedDate.isAfter(deadlineDate)) {
-                  status = 'Late';
+                const submittedDate = toVietnamTime(sub.submittedAt);
+                const deadlineDate = toVietnamTime(assessment.endAt);
+                if (submittedDate.isValid() && deadlineDate.isValid()) {
+                  if (submittedDate.isAfter(deadlineDate)) {
+                    status = 'Late';
+                  } else {
+                    status = 'On time';
+                  }
                 }
               } catch (dateErr) {
                 console.error('Error parsing dates:', dateErr);
@@ -116,12 +130,13 @@ const SubmissionHistoryScreen = () => {
 
             const colorIndex = historyItems.length % colorOptions.length;
             
+            // Format submission time using Vietnam timezone
             let submissionTime = 'N/A';
             try {
               if (sub.submittedAt) {
-                const formatted = dayjs(sub.submittedAt).format('DD/MM/YYYY – HH:mm');
-                if (formatted && formatted !== 'Invalid Date') {
-                  submissionTime = formatted;
+                const vietnamTime = toVietnamTime(sub.submittedAt);
+                if (vietnamTime.isValid()) {
+                  submissionTime = vietnamTime.format('DD/MM/YYYY – HH:mm');
                 }
               }
             } catch (timeErr) {

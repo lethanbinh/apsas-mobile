@@ -236,6 +236,17 @@ const ExaminerGradingGroupsScreen = () => {
       .sort();
   }, [allSemesters]);
 
+  // Calculate statistics
+  const totalAssignments = useMemo(() => {
+    return groupedByLecturer.reduce((sum, lecturer) => sum + lecturer.groups.length, 0);
+  }, [groupedByLecturer]);
+
+  const totalSubmissions = useMemo(() => {
+    return groupedByLecturer.reduce((sum, lecturer) => 
+      sum + lecturer.groups.reduce((groupSum, group) => groupSum + (group.submissionCount || 0), 0), 0
+    );
+  }, [groupedByLecturer]);
+
   const handleOpenAssign = (group: GradingGroup) => {
     try {
       if (group && group.id) {
@@ -409,6 +420,22 @@ const ExaminerGradingGroupsScreen = () => {
         }
       />
       <View style={styles.container}>
+        {/* Statistics */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <AppText style={styles.statTitle}>Number of Assignments</AppText>
+            <AppText style={[styles.statValue, { color: AppColors.b500 }]}>
+              {totalAssignments}
+            </AppText>
+          </View>
+          <View style={styles.statCard}>
+            <AppText style={styles.statTitle}>Total Submissions</AppText>
+            <AppText style={[styles.statValue, { color: AppColors.g500 }]}>
+              {totalSubmissions}
+            </AppText>
+          </View>
+        </View>
+
         <View style={styles.filterContainer}>
           <AppText style={styles.filterLabel}>Filter by Semester:</AppText>
           <RNPickerSelect
@@ -511,6 +538,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: AppColors.n50,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: s(16),
+    marginBottom: vs(20),
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: AppColors.white,
+    borderRadius: s(12),
+    padding: s(16),
+    shadowColor: AppColors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: AppColors.n200,
+  },
+  statTitle: {
+    fontSize: s(13),
+    color: AppColors.n600,
+    marginBottom: vs(8),
+    fontWeight: '500',
+  },
+  statValue: {
+    fontSize: s(24),
+    fontWeight: '700',
   },
   filterContainer: {
     marginBottom: vs(20),

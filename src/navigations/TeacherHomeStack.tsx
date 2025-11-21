@@ -27,6 +27,8 @@ import MyGradingGroupScreen from '../screens/MyGradingGroupScreen';
 import MembersScreen from '../screens/MembersScreen';
 import PracticalExamListScreen from '../screens/PracticalExamListScreen';
 import PracticalExamDetailScreen from '../screens/PracticalExamDetailScreen';
+import LabDetailTeacherScreen from '../screens/LabDetailTeacherScreen';
+import PracticalExamDetailTeacherScreen from '../screens/PracticalExamDetailTeacherScreen';
 
 const TeacherHomeStack = createStackNavigator();
 const TeacherHomeStackNavigator = () => {
@@ -133,6 +135,14 @@ const TeacherHomeStackNavigator = () => {
       <TeacherHomeStack.Screen
         name="PracticalExamDetailScreen"
         component={PracticalExamDetailScreen}
+      />
+      <TeacherHomeStack.Screen
+        name="LabDetailTeacherScreen"
+        component={LabDetailTeacherScreen}
+      />
+      <TeacherHomeStack.Screen
+        name="PracticalExamDetailTeacherScreen"
+        component={PracticalExamDetailTeacherScreen}
       />
     </TeacherHomeStack.Navigator>
   );

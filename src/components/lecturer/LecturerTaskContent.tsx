@@ -163,6 +163,7 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
       if (!isMounted) return;
       setRubrics(rubricsMap);
 
+      // Use /AssessmentFile/page endpoint (same as web version)
       const fileResponse = await assessmentFileService.getFilesForTemplate({
         assessmentTemplateId: templateId,
         pageNumber: 1,
@@ -224,6 +225,7 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
   const refreshFiles = async () => {
     if (!template) return;
     try {
+      // Use /AssessmentFile/page endpoint (same as web version)
       const fileResponse = await assessmentFileService.getFilesForTemplate({
         assessmentTemplateId: template.id,
         pageNumber: 1,
@@ -233,6 +235,8 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
       setFiles(fileResponse?.items || []);
     } catch (error) {
       console.error('Failed to refresh files:', error);
+      if (!isMounted) return;
+      setFiles([]);
     }
   };
 

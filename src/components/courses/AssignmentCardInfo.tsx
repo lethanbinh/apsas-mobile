@@ -13,6 +13,7 @@ import AppButton from '../buttons/AppButton';
 import AppText from '../texts/AppText';
 import { EditAssessmentIcon } from '../../assets/icons/icon';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import ReadMoreText from '../common/ReadMoreText';
 
 interface AssignmentCardInfoProps {
   assignmentType?: string;
@@ -132,9 +133,11 @@ const AssignmentCardInfo = ({
       </View>
 
       <View style={styles.descriptionContainer}>
-        <AppText style={styles.descriptionText} numberOfLines={undefined}>
-          {description}
-        </AppText>
+        <ReadMoreText
+          text={description || ''}
+          numberOfLines={1}
+          textStyle={styles.descriptionText}
+        />
       </View>
 
       {!isAssessment && (

@@ -23,6 +23,7 @@ interface CurriculumSection {
     onPress?: () => void;
   }[];
   sectionButton?: string;
+  sectionSecondaryButton?: string;
 }
 
 interface CurriculumListProps {
@@ -61,7 +62,7 @@ const CurriculumList = ({
       keyExtractor={(item, index) =>
         item.id ? String(item.id) : String(index)
       }
-      renderSectionHeader={({ section: { title, sectionButton } }) => {
+      renderSectionHeader={({ section: { title, sectionButton, sectionSecondaryButton } }) => {
         if (hideSectionHeader) return null;
         return (
           <View
@@ -80,25 +81,46 @@ const CurriculumList = ({
               </AppText>
             </View>
 
-            {sectionButton && (
-              <TouchableOpacity
-                onPress={() => {
-                  if (onSectionButtonPress) {
-                    onSectionButtonPress(title);
-                  }
-                }}
-              >
-                <AppText
-                  variant="body12pxBold"
-                  style={{
-                    color: AppColors.pr500,
-                    marginBottom: vs(15),
+            <View style={{ flexDirection: 'row', gap: s(15) }}>
+              {sectionSecondaryButton && (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (onSectionButtonPress) {
+                      onSectionButtonPress(title + '_secondary');
+                    }
                   }}
                 >
-                  {sectionButton}
-                </AppText>
-              </TouchableOpacity>
-            )}
+                  <AppText
+                    variant="body12pxBold"
+                    style={{
+                      color: AppColors.g500,
+                      marginBottom: vs(15),
+                    }}
+                  >
+                    {sectionSecondaryButton}
+                  </AppText>
+                </TouchableOpacity>
+              )}
+              {sectionButton && (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (onSectionButtonPress) {
+                      onSectionButtonPress(title);
+                    }
+                  }}
+                >
+                  <AppText
+                    variant="body12pxBold"
+                    style={{
+                      color: AppColors.pr500,
+                      marginBottom: vs(15),
+                    }}
+                  >
+                    {sectionButton}
+                  </AppText>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         );
       }}

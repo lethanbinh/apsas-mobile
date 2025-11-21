@@ -35,6 +35,7 @@ import { rubricItemService } from '../api/rubricItemServiceWrapper';
 import { fetchCourseElements } from '../api/courseElementService';
 import { fetchSemesters, fetchSemesterPlanDetail, SemesterData } from '../api/semesterService';
 import { fetchLecturerList } from '../api/lecturerService';
+import { gradingService } from '../api/gradingService';
 import Feather from 'react-native-vector-icons/Feather';
 
 interface EnrichedSubmission extends Submission {
@@ -89,6 +90,7 @@ const MyGradingGroupScreen: React.FC = () => {
   const [isViewExamModalVisible, setIsViewExamModalVisible] = useState(false);
   const [selectedGradingGroup, setSelectedGradingGroup] = useState<GradingGroup | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [batchGradingLoading, setBatchGradingLoading] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -541,6 +543,48 @@ const MyGradingGroupScreen: React.FC = () => {
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Grading Report');
+      
+      // Set column widths (matching web version)
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+      const colWidths: { [key: string]: number } = {
+        A: 10, // No.
+        B: 15, // Submission ID
+        C: 15, // Student Code
+        D: 25, // Student Name
+        E: 30, // Submission File
+        F: 20, // Submitted At
+        G: 15, // Total Grade
+        H: 15, // Status
+        I: 25, // Feedback Category
+        J: 50, // Feedback Content
+        K: 50, // Question
+        L: 50, // Criteria
+        M: 10, // Score
+        N: 50, // Description
+      };
+      
+      ws['!cols'] = Object.keys(colWidths).map((col) => ({
+        wch: colWidths[col],
+      }));
+      
+      // Apply wrap text to text-heavy columns
+      const textColumns = ['J', 'K', 'L', 'N']; // Feedback Content, Question, Criteria, Description
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (const col of textColumns) {
+          const cellAddress = XLSX.utils.encode_cell({ c: col.charCodeAt(0) - 65, r: R });
+          if (!ws[cellAddress]) continue;
+          ws[cellAddress].s = {
+            alignment: { wrapText: true, vertical: 'top' },
+          };
+        }
+      }
+      
+      // Set row heights
+      for (let R = 0; R <= range.e.r; ++R) {
+        if (!ws['!rows']) ws['!rows'] = [];
+        ws['!rows'][R] = { hpt: 30 };
+      }
+      
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
 
       const path = `${RNBlobUtil.fs.dirs.DownloadDir}/Grading_Report_${dayjs().format('YYYYMMDDHHmmss')}.xlsx`;
@@ -576,6 +620,68 @@ const MyGradingGroupScreen: React.FC = () => {
   const handleViewExam = (gradingGroup: GradingGroup) => {
     setSelectedGradingGroup(gradingGroup);
     setIsViewExamModalVisible(true);
+  };
+
+  const handleBatchGrading = async () => {
+    if (filteredData.length === 0) {
+      showErrorToast('Warning', 'No submissions to grade');
+      return;
+    }
+
+    // Get unique grading groups from filtered data
+    const uniqueGradingGroups = new Map<number, GradingGroup>();
+    filteredData.forEach(sub => {
+      if (sub.gradingGroup && sub.gradingGroup.id && !uniqueGradingGroups.has(sub.gradingGroup.id)) {
+        uniqueGradingGroups.set(sub.gradingGroup.id, sub.gradingGroup);
+      }
+    });
+
+    if (uniqueGradingGroups.size === 0) {
+      showErrorToast('Error', 'Cannot find grading groups. Please contact administrator.');
+      return;
+    }
+
+    try {
+      setBatchGradingLoading(true);
+      showSuccessToast('Info', `Starting batch grading for ${filteredData.length} submission(s)...`);
+
+      // Call auto grading for each submission
+      const gradingPromises = filteredData.map(async (submission) => {
+        if (!submission.gradingGroup?.assessmentTemplateId) {
+          return { success: false, submissionId: submission.id, error: 'Missing assessment template' };
+        }
+
+        try {
+          await gradingService.autoGrading({
+            submissionId: submission.id,
+            assessmentTemplateId: submission.gradingGroup.assessmentTemplateId,
+          });
+          return { success: true, submissionId: submission.id };
+        } catch (err: any) {
+          console.error(`Failed to grade submission ${submission.id}:`, err);
+          return { success: false, submissionId: submission.id, error: err.message };
+        }
+      });
+
+      const results = await Promise.all(gradingPromises);
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      setBatchGradingLoading(false);
+
+      if (successCount > 0) {
+        showSuccessToast('Success', `Batch grading started for ${successCount}/${filteredData.length} submission(s)`);
+        // Refresh data after batch grading
+        // Note: You may want to add a refresh function here
+      }
+      if (failCount > 0) {
+        showErrorToast('Warning', `Failed to start grading for ${failCount} submission(s)`);
+      }
+    } catch (err: any) {
+      console.error('Failed to start batch grading:', err);
+      setBatchGradingLoading(false);
+      showErrorToast('Error', err.message || 'Failed to start batch grading');
+    }
   };
 
   const semesterOptions = useMemo(() => {
@@ -619,6 +725,19 @@ const MyGradingGroupScreen: React.FC = () => {
                 style={styles.iconButton}
               >
                 <Feather name="eye" size={s(20)} color={AppColors.pr500} />
+              </TouchableOpacity>
+            )}
+            {filteredData.length > 0 && (
+              <TouchableOpacity
+                onPress={handleBatchGrading}
+                disabled={batchGradingLoading}
+                style={styles.iconButton}
+              >
+                <Feather
+                  name="zap"
+                  size={s(20)}
+                  color={batchGradingLoading ? AppColors.n400 : AppColors.pr500}
+                />
               </TouchableOpacity>
             )}
             <TouchableOpacity

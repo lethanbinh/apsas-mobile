@@ -52,19 +52,6 @@ const LecturerHomeScreen = () => {
             imageSource={require('../assets/images/illu2.png')}
             reverse
           />
-          <LearningCard
-            buttonLabel="My Grading Group"
-            onPress={() => navigation.navigate('MyGradingGroupScreen')}
-            backgroundColor={AppColors.b100}
-            imageSource={require('../assets/images/illu1.png')}
-          />
-          <LearningCard
-            buttonLabel="Grading History"
-            onPress={() => navigation.navigate('GradingHistoryScreen')}
-            backgroundColor={AppColors.g100}
-            imageSource={require('../assets/images/illu2.png')}
-            reverse
-          />
         </View>
       </ScrollView>
     </AppSafeView>

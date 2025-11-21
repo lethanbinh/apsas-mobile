@@ -62,6 +62,9 @@ const ScoreQuestionAccordion = ({
                 )
               }
               editable={editable}
+              description={criteria.description}
+              currentScore={criteria.currentScore}
+              maxScore={criteria.maxScore}
             />
           ))}
         </View>

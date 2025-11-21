@@ -91,7 +91,7 @@ const PracticalExamDetailScreen = () => {
         if (!isMounted) return;
         setTemplateData(foundTemplate || null);
 
-        // Fetch assessment files (requirement and database files)
+        // Fetch assessment files using /AssessmentFile/page endpoint (same as web version)
         if (foundTemplate && foundTemplate.id) {
           try {
             const filesResponse = await getFilesForTemplate({

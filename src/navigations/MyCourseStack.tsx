@@ -8,6 +8,7 @@ import ParticipantsScreen from '../screens/ParticipantsScreen';
 import GradesScreen from '../screens/GradesScreen';
 import AssignmentDetailScreen from '../screens/AssignmentDetailScreen';
 import AssignmentListScreen from '../screens/AssignmentListScreen';
+import LabListScreen from '../screens/LabListScreen';
 import PracticalExamListScreen from '../screens/PracticalExamListScreen';
 import PracticalExamDetailScreen from '../screens/PracticalExamDetailScreen';
 import ScoreDetailScreen from '../screens/ScoreDetailScreen';
@@ -44,6 +45,10 @@ const MyCourseStackNavigator = () => {
       <MyCourseStack.Screen
         name="AssignmentDetailScreen"
         component={AssignmentDetailScreen}
+      />
+      <MyCourseStack.Screen
+        name="LabListScreen"
+        component={LabListScreen}
       />
       <MyCourseStack.Screen
         name="PracticalExamListScreen"

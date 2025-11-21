@@ -28,6 +28,14 @@ const ExaminerHomeScreen = () => {
       console.error('Error navigating to grading groups:', err);
     }
   };
+
+  const handleNavigateToTemplates = () => {
+    try {
+      navigation.navigate('ExaminerTemplatesScreen');
+    } catch (err) {
+      console.error('Error navigating to templates:', err);
+    }
+  };
   
   return (
     <AppSafeView>
@@ -51,6 +59,16 @@ const ExaminerHomeScreen = () => {
             onPress={handleNavigateToGradingGroups}
             backgroundColor={AppColors.pr100}
             imageSource={require('../assets/images/illu1.png')}
+          />
+        </View>
+        <View style={{ paddingHorizontal: s(25), marginTop: s(20) }}>
+          <LearningCard
+            title="Practical Exam Templates"
+            buttonLabel="View Templates"
+            onPress={handleNavigateToTemplates}
+            backgroundColor={AppColors.g100}
+            imageSource={require('../assets/images/illu2.png')}
+            reverse
           />
         </View>
       </ScrollView>

@@ -1,5 +1,5 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, View, Platform, Alert } from 'react-native';
 import { PermissionsAndroid } from 'react-native';
 import RNBlobUtil from 'react-native-blob-util';
@@ -14,39 +14,124 @@ import { ViewIcon } from '../assets/icons/courses';
 import AppText from '../components/texts/AppText';
 import { showErrorToast, showSuccessToast } from '../components/toasts/AppToast';
 import { AppColors } from '../styles/color';
+import { fetchClassById, ClassData } from '../api/class';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Helper function to check if a course element is a Lab based on name
+function isLab(element: CourseElementData): boolean {
+  const name = (element.name || '').toLowerCase();
+  const keywords = [
+    'lab',
+    'laboratory',
+    'thực hành',
+    'bài thực hành',
+    'lab session',
+    'lab work',
+  ];
+  return keywords.some(keyword => name.includes(keyword));
+}
+
+// Helper function to check if a course element is a Practical Exam
+function isPracticalExam(element: CourseElementData): boolean {
+  const name = (element.name || '').toLowerCase();
+  const keywords = [
+    'exam',
+    'pe',
+    'practical exam',
+    'practical',
+    'test',
+    'kiểm tra thực hành',
+    'thi thực hành',
+    'bài thi',
+    'bài kiểm tra',
+  ];
+  // Exclude labs from practical exams
+  if (isLab(element)) {
+    return false;
+  }
+  return keywords.some(keyword => name.includes(keyword));
+}
 
 const CurriculumTeacherScreen = () => {
   const route = useRoute();
-  // Giữ semesterCourseId là string vì nó đến từ route params
+  const navigation = useNavigation<any>();
   const semesterCourseId = (route.params as { semesterCourseId?: string })
     ?.semesterCourseId;
+  const classId = (route.params as { classId?: string | number })?.classId;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
-  // SỬA STATE TYPE: Dùng interface mới
   const [courseElements, setCourseElements] = useState<CourseElementData[]>([]);
-  const navigation = useNavigation<any>();
+  const [classData, setClassData] = useState<ClassData | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
-    if (!semesterCourseId) {
-      if (isMounted) {
-        showErrorToast('Error', 'No Semester Course ID provided.');
-        setIsLoading(false);
-      }
-      return;
-    }
 
     const loadElements = async () => {
+      let selectedClassId = classId;
+      
+      // If no classId in params, try to get from AsyncStorage
+      if (!selectedClassId) {
+        try {
+          const stored = await AsyncStorage.getItem('selectedClassId');
+          selectedClassId = stored || null;
+        } catch (err) {
+          console.error('Failed to get selectedClassId from storage:', err);
+        }
+      }
+
+      if (!selectedClassId && !semesterCourseId) {
+        if (isMounted) {
+          setIsLoading(false);
+          showErrorToast('Error', 'No class or semester course selected.');
+        }
+        return;
+      }
+
       if (!isMounted) return;
       setIsLoading(true);
+
       try {
+        let targetSemesterCourseId = semesterCourseId;
+        
+        // If we have classId, get semesterCourseId from class
+        if (selectedClassId && !targetSemesterCourseId) {
+          const classInfo = await fetchClassById(selectedClassId);
+          if (!isMounted) return;
+          if (!classInfo || !classInfo.id) {
+            if (isMounted) {
+              showErrorToast('Error', 'Invalid class data.');
+              setIsLoading(false);
+            }
+            return;
+          }
+          setClassData(classInfo);
+          targetSemesterCourseId = classInfo.semesterCourseId?.toString();
+        }
+        
+        if (!targetSemesterCourseId) {
+          if (isMounted) {
+            setCourseElements([]);
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        const semesterCourseIdNum = parseInt(String(targetSemesterCourseId), 10);
+        if (isNaN(semesterCourseIdNum)) {
+          if (isMounted) {
+            setCourseElements([]);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        // Get all course elements and filter by this class's semesterCourseId
         const allElements = await fetchCourseElements();
         if (!isMounted) return;
-
-        // SỬA FILTER LOGIC: So sánh number với Number(string)
+        
         const relevantElements = (allElements || []).filter(
-          el => el && el.semesterCourseId === Number(semesterCourseId),
+          el => el && el.id && el.semesterCourseId && el.semesterCourseId.toString() === semesterCourseIdNum.toString(),
         );
         if (!isMounted) return;
         setCourseElements(relevantElements);
@@ -63,11 +148,10 @@ const CurriculumTeacherScreen = () => {
     };
 
     loadElements();
-
     return () => {
       setIsMounted(false);
     };
-  }, [semesterCourseId]);
+  }, [classId, semesterCourseId]);
 
   const requestStoragePermission = async () => {
     if (Platform.OS !== 'android') return true;
@@ -87,60 +171,183 @@ const CurriculumTeacherScreen = () => {
     }
   };
 
-  // SỬA MAP LOGIC:
-  const assignments = courseElements
-    .filter(
-      el =>
-        el &&
-        el.name &&
-        !el.name.toLowerCase().includes('pe') &&
-        !el.name.toLowerCase().includes('exam'),
-    )
-    .map((item, index) => ({
-      id: String(item.id), // Chuyển sang string nếu CurriculumList cần
-      number: `0${index + 1}`,
-      title: item.name || 'Untitled',
-      // LƯU Ý: linkFile lấy từ description có thể không đúng với API mới
-      linkFile: item.description || '',
-      rightIcon: ViewIcon,
-      onAction: () => {
-        if (item.id) {
-          navigation.navigate('AssignmentDetailTeacherScreen', {
-            elementId: item.id, // Truyền number ID
-          });
-        }
-      },
-    }));
+  // Separate assignments, labs, and practical exams
+  const { assignments, labs, practicalExams } = useMemo(() => {
+    // Filter assignments (not labs, not PE)
+    const assignmentsList = courseElements
+      .filter(
+        el =>
+          el &&
+          el.id &&
+          el.name &&
+          typeof el.name === 'string' &&
+          !isLab(el) &&
+          !isPracticalExam(el),
+      )
+      .map((item, index) => ({
+        id: String(item.id),
+        number: `0${index + 1}`,
+        title: item.name || 'Untitled',
+        linkFile: item.description || '',
+        rightIcon: ViewIcon,
+        detailNavigation: 'AssignmentDetailTeacherScreen',
+        onAction: () => {
+          try {
+            if (item.id && classData?.id) {
+              navigation.navigate('AssignmentDetailTeacherScreen', {
+                elementId: String(item.id),
+                classId: classData.id,
+              });
+            } else {
+              showErrorToast('Error', 'Invalid assignment data.');
+            }
+          } catch (err) {
+            console.error('Error navigating to assignment detail:', err);
+            showErrorToast('Error', 'Failed to open assignment details.');
+          }
+        },
+      }));
 
-  const practicalExams = courseElements
-    .filter(
-      el =>
-        el &&
-        el.name &&
-        (el.name.toLowerCase().includes('pe') ||
-        el.name.toLowerCase().includes('exam')), // Bao gồm cả exam
-    )
-    .map((item, index) => ({
-      id: String(item.id), // Chuyển sang string nếu CurriculumList cần
-      number: `0${index + 1}`,
-      title: item.name || 'Untitled',
-      // LƯU Ý: linkFile lấy từ description có thể không đúng với API mới
-      linkFile: item.description || '',
-      rightIcon: ViewIcon,
-      onAction: () => {
-        if (item.id) {
-          navigation.navigate('PracticalExamDetailScreen', {
-            elementId: item.id, // Truyền number ID
-          });
-        }
-      },
-    }));
+    // Filter labs
+    const labsList = courseElements
+      .filter(
+        el =>
+          el &&
+          el.id &&
+          el.name &&
+          typeof el.name === 'string' &&
+          isLab(el),
+      )
+      .map((item, index) => ({
+        id: String(item.id),
+        number: `0${index + 1}`,
+        title: item.name || 'Untitled',
+        linkFile: item.description || '',
+        rightIcon: ViewIcon,
+        detailNavigation: 'LabDetailTeacherScreen',
+        onAction: () => {
+          try {
+            if (item.id && classData?.id) {
+              navigation.navigate('LabDetailTeacherScreen', {
+                elementId: String(item.id),
+                classId: classData.id,
+              });
+            } else {
+              showErrorToast('Error', 'Invalid lab data.');
+            }
+          } catch (err) {
+            console.error('Error navigating to lab detail:', err);
+            showErrorToast('Error', 'Failed to open lab details.');
+          }
+        },
+      }));
 
-  // Phần còn lại của component (sections, isLoading, return JSX) giữ nguyên
-  const sections = [
-    { title: 'Assignments', data: assignments },
-    { title: 'PE & Exams', data: practicalExams }, // Đổi title nếu muốn
-  ];
+    // Filter practical exams
+    const practicalExamsList = courseElements
+      .filter(
+        el =>
+          el &&
+          el.id &&
+          el.name &&
+          typeof el.name === 'string' &&
+          isPracticalExam(el),
+      )
+      .map((item, index) => ({
+        id: String(item.id),
+        number: `0${index + 1}`,
+        title: item.name || 'Untitled',
+        linkFile: item.description || '',
+        rightIcon: ViewIcon,
+        detailNavigation: 'PracticalExamDetailTeacherScreen',
+        onAction: () => {
+          try {
+            if (item.id && classData?.id) {
+              navigation.navigate('PracticalExamDetailTeacherScreen', {
+                elementId: String(item.id),
+                classId: classData.id,
+              });
+            } else {
+              showErrorToast('Error', 'Invalid exam data.');
+            }
+          } catch (err) {
+            console.error('Error navigating to exam detail:', err);
+            showErrorToast('Error', 'Failed to open exam details.');
+          }
+        },
+      }));
+
+    return { assignments: assignmentsList, labs: labsList, practicalExams: practicalExamsList };
+  }, [courseElements, classData, navigation]);
+
+  // Create sections with navigation buttons like web
+  const sections = useMemo(() => {
+    const sectionsList: Array<{
+      title: string;
+      data: any[];
+      sectionButton?: string;
+    }> = [];
+
+    if (assignments.length > 0) {
+      sectionsList.push({
+        title: 'Assignments',
+        data: assignments,
+        sectionButton: 'View All',
+      });
+    }
+
+    if (labs.length > 0) {
+      sectionsList.push({
+        title: 'Labs',
+        data: labs,
+        sectionButton: 'View All',
+      });
+    }
+
+    if (practicalExams.length > 0) {
+      sectionsList.push({
+        title: 'Practical Exams',
+        data: practicalExams,
+        sectionButton: 'View All',
+      });
+    }
+
+    // Add Grading Group section
+    sectionsList.push({
+      title: 'Grading Group',
+      data: [],
+      sectionButton: 'View All',
+    });
+
+    return sectionsList;
+  }, [assignments, labs, practicalExams]);
+
+  const handleSectionButtonPress = (sectionTitle: string) => {
+    try {
+      if (!classData?.id) {
+        showErrorToast('Error', 'No class selected.');
+        return;
+      }
+
+      if (sectionTitle === 'Assignments' || sectionTitle === 'Assignments_secondary') {
+        navigation.navigate('AssignmentListScreen', {
+          classId: classData.id,
+        });
+      } else if (sectionTitle === 'Labs' || sectionTitle === 'Labs_secondary') {
+        navigation.navigate('LabListScreen', {
+          classId: classData.id,
+        });
+      } else if (sectionTitle === 'Practical Exams' || sectionTitle === 'Practical Exams_secondary') {
+        navigation.navigate('PracticalExamListScreen', {
+          classId: classData.id,
+        });
+      } else if (sectionTitle === 'Grading Group' || sectionTitle === 'Grading Group_secondary') {
+        navigation.navigate('MyGradingGroupScreen');
+      }
+    } catch (err) {
+      console.error('Error navigating to section:', err);
+      showErrorToast('Error', 'Failed to navigate.');
+    }
+  };
 
   const handleDownloadAllMaterials = async () => {
     const allItems = [...assignments, ...practicalExams];
@@ -228,8 +435,7 @@ const CurriculumTeacherScreen = () => {
         <CurriculumList
           sections={sections.filter(sec => sec.data.length > 0)}
           scrollEnabled={true}
-          buttonText="Download All Materials"
-          onDownloadAll={handleDownloadAllMaterials}
+          onSectionButtonPress={handleSectionButtonPress}
         />
       ) : (
         <View style={styles.loadingContainer}>

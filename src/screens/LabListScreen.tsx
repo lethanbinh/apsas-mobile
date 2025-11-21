@@ -26,6 +26,20 @@ import Feather from 'react-native-vector-icons/Feather';
 import dayjs from 'dayjs';
 import AppButton from '../components/buttons/AppButton';
 
+// Helper function to check if a course element is a Lab
+function isLab(element: CourseElementData): boolean {
+  const name = (element.name || '').toLowerCase();
+  const keywords = [
+    'lab',
+    'laboratory',
+    'thực hành',
+    'bài thực hành',
+    'lab session',
+    'lab work',
+  ];
+  return keywords.some(keyword => name.includes(keyword));
+}
+
 // Helper function to check if a course element is a Practical Exam
 function isPracticalExam(element: CourseElementData): boolean {
   const name = (element.name || '').toLowerCase();
@@ -44,7 +58,7 @@ function isPracticalExam(element: CourseElementData): boolean {
   return keywords.some(keyword => name.includes(keyword));
 }
 
-interface AssignmentItem {
+interface LabItem {
   id: string;
   courseElementId: number;
   title: string;
@@ -56,7 +70,7 @@ interface AssignmentItem {
   assessmentTemplateId?: number;
 }
 
-const AssignmentListScreen = () => {
+const LabListScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const classId = (route.params as { classId?: string })?.classId;
@@ -67,7 +81,7 @@ const AssignmentListScreen = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
-  const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
+  const [labs, setLabs] = useState<LabItem[]>([]);
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -75,7 +89,7 @@ const AssignmentListScreen = () => {
     setIsMounted(true);
 
     const fetchData = async () => {
-      let selectedClassId = classId;
+      let selectedClassId: string | undefined = classId;
       
       // If no classId in params, try to get from AsyncStorage
       if (!selectedClassId) {
@@ -113,7 +127,7 @@ const AssignmentListScreen = () => {
         
         if (!classInfo.semesterCourseId) {
           if (isMounted) {
-            setAssignments([]);
+            setLabs([]);
             setIsLoading(false);
           }
           return;
@@ -122,29 +136,28 @@ const AssignmentListScreen = () => {
         const semesterCourseId = parseInt(String(classInfo.semesterCourseId), 10);
         if (isNaN(semesterCourseId)) {
           if (isMounted) {
-            setAssignments([]);
+            setLabs([]);
             setIsLoading(false);
           }
           return;
         }
 
-        // 2) Get all course elements and filter by this class's semesterCourseId (exclude practical exams)
+        // 2) Get all course elements and filter by this class's semesterCourseId (only labs, exclude practical exams)
         const allElements = await fetchCourseElements();
         if (!isMounted) return;
         
-        const classElements = (allElements || []).filter(
+        const classLabs = (allElements || []).filter(
           el =>
             el &&
             el.id &&
             el.semesterCourseId &&
             el.semesterCourseId.toString() === semesterCourseId.toString() &&
-            !isPracticalExam(el),
+            isLab(el) &&
+            !isPracticalExam(el), // Exclude practical exams
         );
 
         // 3) Fetch assign requests and filter by status = 5 (Approved)
         let approvedAssignRequestIds = new Set<number>();
-        let approvedCourseElementIds = new Set<number>();
-        let approvedAssignRequestByCourseElementMap = new Map<number, number>();
         try {
           const assignRequestResponse = await fetchAssignRequestList(
             null,
@@ -159,48 +172,36 @@ const AssignmentListScreen = () => {
           approvedAssignRequestIds = new Set(
             approvedAssignRequests.map(ar => ar.id),
           );
-          // Create map of courseElementIds that have approved assign requests
-          approvedAssignRequests.forEach(ar => {
-            if (ar.courseElementId) {
-              approvedCourseElementIds.add(Number(ar.courseElementId));
-              approvedAssignRequestByCourseElementMap.set(
-                Number(ar.courseElementId),
-                ar.id,
-              );
-            }
-          });
         } catch (err) {
           console.error('Failed to fetch assign requests:', err);
           // Continue without filtering if assign requests cannot be fetched
         }
 
         // 4) Fetch assessment templates and filter by approved assign request IDs
-        let approvedTemplateIds = new Set<number>();
-        let approvedTemplates: any[] = [];
         let approvedTemplateByCourseElementMap = new Map<number, any>();
         let approvedTemplateByIdMap = new Map<number, any>();
-        
         try {
           const templateResponse = await assessmentTemplateService.getAssessmentTemplates({
             pageNumber: 1,
             pageSize: 1000,
           });
           // Only include templates with assignRequestId in approved assign requests (status = 5)
-          approvedTemplates = (templateResponse?.items || []).filter(t => {
+          const approvedTemplates = (templateResponse?.items || []).filter(t => {
             if (!t.assignRequestId) {
               return false; // Skip templates without assignRequestId
             }
             return approvedAssignRequestIds.has(t.assignRequestId);
           });
-          approvedTemplateIds = new Set(approvedTemplates.map(t => t.id));
           
           // Create map by courseElementId for quick lookup
           approvedTemplates.forEach(t => {
-            if (t.courseElementId) {
+            if (t && t.courseElementId && t.id) {
               approvedTemplateByCourseElementMap.set(t.courseElementId, t);
             }
             // Also create map by template id for quick lookup
-            approvedTemplateByIdMap.set(t.id, t);
+            if (t && t.id) {
+              approvedTemplateByIdMap.set(t.id, t);
+            }
           });
         } catch (err) {
           console.error('Failed to fetch assessment templates:', err);
@@ -231,14 +232,14 @@ const AssignmentListScreen = () => {
         
         if (!isMounted) return;
 
-        // 6) Map all course elements to AssignmentItem
+        // 6) Map all course elements to LabItem
         // Logic same as web: 
         // 1. If classAssessment exists, find template by classAssessment.assessmentTemplateId in approved templates
         // 2. If no classAssessment or template not found, find template by courseElementId in approved templates
         // Only use classAssessment if approved template exists AND matches classAssessment's template
-        const mappedAssignments: AssignmentItem[] = classElements
+        const mappedLabs: LabItem[] = classLabs
           .filter(el => el && el.id && el.name)
-          .map((el): AssignmentItem | null => {
+          .map((el): LabItem | null => {
             if (!el || !el.id) return null;
             
             const classAssessment = classAssessmentMap.get(el.id);
@@ -260,60 +261,60 @@ const AssignmentListScreen = () => {
             // Only use classAssessment if approved template exists AND matches classAssessment's template
             if (approvedTemplate) {
               // Use classAssessment only if it matches the approved template
-            if (
-              classAssessment?.assessmentTemplateId === approvedTemplate.id
-            ) {
-              return {
-                id: el.id.toString(),
-                courseElementId: el.id,
-                title: el.name || 'Assignment',
-                status: classAssessment ? 'Active Assignment' : 'Basic Assignment',
-                deadline: classAssessment?.endAt || null,
-                startAt: classAssessment?.startAt || null,
-                description: el.description || 'No description available',
-                classAssessmentId: classAssessment?.id,
-                assessmentTemplateId: approvedTemplate.id,
-              };
-            } else {
-              // If approved template exists but classAssessment doesn't match, don't use classAssessment
-              // But still show the course element (just without deadline)
-              return {
-                id: el.id.toString(),
-                courseElementId: el.id,
-                title: el.name || 'Assignment',
-                status: 'Basic Assignment',
-                deadline: null,
-                startAt: null,
-                description: el.description || 'No description available',
-                assessmentTemplateId: approvedTemplate.id,
-              };
-            }
+              if (
+                classAssessment?.assessmentTemplateId === approvedTemplate.id
+              ) {
+                return {
+                  id: el.id.toString(),
+                  courseElementId: el.id,
+                  title: el.name || 'Lab',
+                  status: classAssessment ? 'Active Lab' : 'Basic Lab',
+                  deadline: classAssessment?.endAt || null,
+                  startAt: classAssessment?.startAt || null,
+                  description: el.description || 'No description available',
+                  classAssessmentId: classAssessment?.id,
+                  assessmentTemplateId: approvedTemplate.id,
+                };
+              } else {
+                // If approved template exists but classAssessment doesn't match, don't use classAssessment
+                // But still show the course element (just without deadline)
+                return {
+                  id: el.id.toString(),
+                  courseElementId: el.id,
+                  title: el.name || 'Lab',
+                  status: 'Basic Lab',
+                  deadline: null,
+                  startAt: null,
+                  description: el.description || 'No description available',
+                  assessmentTemplateId: approvedTemplate.id,
+                };
+              }
             } else {
               // If no approved template found, don't use classAssessment
               return {
                 id: el.id.toString(),
                 courseElementId: el.id,
-                title: el.name || 'Assignment',
-                status: 'Basic Assignment',
+                title: el.name || 'Lab',
+                status: 'Basic Lab',
                 deadline: null,
                 startAt: null,
                 description: el.description || 'No description available',
               };
             }
           })
-          .filter((item): item is AssignmentItem => item !== null);
+          .filter((item): item is LabItem => item !== null);
 
         if (!isMounted) return;
-        setAssignments(mappedAssignments);
+        setLabs(mappedLabs);
         
-        // Auto-expand first assignment if available
-        if (mappedAssignments.length > 0 && !expandedId) {
-          setExpandedId(mappedAssignments[0].id);
+        // Auto-expand first lab if available
+        if (mappedLabs.length > 0 && !expandedId) {
+          setExpandedId(mappedLabs[0].id);
         }
       } catch (err: any) {
-        console.error('Failed to fetch assignments:', err);
+        console.error('Failed to fetch labs:', err);
         if (isMounted) {
-          showErrorToast('Error', err.message || 'Failed to load assignments.');
+          showErrorToast('Error', err.message || 'Failed to load labs.');
         }
       } finally {
         if (isMounted) {
@@ -333,11 +334,11 @@ const AssignmentListScreen = () => {
   };
 
 
-  const handleViewPaper = (assignment: AssignmentItem) => {
+  const handleViewPaper = (lab: LabItem) => {
     try {
-      if (assignment.assessmentTemplateId) {
+      if (lab.assessmentTemplateId) {
         navigation.navigate('AssessmentDetailScreen', {
-          templateId: assignment.assessmentTemplateId,
+          templateId: lab.assessmentTemplateId,
         });
       } else {
         showErrorToast('Error', 'No assessment template available.');
@@ -348,32 +349,32 @@ const AssignmentListScreen = () => {
     }
   };
 
-  const handleViewDetails = (assignment: AssignmentItem) => {
+  const handleViewDetails = (lab: LabItem) => {
     try {
-      if (assignment && assignment.courseElementId && classData && classData.id) {
+      if (lab && lab.courseElementId && classData && classData.id) {
         // Navigate to different screens based on user role
         if (userRole === 'STUDENT') {
           navigation.navigate('AssignmentDetailScreen', {
-            elementId: String(assignment.courseElementId),
+            elementId: String(lab.courseElementId),
             classId: classData.id,
           });
         } else {
           // Teacher or other roles
-          navigation.navigate('AssignmentDetailTeacherScreen', {
-            elementId: String(assignment.courseElementId),
+          navigation.navigate('LabDetailTeacherScreen', {
+            elementId: String(lab.courseElementId),
             classId: classData.id,
           });
         }
       } else {
-        showErrorToast('Error', 'Invalid assignment data.');
+        showErrorToast('Error', 'Invalid lab data.');
       }
     } catch (err) {
-      console.error('Error navigating to assignment details:', err);
-      showErrorToast('Error', 'Failed to open assignment details.');
+      console.error('Error navigating to lab details:', err);
+      showErrorToast('Error', 'Failed to open lab details.');
     }
   };
 
-  const renderAssignment = ({ item }: { item: AssignmentItem }) => {
+  const renderLab = ({ item }: { item: LabItem }) => {
     if (!item || !item.id) return null;
     
     const isExpanded = expandedId === item.id;
@@ -394,17 +395,17 @@ const AssignmentListScreen = () => {
     }
 
     return (
-      <View style={styles.assignmentCard}>
+      <View style={styles.labCard}>
         <TouchableOpacity
-          style={styles.assignmentHeader}
+          style={styles.labHeader}
           onPress={() => handleToggleExpand(item.id)}
           activeOpacity={0.7}
         >
-          <View style={styles.assignmentHeaderContent}>
+          <View style={styles.labHeaderContent}>
             <View style={styles.statusContainer}>
               <StatusTag status={item.status} />
             </View>
-            <AppText variant="body16pxBold" style={styles.assignmentTitle}>
+            <AppText variant="body16pxBold" style={styles.labTitle}>
               {item.title}
             </AppText>
             {hasDeadline && deadlineDate && (
@@ -433,7 +434,7 @@ const AssignmentListScreen = () => {
         </TouchableOpacity>
 
         {isExpanded && (
-          <View style={styles.assignmentContent}>
+          <View style={styles.labContent}>
             <AppText style={styles.description}>{item.description}</AppText>
 
             {/* View Assignment Paper Button */}
@@ -463,7 +464,7 @@ const AssignmentListScreen = () => {
   if (isLoading) {
     return (
       <AppSafeView style={styles.loadingContainer}>
-        <ScreenHeader title="Assignments" />
+        <ScreenHeader title="Labs" />
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color={AppColors.pr500} />
         </View>
@@ -473,18 +474,18 @@ const AssignmentListScreen = () => {
 
   return (
     <AppSafeView style={styles.container}>
-      <ScreenHeader title="Assignments" />
-      {assignments.length === 0 ? (
+      <ScreenHeader title="Labs" />
+      {labs.length === 0 ? (
         <View style={styles.emptyContainer}>
           <AppText style={styles.emptyText}>
-            No assignments found for this class.
+            No labs found for this class.
           </AppText>
         </View>
       ) : (
         <FlatList
-          data={assignments}
+          data={labs}
           keyExtractor={item => item.id}
-          renderItem={renderAssignment}
+          renderItem={renderLab}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
@@ -493,7 +494,7 @@ const AssignmentListScreen = () => {
   );
 };
 
-export default AssignmentListScreen;
+export default LabListScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
     padding: s(20),
     paddingBottom: vs(30),
   },
-  assignmentCard: {
+  labCard: {
     backgroundColor: AppColors.white,
     borderRadius: s(12),
     marginBottom: vs(12),
@@ -525,20 +526,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  assignmentHeader: {
+  labHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: s(16),
   },
-  assignmentHeaderContent: {
+  labHeaderContent: {
     flex: 1,
     marginRight: s(12),
   },
   statusContainer: {
     marginBottom: vs(8),
   },
-  assignmentTitle: {
+  labTitle: {
     color: AppColors.n900,
     marginBottom: vs(6),
     fontSize: s(16),
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
     color: AppColors.r500,
     fontWeight: '600',
   },
-  assignmentContent: {
+  labContent: {
     padding: s(16),
     paddingTop: 0,
     borderTopWidth: 1,

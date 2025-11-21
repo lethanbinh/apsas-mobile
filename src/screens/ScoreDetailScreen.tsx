@@ -25,7 +25,10 @@ import { assessmentTemplateService } from '../api/assessmentTemplateServiceWrapp
 import { assessmentPaperService } from '../api/assessmentPaperServiceWrapper';
 import { assessmentQuestionService } from '../api/assessmentQuestionServiceWrapper';
 import { rubricItemService } from '../api/rubricItemServiceWrapper';
+import { gradingService, GradingSession } from '../api/gradingService';
+import { gradeItemService, GradeItemData } from '../api/gradeItemService';
 import { showErrorToast } from '../components/toasts/AppToast';
+import { useGetCurrentStudentId } from '../hooks/useGetCurrentStudentId';
 import dayjs from 'dayjs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RNBlobUtil from 'react-native-blob-util';
@@ -49,6 +52,7 @@ const ScoreDetailScreen: React.FC = () => {
       : routeParams.submissionId
     : undefined;
 
+  const { studentId } = useGetCurrentStudentId();
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
   const [submission, setSubmission] = useState<Submission | null>(null);
@@ -57,6 +61,8 @@ const ScoreDetailScreen: React.FC = () => {
   const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
   const [lecturerName, setLecturerName] = useState<string>('Unknown');
   const [gradedAt, setGradedAt] = useState<string>('');
+  const [latestGradingSession, setLatestGradingSession] = useState<GradingSession | null>(null);
+  const [latestGradeItems, setLatestGradeItems] = useState<GradeItemData[]>([]);
 
   const { control } = useForm({
     defaultValues: {
@@ -85,12 +91,13 @@ const ScoreDetailScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Fetch submission
+      // Fetch submission by ID first
       let foundSubmission: Submission | null = null;
 
+      // Try to fetch all submissions and find the one with matching ID
       try {
         const allSubmissions = await getSubmissionList({});
-        foundSubmission = (allSubmissions || []).find(s => s && s.id === submissionId) || null;
+        foundSubmission = allSubmissions.find((s) => s.id === submissionId) || null;
       } catch (err) {
         console.error('Failed to fetch submission:', err);
       }
@@ -103,6 +110,78 @@ const ScoreDetailScreen: React.FC = () => {
         return;
       }
 
+      // Verify submission belongs to current student (if studentId is available)
+      if (studentId) {
+        // Check if submission belongs to current student
+        if (foundSubmission.studentId !== Number(studentId)) {
+          // If not, try to get the latest submission for current student and this assignment
+          try {
+            let relatedSubmissions: Submission[] = [];
+
+            if (foundSubmission.classAssessmentId) {
+              // Fetch all submissions for this classAssessment and current student
+              const submissions = await getSubmissionList({
+                classAssessmentId: foundSubmission.classAssessmentId,
+                studentId: Number(studentId),
+              });
+              relatedSubmissions = submissions || [];
+            } else if (foundSubmission.gradingGroupId) {
+              // Fetch all submissions for this gradingGroup and current student
+              const submissions = await getSubmissionList({
+                gradingGroupId: foundSubmission.gradingGroupId,
+                studentId: Number(studentId),
+              });
+              relatedSubmissions = submissions || [];
+            }
+
+            // Get the latest submission (by submittedAt) for current student
+            if (relatedSubmissions.length > 0) {
+              const sortedSubmissions = relatedSubmissions
+                .filter(s => s && s.submittedAt && s.studentId === Number(studentId))
+                .sort((a, b) => {
+                  if (!a.submittedAt || !b.submittedAt) return 0;
+                  return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+                });
+
+              if (sortedSubmissions.length > 0 && sortedSubmissions[0]) {
+                foundSubmission = sortedSubmissions[0];
+                console.log('Using latest submission for current student:', foundSubmission.id, 'submittedAt:', foundSubmission.submittedAt);
+              } else {
+                // If no submissions found for current student, show error
+                if (isMounted) {
+                  showErrorToast('Error', 'This submission does not belong to you');
+                  navigation.goBack();
+                }
+                return;
+              }
+            } else {
+              // If no submissions found for current student, show error
+              if (isMounted) {
+                showErrorToast('Error', 'This submission does not belong to you');
+                navigation.goBack();
+              }
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to fetch latest submission:', err);
+            // If error, verify original submission belongs to current student
+            if (foundSubmission.studentId !== Number(studentId)) {
+              if (isMounted) {
+                showErrorToast('Error', 'This submission does not belong to you');
+                navigation.goBack();
+              }
+              return;
+            }
+          }
+        } else {
+          // Submission belongs to current student, use it as is
+          console.log('Using provided submission:', foundSubmission.id);
+        }
+      } else {
+        // No studentId available, use submission as is
+        console.log('No studentId available, using provided submission:', foundSubmission.id);
+      }
+
       if (!isMounted) return;
       setSubmission(foundSubmission);
       setTotalScore(foundSubmission?.lastGrade || 0);
@@ -110,7 +189,8 @@ const ScoreDetailScreen: React.FC = () => {
       // Get lecturer name and graded date
       if (foundSubmission.gradingGroupId) {
         try {
-          const gradingGroup = await getGradingGroupById(foundSubmission.gradingGroupId);
+          const gradingGroups = await getGradingGroups({});
+          const gradingGroup = gradingGroups.find((gg) => gg.id === foundSubmission.gradingGroupId);
           if (gradingGroup?.lecturerName) {
             setLecturerName(gradingGroup.lecturerName);
           }
@@ -125,6 +205,9 @@ const ScoreDetailScreen: React.FC = () => {
 
       // Fetch questions and rubrics
       await fetchQuestionsAndRubrics(foundSubmission);
+      
+      // Fetch latest grading session and grade items - use latest submission ID
+      await fetchLatestGradingData(foundSubmission.id);
     } catch (error: any) {
       console.error('Failed to fetch data:', error);
       if (isMounted) {
@@ -135,6 +218,94 @@ const ScoreDetailScreen: React.FC = () => {
       if (isMounted) {
         setIsLoading(false);
       }
+    }
+  };
+
+  const fetchLatestGradingData = async (submissionId: number) => {
+    try {
+      // Fetch latest grading session for this submission
+      const gradingSessionsResult = await gradingService.getGradingSessions({
+        submissionId: submissionId,
+        pageNumber: 1,
+        pageSize: 100,
+      });
+
+      if (gradingSessionsResult.items.length > 0) {
+        // Sort by createdAt desc to get the latest session
+        const sortedSessions = [...gradingSessionsResult.items].sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
+        });
+        
+        const latestSession = sortedSessions[0];
+        setLatestGradingSession(latestSession);
+        
+        // Fetch grade items for this grading session
+        const gradeItemsResult = await gradeItemService.getGradeItems({
+          gradingSessionId: latestSession.id,
+          pageNumber: 1,
+          pageSize: 1000,
+        });
+        
+        // Filter to get only the latest grade item for each rubricItemDescription
+        // Sort by updatedAt descending, then group by rubricItemDescription and take the first one
+        const sortedItems = [...gradeItemsResult.items].sort((a, b) => {
+          const dateA = new Date(a.updatedAt).getTime();
+          const dateB = new Date(b.updatedAt).getTime();
+          if (dateB !== dateA) {
+            return dateB - dateA; // Descending order by updatedAt
+          }
+          // If updatedAt is same, sort by createdAt descending
+          const createdA = new Date(a.createdAt).getTime();
+          const createdB = new Date(b.createdAt).getTime();
+          return createdB - createdA;
+        });
+        
+        const latestGradeItemsMap = new Map<string, GradeItemData>();
+        sortedItems.forEach((item) => {
+          const rubricKey = item.rubricItemDescription || "";
+          if (!latestGradeItemsMap.has(rubricKey)) {
+            latestGradeItemsMap.set(rubricKey, item);
+          }
+        });
+        
+        const latestGradeItems = Array.from(latestGradeItemsMap.values());
+        setLatestGradeItems(latestGradeItems);
+        
+        // Map grade items to rubric scores
+        if (latestGradeItems.length > 0) {
+          setQuestions((prevQuestions) => {
+            return prevQuestions.map((question) => {
+              const newRubricScores = { ...question.rubricScores };
+              
+              // Find grade items that match this question's rubrics
+              question.rubrics.forEach((rubric) => {
+                const matchingGradeItem = latestGradeItems.find(
+                  (item) => item.rubricItemId === rubric.id
+                );
+                if (matchingGradeItem) {
+                  newRubricScores[rubric.id] = matchingGradeItem.score;
+                }
+              });
+              
+              return { 
+                ...question, 
+                rubricScores: newRubricScores,
+              };
+            });
+          });
+          
+          // Calculate total score
+          const total = latestGradeItems.reduce((sum, item) => sum + item.score, 0);
+          setTotalScore(total);
+        } else {
+          // If no grade items, use the grade from session
+          setTotalScore(latestSession.grade);
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch latest grading data:', error);
     }
   };
 
@@ -155,20 +326,53 @@ const ScoreDetailScreen: React.FC = () => {
         }
       }
 
+      // Try to get assessmentTemplateId from classAssessmentId
       if (!assessmentTemplateId && submission.classAssessmentId) {
         try {
-          const classAssessments = await getClassAssessments({
-            pageNumber: 1,
-            pageSize: 1000,
-          });
-          const classAssessment = (classAssessments?.items || []).find(
-            ca => ca && ca.id === submission.classAssessmentId,
-          );
-          if (classAssessment?.assessmentTemplateId) {
-            assessmentTemplateId = classAssessment.assessmentTemplateId;
+          // First try fetching all class assessments without classId filter (like web app)
+          try {
+            const allClassAssessmentsRes = await getClassAssessments({
+              pageNumber: 1,
+              pageSize: 10000, // Large page size to get all (like web app)
+            });
+            const classAssessment = (allClassAssessmentsRes?.items || []).find(
+              (ca) => ca && ca.id === submission.classAssessmentId
+            );
+            if (classAssessment?.assessmentTemplateId) {
+              assessmentTemplateId = classAssessment.assessmentTemplateId;
+              console.log("Found assessmentTemplateId from classAssessment (all classes):", assessmentTemplateId);
+            }
+          } catch (err) {
+            console.error("Failed to fetch all class assessments:", err);
+            // If that fails, try fetching from multiple classes
+            try {
+              const { fetchClassList } = await import('../api/classService');
+              const classes = await fetchClassList();
+              for (const classItem of classes || []) {
+                try {
+                  const classAssessmentsRes = await getClassAssessments({
+                    classId: Number(classItem.id),
+                    pageNumber: 1,
+                    pageSize: 1000,
+                  });
+                  const classAssessment = (classAssessmentsRes?.items || []).find(
+                    (ca) => ca && ca.id === submission.classAssessmentId
+                  );
+                  if (classAssessment?.assessmentTemplateId) {
+                    assessmentTemplateId = classAssessment.assessmentTemplateId;
+                    console.log(`Found assessmentTemplateId from classAssessment (classId ${classItem.id}):`, assessmentTemplateId);
+                    break;
+                  }
+                } catch (err) {
+                  // Continue to next class
+                }
+              }
+            } catch (err) {
+              console.error("Failed to fetch from multiple classes:", err);
+            }
           }
         } catch (err) {
-          console.error('Failed to fetch class assessment:', err);
+          console.error("Failed to fetch from classAssessment:", err);
         }
       }
 
@@ -228,27 +432,13 @@ const ScoreDetailScreen: React.FC = () => {
 
           const questionRubrics = rubricsRes?.items || [];
 
-          // Load saved scores from AsyncStorage
+          // Initialize rubric scores as empty (will be populated from grade items)
           const rubricScores: { [rubricId: number]: number } = {};
           (questionRubrics || []).forEach(rubric => {
             if (rubric && rubric.id) {
               rubricScores[rubric.id] = 0;
             }
           });
-
-          try {
-            if (submission && submission.id) {
-              const savedScores = await AsyncStorage.getItem(`rubricScores_${submission.id}`);
-              if (savedScores) {
-                const parsed = JSON.parse(savedScores);
-                if (parsed && question.id && parsed[question.id]) {
-                  Object.assign(rubricScores, parsed[question.id]);
-                }
-              }
-            }
-          } catch (err) {
-            console.error('Failed to load saved scores:', err);
-          }
 
           if (question && question.id) {
             allQuestions.push({
@@ -271,25 +461,12 @@ const ScoreDetailScreen: React.FC = () => {
 
       setQuestions(sortedQuestions);
 
-      // Calculate total score
-      let calculatedTotal = 0;
-      sortedQuestions.forEach(q => {
-        if (q && q.rubricScores) {
-          const questionTotal = Object.values(q.rubricScores).reduce(
-            (sum, score) => sum + (score || 0),
-            0,
-          );
-          calculatedTotal += questionTotal;
-        }
-      });
-      if (calculatedTotal > 0) {
-        setTotalScore(calculatedTotal);
-      }
-
       // Set first question expanded
       if (sortedQuestions.length > 0 && sortedQuestions[0]?.id) {
         setExpandedQuestionId(sortedQuestions[0].id);
       }
+      
+      // Note: Total score will be calculated from grade items in fetchLatestGradingData
     } catch (error: any) {
       console.error('Failed to fetch questions and rubrics:', error);
       if (isMounted) {
@@ -491,7 +668,7 @@ const ScoreDetailScreen: React.FC = () => {
           onPress={() => {
             if (submission && submission.id) {
               navigation.navigate('FeedbackScreen', {
-                submissionId: submission.id,
+                submissionId: submission.id, // Use latest submission ID
               });
             }
           }}

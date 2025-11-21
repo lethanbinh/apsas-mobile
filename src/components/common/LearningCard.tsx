@@ -42,8 +42,9 @@ const LearningCard = ({
           title={buttonLabel}
           onPress={onPress}
           style={{
-            minWidth: s(100),
-            alignSelf: 'flex-start', // hoặc flex-end nếu muốn nút nằm bên phải
+            marginTop: s(10),
+            minWidth: s(0),
+            alignSelf: 'flex-start',
           }}
         />
       </View>
@@ -63,14 +64,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: vs(15),
-    height: vs(140),
+    height: vs(160),
   },
   leftSection: {
     flex: 1,
     marginHorizontal: s(10),
     flexDirection: 'column',
     justifyContent: 'space-between',
-    height: s(130)
+    height: s(150)
   },
 
   title: {
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
     marginBottom: vs(10),
   },
   image: {
-    width: s(130),
-    height: s(130),
+    width: s(140),
+    height: s(140),
   },
 });

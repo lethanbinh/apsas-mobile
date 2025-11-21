@@ -8,6 +8,8 @@ import HistoryDetailScreen from '../screens/HistoryDetailScreen';
 import PracticalExamDetailScreen from '../screens/PracticalExamDetailScreen';
 import PracticalExamListScreen from '../screens/PracticalExamListScreen';
 import RequirementTeacherScreen from '../screens/RequirementTeacherScreen';
+import LabDetailTeacherScreen from '../screens/LabDetailTeacherScreen';
+import PracticalExamDetailTeacherScreen from '../screens/PracticalExamDetailTeacherScreen';
 
 const TeacherPracticalExamStack = createStackNavigator();
 
@@ -49,6 +51,14 @@ export default function TeacherPracticalExamStackNavigator() {
       <TeacherPracticalExamStack.Screen
         name="RequirementTeacherScreen"
         component={RequirementTeacherScreen}
+      />
+      <TeacherPracticalExamStack.Screen
+        name="LabDetailTeacherScreen"
+        component={LabDetailTeacherScreen}
+      />
+      <TeacherPracticalExamStack.Screen
+        name="PracticalExamDetailTeacherScreen"
+        component={PracticalExamDetailTeacherScreen}
       />
     </TeacherPracticalExamStack.Navigator>
   );

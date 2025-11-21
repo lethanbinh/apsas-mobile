@@ -83,17 +83,61 @@ const AssignmentDetailScreen = () => {
         }
         setElementData(element);
 
-        const templatesResponse = await fetchAssessmentTemplates({
-          pageNumber: 1,
-          pageSize: 1000,
-        });
-        const foundTemplate = (templatesResponse?.items || []).find(
-          t => t && t.courseElementId === Number(elementId),
-        );
+        // Try to get assessmentTemplate from classAssessment first (more reliable)
+        let foundTemplate = null;
+        
+        // Fetch class assessment to get assessmentTemplateId
+        if (classId) {
+          try {
+            const classIdNum = Number(classId);
+            if (!isNaN(classIdNum)) {
+              const classAssessmentsRes = await getClassAssessments({
+                classId: classIdNum,
+                pageNumber: 1,
+                pageSize: 1000,
+              });
+              if (!isMounted) return;
+              
+              const elementIdNum = Number(elementId);
+              const relevantAssessment = (classAssessmentsRes?.items || []).find(
+                ca => ca && ca.id && ca.courseElementId === elementIdNum,
+              );
+              
+              if (relevantAssessment?.assessmentTemplateId) {
+                // Fetch template by ID
+                const templatesResponse = await fetchAssessmentTemplates({
+                  pageNumber: 1,
+                  pageSize: 1000,
+                });
+                foundTemplate = (templatesResponse?.items || []).find(
+                  t => t && t.id === relevantAssessment.assessmentTemplateId,
+                );
+              }
+            }
+          } catch (err) {
+            console.error('Failed to fetch template from classAssessment:', err);
+          }
+        }
+        
+        // Fallback: try to find template by courseElementId
+        if (!foundTemplate) {
+          try {
+            const templatesResponse = await fetchAssessmentTemplates({
+              pageNumber: 1,
+              pageSize: 1000,
+            });
+            foundTemplate = (templatesResponse?.items || []).find(
+              t => t && t.courseElementId === Number(elementId),
+            );
+          } catch (err) {
+            console.error('Failed to fetch template by courseElementId:', err);
+          }
+        }
+        
         if (!isMounted) return;
         setTemplateData(foundTemplate || null);
 
-        // Fetch assessment files (requirement and database files)
+        // Fetch assessment files using /AssessmentFile/page endpoint (same as web version)
         if (foundTemplate && foundTemplate.id) {
           try {
             const filesResponse = await getFilesForTemplate({
@@ -110,14 +154,14 @@ const AssignmentDetailScreen = () => {
           }
         }
 
-        // Fetch class assessment to get deadline
+        // Fetch class assessment to get deadline and submission
+        let relevantAssessment: ClassAssessment | null = null;
+        
+        // Try to get classAssessment - first with classId if available
         if (classId) {
           try {
             const classIdNum = Number(classId);
-            if (isNaN(classIdNum)) {
-              console.error('Invalid classId:', classId);
-            } else {
-              // Fetch all class assessments for this class
+            if (!isNaN(classIdNum)) {
               const classAssessmentsRes = await getClassAssessments({
                 classId: classIdNum,
                 pageNumber: 1,
@@ -126,107 +170,141 @@ const AssignmentDetailScreen = () => {
               if (!isMounted) return;
               
               const elementIdNum = Number(elementId);
-              console.log('Fetching class assessments for classId:', classIdNum, 'elementId:', elementIdNum);
-              console.log('Class assessments found:', classAssessmentsRes?.items?.length || 0);
-              
-              // Find assessment that matches this course element
-              const relevantAssessment = (classAssessmentsRes?.items || []).find(
+              relevantAssessment = (classAssessmentsRes?.items || []).find(
                 ca => ca && ca.id && ca.courseElementId === elementIdNum,
-              );
-              
-              console.log('Relevant assessment found:', relevantAssessment ? {
-                id: relevantAssessment.id,
-                courseElementId: relevantAssessment.courseElementId,
-                endAt: relevantAssessment.endAt,
-                lecturerName: relevantAssessment.lecturerName
-              } : 'Not found');
-              
-              if (relevantAssessment && relevantAssessment.id) {
-                setClassAssessment(relevantAssessment);
-                console.log('Class assessment set, endAt:', relevantAssessment.endAt);
-                
-                // Set deadline from class assessment
-                if (relevantAssessment.endAt) {
-                  try {
-                    const date = dayjs(relevantAssessment.endAt);
-                    const formatted = date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A';
-                    setDeadline(formatted);
-                    console.log('Deadline set from classAssessment:', formatted);
-                  } catch (err) {
-                    console.error('Error formatting deadline:', err);
-                    setDeadline('N/A');
-                  }
-                } else {
-                  console.log('No endAt in relevantAssessment');
-                  setDeadline('N/A');
-                }
-
-                // Fetch latest submission for this student
-                if (studentId) {
-                  try {
-                    const submissions = await getSubmissionList({
-                      classAssessmentId: relevantAssessment.id,
-                      studentId: Number(studentId),
-                    });
-                    if (!isMounted) return;
-                    
-                    if (submissions && Array.isArray(submissions) && submissions.length > 0) {
-                      const sorted = submissions
-                        .filter(s => s && s.id && s.submittedAt)
-                        .sort((a, b) => {
-                          if (!a.submittedAt || !b.submittedAt) return 0;
-                          try {
-                            return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
-                          } catch (sortErr) {
-                            return 0;
-                          }
-                        });
-                      if (!isMounted) return;
-                      if (sorted.length > 0 && sorted[0] && sorted[0].id) {
-                        setLatestSubmission(sorted[0]);
-                      }
-                    }
-                  } catch (err) {
-                    console.error('Failed to fetch submissions:', err);
-                  }
-                }
-              } else {
-                console.log('No relevant assessment found for elementId:', elementIdNum);
-                // Fallback: try to get deadline from element data
-                if (element && element.semesterCourse?.semester?.endDate) {
-                  try {
-                    const fallback = dayjs(element.semesterCourse.semester.endDate).format('DD/MM/YYYY');
-                    setDeadline(fallback);
-                    console.log('Deadline set from semester endDate (fallback):', fallback);
-                  } catch {
-                    setDeadline('N/A');
-                  }
-                }
-              }
+              ) || null;
             }
           } catch (err) {
-            console.error('Failed to fetch class assessment:', err);
-            // Fallback on error
-            if (element && element.semesterCourse?.semester?.endDate) {
-              try {
-                const fallback = dayjs(element.semesterCourse.semester.endDate).format('DD/MM/YYYY');
-                setDeadline(fallback);
-              } catch {
-                setDeadline('N/A');
+            console.error('Failed to fetch class assessment with classId:', err);
+          }
+        }
+        
+        // If not found, try fetching all class assessments (like web app)
+        if (!relevantAssessment) {
+          try {
+            const allClassAssessmentsRes = await getClassAssessments({
+              pageNumber: 1,
+              pageSize: 10000, // Large page size to get all
+            });
+            if (!isMounted) return;
+            
+            const elementIdNum = Number(elementId);
+            relevantAssessment = (allClassAssessmentsRes?.items || []).find(
+              ca => ca && ca.id && ca.courseElementId === elementIdNum,
+            ) || null;
+          } catch (err) {
+            console.error('Failed to fetch all class assessments:', err);
+          }
+        }
+        
+        if (relevantAssessment && relevantAssessment.id) {
+          setClassAssessment(relevantAssessment);
+          console.log('Class assessment set, endAt:', relevantAssessment.endAt);
+          
+          // Set deadline from class assessment
+          if (relevantAssessment.endAt) {
+            try {
+              const date = dayjs(relevantAssessment.endAt);
+              const formatted = date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'N/A';
+              setDeadline(formatted);
+              console.log('Deadline set from classAssessment:', formatted);
+            } catch (err) {
+              console.error('Error formatting deadline:', err);
+              setDeadline('N/A');
+            }
+          } else {
+            console.log('No endAt in relevantAssessment');
+            setDeadline('N/A');
+          }
+
+          // Fetch latest submission for this student
+          if (studentId) {
+            try {
+              const submissions = await getSubmissionList({
+                classAssessmentId: relevantAssessment.id,
+                studentId: Number(studentId),
+              });
+              if (!isMounted) return;
+              
+              if (submissions && Array.isArray(submissions) && submissions.length > 0) {
+                const sorted = submissions
+                  .filter(s => s && s.id && s.submittedAt && s.studentId === Number(studentId))
+                  .sort((a, b) => {
+                    if (!a.submittedAt || !b.submittedAt) return 0;
+                    try {
+                      return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+                    } catch (sortErr) {
+                      return 0;
+                    }
+                  });
+                if (!isMounted) return;
+                if (sorted.length > 0 && sorted[0] && sorted[0].id) {
+                  setLatestSubmission(sorted[0]);
+                  console.log('Latest submission set:', sorted[0].id);
+                }
               }
+            } catch (err) {
+              console.error('Failed to fetch submissions:', err);
             }
           }
         } else {
-          console.log('No classId provided, using fallback deadline');
+          console.log('No relevant assessment found for elementId:', elementId);
           // Fallback: try to get deadline from element data
           if (element && element.semesterCourse?.semester?.endDate) {
             try {
               const fallback = dayjs(element.semesterCourse.semester.endDate).format('DD/MM/YYYY');
               setDeadline(fallback);
-              console.log('Deadline set from semester endDate (no classId):', fallback);
+              console.log('Deadline set from semester endDate (fallback):', fallback);
             } catch {
               setDeadline('N/A');
             }
+          }
+          
+          // Also try to fetch submission from grading groups if no classAssessment found
+          if (studentId && foundTemplate) {
+            try {
+              const { getGradingGroups } = await import('../api/gradingGroupService');
+              const gradingGroups = await getGradingGroups({});
+              const relevantGroups = gradingGroups.filter(
+                g => g.assessmentTemplateId === foundTemplate.id,
+              );
+              
+              for (const group of relevantGroups) {
+                try {
+                  const submissions = await getSubmissionList({
+                    gradingGroupId: group.id,
+                    studentId: Number(studentId),
+                  });
+                  if (submissions && submissions.length > 0) {
+                    const sorted = submissions
+                      .filter(s => s && s.id && s.submittedAt && s.studentId === Number(studentId))
+                      .sort((a, b) => {
+                        if (!a.submittedAt || !b.submittedAt) return 0;
+                        return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+                      });
+                    if (sorted.length > 0 && sorted[0] && sorted[0].id) {
+                      setLatestSubmission(sorted[0]);
+                      console.log('Latest submission from grading group:', sorted[0].id);
+                      break;
+                    }
+                  }
+                } catch (err) {
+                  console.error(`Failed to fetch submissions for grading group ${group.id}:`, err);
+                }
+              }
+            } catch (err) {
+              console.error('Failed to fetch from grading groups:', err);
+            }
+          }
+        }
+        
+        // Fallback deadline if not set
+        if ((!deadline || deadline === 'N/A') && element && element.semesterCourse?.semester?.endDate) {
+          try {
+            const fallback = dayjs(element.semesterCourse.semester.endDate).format('DD/MM/YYYY');
+            setDeadline(fallback);
+          } catch {
+            setDeadline('N/A');
           }
         }
       } catch (error: any) {
