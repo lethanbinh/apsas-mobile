@@ -173,10 +173,6 @@ const AssignmentGradingScreen: React.FC = () => {
         }
         return;
       }
-
-      // Get the latest submission for this student and assignment (like web app)
-      // If submission has classAssessmentId, get latest submission for that student and classAssessment
-      // If submission has gradingGroupId, get latest submission for that student and gradingGroup
       if (foundSubmission.studentId) {
         try {
           let relatedSubmissions: Submission[] = [];

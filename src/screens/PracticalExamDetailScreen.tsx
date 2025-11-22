@@ -25,6 +25,7 @@ import {
 import {
   AssessmentTemplateData,
   fetchAssessmentTemplates,
+  getAssessmentTemplateById,
 } from '../api/assessmentTemplateService';
 import { getSubmissionList, Submission } from '../api/submissionService';
 import { getClassAssessments, ClassAssessment } from '../api/classAssessmentService';
@@ -344,12 +345,54 @@ const PracticalExamDetailScreen = () => {
     }
   };
 
+  const navigateToRequirement = async () => {
+    try {
+      if (!templateData || !templateData.id) {
+        showErrorToast('Error', 'No assessment template available.');
+        return;
+      }
+
+      // Fetch full template with papers and questions
+      let fullTemplate = templateData;
+      if (!templateData.papers || templateData.papers.length === 0) {
+        try {
+          fullTemplate = await getAssessmentTemplateById(templateData.id);
+        } catch (err) {
+          console.error('Failed to fetch full template:', err);
+          showErrorToast('Error', 'Failed to load requirement details.');
+          return;
+        }
+      }
+
+      navigation.navigate('RequirementScreen', {
+        assessmentTemplate: fullTemplate,
+      });
+    } catch (err) {
+      console.error('Error navigating to requirement:', err);
+      showErrorToast('Error', 'Failed to open requirement details.');
+    }
+  };
+
   // Build document list for PE (student view)
   const requirementFile = assessmentFiles.find(f => f.fileTemplate === FileTemplate.DATABASE);
   const databaseFile = assessmentFiles.find(f => f.fileTemplate === FileTemplate.TESTFILE);
 
   const dynamicDocumentList: any[] = [];
   let itemNumber = 1;
+
+  // View Requirement Details button (only if template exists)
+  if (templateData) {
+    dynamicDocumentList.push({
+      id: itemNumber,
+      number: String(itemNumber).padStart(2, '0'),
+      title: 'View Requirement Details',
+      linkFile: '',
+      rightIcon: (props: any) => <ViewIcon {...props} />,
+      onPress: navigateToRequirement,
+      onAction: () => {},
+    });
+    itemNumber++;
+  }
 
   // Requirement file download
   if (requirementFile) {

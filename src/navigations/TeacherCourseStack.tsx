@@ -20,6 +20,7 @@ import TeachingClassScreen from '../screens/TeachingClassScreen';
 import HistoryDetailScreen from '../screens/HistoryDetailScreen';
 import ScoreDetailTeacherHistoryScreen from '../screens/ScoreDetailTeacherHistoryScreen';
 import RequirementTeacherScreen from '../screens/RequirementTeacherScreen';
+import RequirementScreen from '../screens/RequirementScreen';
 import MembersScreen from '../screens/MembersScreen';
 import PracticalExamListScreen from '../screens/PracticalExamListScreen';
 import LabListScreen from '../screens/LabListScreen';
@@ -141,6 +142,10 @@ const TeacherCourseStackNavigator = () => {
       <TeacherCourseStack.Screen
         name="MyGradingGroupScreen"
         component={MyGradingGroupScreen}
+      />
+      <TeacherCourseStack.Screen
+        name="RequirementScreen"
+        component={RequirementScreen}
       />
     </TeacherCourseStack.Navigator>
   );

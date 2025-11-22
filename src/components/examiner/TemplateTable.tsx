@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -39,6 +39,8 @@ const TemplateTable = ({ isLoading, data, onView }: TemplateTableProps) => {
   const total = data.length;
   const totalPages = Math.ceil(total / pageSize);
   const pagedData = data.slice((page - 1) * pageSize, page * pageSize);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const lastScrollX = useRef(0);
 
   useEffect(() => {
     setPage(1);
@@ -51,6 +53,7 @@ const TemplateTable = ({ isLoading, data, onView }: TemplateTableProps) => {
   const handlePrevious = () => {
     if (page > 1) setPage(prev => prev - 1);
   };
+
 
   const renderHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
@@ -97,14 +100,20 @@ const TemplateTable = ({ isLoading, data, onView }: TemplateTableProps) => {
 
   return (
     <View style={styles.wrapper}>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
         showsHorizontalScrollIndicator={true}
         style={styles.horizontalScroll}
         contentContainerStyle={styles.horizontalScrollContent}
         nestedScrollEnabled={true}
         bounces={false}
+        scrollEnabled={true}
+        onScroll={(event) => {
+          lastScrollX.current = event.nativeEvent.contentOffset.x;
+        }}
         scrollEventThrottle={16}
+        directionalLockEnabled={false}
       >
         <View style={styles.tableContainer}>
           {renderHeader()}

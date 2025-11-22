@@ -25,6 +25,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   AssessmentTemplateData,
   fetchAssessmentTemplates,
+  getAssessmentTemplateById,
 } from '../api/assessmentTemplateService';
 import { getClassAssessments, updateClassAssessment, createClassAssessment } from '../api/classAssessmentService';
 import {
@@ -34,6 +35,7 @@ import {
 import { getGradingGroups } from '../api/gradingGroupService';
 import { gradingService } from '../api/gradingService';
 import { getSubmissionList, Submission } from '../api/submissionService';
+import { getFilesForTemplate, FileTemplate, AssessmentFileData } from '../api/assessmentFileService';
 import { DownloadIcon, ViewIcon } from '../assets/icons/courses';
 import ScreenHeader from '../components/common/ScreenHeader';
 import AssignmentCardInfo from '../components/courses/AssignmentCardInfo';
@@ -65,6 +67,7 @@ const PracticalExamDetailTeacherScreen = () => {
   );
   const [templateData, setTemplateData] =
     useState<AssessmentTemplateData | null>(null);
+  const [assessmentFiles, setAssessmentFiles] = useState<AssessmentFileData[]>([]);
   const [dynamicDocumentList, setDynamicDocumentList] = useState<any[]>([]);
   const [submissionList, setSubmissionList] = useState<SubmissionItem[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -114,6 +117,23 @@ const PracticalExamDetailTeacherScreen = () => {
           t => t.courseElementId === Number(elementId),
         );
         setTemplateData(foundTemplate || null);
+
+        // Fetch assessment files using /AssessmentFile/page endpoint (same as web version)
+        if (foundTemplate && foundTemplate.id) {
+          try {
+            const filesResponse = await getFilesForTemplate({
+              assessmentTemplateId: foundTemplate.id,
+              pageNumber: 1,
+              pageSize: 100,
+            });
+            if (!isMounted) return;
+            setAssessmentFiles(filesResponse?.items || []);
+          } catch (err) {
+            console.error('Failed to fetch assessment files:', err);
+            if (!isMounted) return;
+            setAssessmentFiles([]);
+          }
+        }
 
         // Fetch class assessment to get deadline and lecturer name
         try {
@@ -556,6 +576,103 @@ const PracticalExamDetailTeacherScreen = () => {
       showErrorToast('Error', err.message || 'Failed to start batch grading');
     }
   };
+
+  const navigateToRequirement = async () => {
+    try {
+      if (!templateData || !templateData.id) {
+        showErrorToast('Error', 'No assessment template available.');
+        return;
+      }
+
+      // Fetch full template with papers and questions
+      let fullTemplate = templateData;
+      if (!templateData.papers || templateData.papers.length === 0) {
+        try {
+          fullTemplate = await getAssessmentTemplateById(templateData.id);
+        } catch (err) {
+          console.error('Failed to fetch full template:', err);
+          showErrorToast('Error', 'Failed to load requirement details.');
+          return;
+        }
+      }
+
+      navigation.navigate('RequirementScreen', {
+        assessmentTemplate: fullTemplate,
+      });
+    } catch (err) {
+      console.error('Error navigating to requirement:', err);
+      showErrorToast('Error', 'Failed to open requirement details.');
+    }
+  };
+
+  // Build dynamic document list from assessment files
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const requirementFile = assessmentFiles.find(f => f.fileTemplate === FileTemplate.DATABASE);
+    const databaseFile = assessmentFiles.find(f => f.fileTemplate === FileTemplate.TESTFILE);
+
+    const documentList: any[] = [];
+    let itemNumber = 1;
+
+    // View Requirement Details button (only if template exists)
+    if (templateData) {
+      documentList.push({
+        id: itemNumber,
+        number: String(itemNumber).padStart(2, '0'),
+        title: 'View Requirement Details',
+        linkFile: '',
+        rightIcon: ViewIcon,
+        onPress: navigateToRequirement,
+        onAction: () => {},
+      });
+      itemNumber++;
+    }
+
+    // Requirement file download
+    if (requirementFile) {
+      documentList.push({
+        id: itemNumber,
+        number: String(itemNumber).padStart(2, '0'),
+        title: requirementFile.name || 'Requirement File',
+        linkFile: requirementFile.name || '',
+        rightIcon: DownloadIcon,
+        onPress: () => {
+          if (requirementFile.fileUrl) {
+            handleDownloadFile(
+              { id: requirementFile.id, name: requirementFile.name, submissionUrl: requirementFile.fileUrl },
+              null,
+            );
+          }
+        },
+        onAction: () => {},
+      });
+      itemNumber++;
+    }
+
+    // Database file download
+    if (databaseFile) {
+      documentList.push({
+        id: itemNumber,
+        number: String(itemNumber).padStart(2, '0'),
+        title: databaseFile.name || 'Database File',
+        linkFile: databaseFile.name || '',
+        rightIcon: DownloadIcon,
+        onPress: () => {
+          if (databaseFile.fileUrl) {
+            handleDownloadFile(
+              { id: databaseFile.id, name: databaseFile.name, submissionUrl: databaseFile.fileUrl },
+              null,
+            );
+          }
+        },
+        onAction: () => {},
+      });
+      itemNumber++;
+    }
+
+    setDynamicDocumentList(documentList);
+  }, [assessmentFiles, templateData, isMounted]);
 
   if (isLoading) {
     return (

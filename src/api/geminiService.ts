@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
+import { GEMINI_API_KEY } from '@env';
 
-const GEMINI_API_KEY = 'AIzaSyAmSj3vZ-PYX4WGjzUsLFxVYWQMgxhpCvc';
 const GEMINI_MODEL = 'gemini-2.5-pro';
 
 // Initialize GoogleGenAI client

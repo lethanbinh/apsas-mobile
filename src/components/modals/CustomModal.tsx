@@ -19,6 +19,7 @@ interface CustomModalProps {
   children?: ReactNode;
   icon?: ReactNode;
   disableScrollView?: boolean;
+  width?: string | number;
 }
 
 const CustomModal: React.FC<CustomModalProps> = ({
@@ -29,6 +30,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
   children,
   icon,
   disableScrollView = false,
+  width = '85%',
 }) => {
   if (!visible) return null;
   const modalInnerContent = (
@@ -55,7 +57,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer]}>
           {/* Render ScrollView có điều kiện */}
           {disableScrollView ? (
             modalInnerContent // Render trực tiếp nếu disableScrollView là true
@@ -86,13 +88,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContainer: {
-    width: '85%',
     backgroundColor: '#fff',
     borderRadius: 12,
-    paddingVertical: vs(40),
+    paddingVertical: vs(30),
     paddingHorizontal: s(25),
     elevation: 5,
-    maxHeight: '90%', // Giữ giới hạn chiều cao
+    maxHeight: '98%', // Tăng chiều cao tối đa
   },
   title: {
     textAlign: 'center',
