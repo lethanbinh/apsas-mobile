@@ -5,6 +5,7 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
@@ -19,17 +20,29 @@ import AppButton from '../components/buttons/AppButton';
 import CourseCardItem from '../components/courses/CourseCardItem';
 import CustomModal from '../components/modals/CustomModal';
 import AppText from '../components/texts/AppText';
-import { showErrorToast } from '../components/toasts/AppToast';
+import { showErrorToast, showSuccessToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
 import { navigationList } from '../data/coursesData';
 import { AppColors } from '../styles/color';
+import { useGetCurrentStudentId } from '../hooks/useGetCurrentStudentId';
+import { exportStudentReport, ExportTypes } from '../utils/exportReportHelper';
+import Feather from 'react-native-vector-icons/Feather';
+import { Checkbox } from 'react-native-paper';
 
 const CourseDetailScreen = () => {
   const [unEnrollModalVisible, setUnEnrollModalVisible] =
     useState<boolean>(false);
+  const [exportModalVisible, setExportModalVisible] = useState<boolean>(false);
+  const [exportTypes, setExportTypes] = useState<ExportTypes>({
+    assignment: true,
+    lab: true,
+    practicalExam: true,
+  });
+  const [isExporting, setIsExporting] = useState(false);
   const navigation = useNavigation<any>();
   const route = useRoute(); // Get route object
   const classId = (route.params as { classId?: string })?.classId; // Get classId
+  const { studentId } = useGetCurrentStudentId();
 
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,6 +84,36 @@ const CourseDetailScreen = () => {
 
   const handleUnEnrollCourse = () => {
     setUnEnrollModalVisible(false);
+  };
+
+  const handleExportReport = () => {
+    setExportModalVisible(true);
+  };
+
+  const handleConfirmExport = async () => {
+    // Check if at least one type is selected
+    if (!exportTypes.assignment && !exportTypes.lab && !exportTypes.practicalExam) {
+      showErrorToast('Error', 'Please select at least one type to export');
+      return;
+    }
+
+    if (!classId || !studentId) {
+      showErrorToast('Error', 'Class ID or Student ID not found');
+      return;
+    }
+
+    setIsExporting(true);
+    setExportModalVisible(false);
+
+    try {
+      await exportStudentReport(classId, studentId, exportTypes);
+      showSuccessToast('Success', 'Report exported successfully');
+    } catch (error: any) {
+      console.error('Export error:', error);
+      showErrorToast('Error', error.message || 'Export failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading) {
@@ -175,6 +218,16 @@ const CourseDetailScreen = () => {
               'No description available for this class.'}
           </AppText>
         </View>
+        {/* Export Report Button */}
+        <View style={styles.exportButtonContainer}>
+          <AppButton
+            title={isExporting ? 'Exporting...' : 'Export Grade Report (Excel)'}
+            onPress={handleExportReport}
+            disabled={isExporting}
+            style={styles.exportButton}
+            leftIcon={<Feather name="download" size={s(16)} color={AppColors.white} />}
+          />
+        </View>
       </View>
       <View
         style={{
@@ -244,6 +297,82 @@ const CourseDetailScreen = () => {
           />
         </View>
       </CustomModal>
+
+      {/* Export Report Modal */}
+      <CustomModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        title="Select Export Types"
+        description="Choose which types of assessments to include in the report"
+        disableScrollView={true}
+      >
+        <View style={styles.checkboxContainer}>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setExportTypes({ ...exportTypes, assignment: !exportTypes.assignment })}
+          >
+            <Checkbox
+              status={exportTypes.assignment ? 'checked' : 'unchecked'}
+              onPress={() => setExportTypes({ ...exportTypes, assignment: !exportTypes.assignment })}
+              color={AppColors.pr500}
+            />
+            <AppText variant="body14pxRegular" style={styles.checkboxLabel}>
+              Assignment
+            </AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setExportTypes({ ...exportTypes, lab: !exportTypes.lab })}
+          >
+            <Checkbox
+              status={exportTypes.lab ? 'checked' : 'unchecked'}
+              onPress={() => setExportTypes({ ...exportTypes, lab: !exportTypes.lab })}
+              color={AppColors.pr500}
+            />
+            <AppText variant="body14pxRegular" style={styles.checkboxLabel}>
+              Lab
+            </AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setExportTypes({ ...exportTypes, practicalExam: !exportTypes.practicalExam })}
+          >
+            <Checkbox
+              status={exportTypes.practicalExam ? 'checked' : 'unchecked'}
+              onPress={() => setExportTypes({ ...exportTypes, practicalExam: !exportTypes.practicalExam })}
+              color={AppColors.pr500}
+            />
+            <AppText variant="body14pxRegular" style={styles.checkboxLabel}>
+              Practical Exam
+            </AppText>
+          </TouchableOpacity>
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: s(10),
+            justifyContent: 'center',
+            marginTop: vs(20),
+          }}
+        >
+          <AppButton
+            size="small"
+            title="Export"
+            onPress={handleConfirmExport}
+            style={{ minWidth: 'auto', width: s(100) }}
+          />
+          <AppButton
+            size="small"
+            title="Cancel"
+            variant="secondary"
+            onPress={() => setExportModalVisible(false)}
+            style={{
+              minWidth: 'auto',
+              width: s(100),
+            }}
+          />
+        </View>
+      </CustomModal>
     </ScrollView>
   );
 };
@@ -309,5 +438,23 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     lineHeight: vs(22),
+  },
+  exportButtonContainer: {
+    paddingHorizontal: s(20),
+    paddingBottom: vs(20),
+  },
+  exportButton: {
+    backgroundColor: AppColors.pr500,
+  },
+  checkboxContainer: {
+    marginTop: vs(10),
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: vs(12),
+  },
+  checkboxLabel: {
+    marginLeft: s(8),
   },
 });

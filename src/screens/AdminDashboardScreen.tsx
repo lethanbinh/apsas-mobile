@@ -3,169 +3,120 @@ import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
-  View
+  View,
+  TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
-import { BarChart } from 'react-native-gifted-charts';
 import { s, vs } from 'react-native-size-matters';
-import { accountService } from '../api/accountService';
-import { fetchLecturerList } from '../api/lecturerService';
 import ScreenHeader from '../components/common/ScreenHeader';
 import AppText from '../components/texts/AppText';
 import { showErrorToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
-import { assessmentData, coursesData } from '../data/adminData';
 import { AppColors } from '../styles/color';
+import { adminDashboardService, DashboardOverview, ChartData } from '../api/adminDashboardService';
+import Tabs from '../components/common/Tabs';
+import OverviewTab from '../components/admin/OverviewTab';
+import UsersTab from '../components/admin/UsersTab';
+import AcademicTab from '../components/admin/AcademicTab';
+import AssessmentsTab from '../components/admin/AssessmentsTab';
+import SubmissionsTab from '../components/admin/SubmissionsTab';
+import GradingTab from '../components/admin/GradingTab';
 
 const AdminDashboardScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [totalTeachers, setTotalTeachers] = useState(0);
-  const [activeUsers, setActiveUsers] = useState(0);
-  const [bannedUsers, setBannedUsers] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      const [overviewData, chartDataResult] = await Promise.all([
+        adminDashboardService.getDashboardOverview(),
+        adminDashboardService.getChartData(),
+      ]);
+      setOverview(overviewData);
+      setChartData(chartDataResult);
+    } catch (error: any) {
+      console.error('Failed to fetch dashboard data:', error);
+      showErrorToast('Error', 'Failed to load dashboard data.');
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        // Fetch all users
-        const usersResult = await accountService.getAccountList(1, 9999);
-        const allUsers = usersResult.users || [];
-        setTotalUsers(allUsers.length);
-
-        // Count teachers (lecturers)
-        const lecturers = await fetchLecturerList();
-        setTotalTeachers(lecturers.length || 0);
-
-        // Count active and banned (assuming all users are active for now)
-        setActiveUsers(allUsers.length);
-        setBannedUsers(0);
-      } catch (error: any) {
-        console.error('Failed to fetch dashboard data:', error);
-        showErrorToast('Error', 'Failed to load dashboard data.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchDashboardData();
   }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchDashboardData();
+  };
+
+  const tabs = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'users', label: 'Users' },
+    { key: 'academic', label: 'Academic' },
+    { key: 'assessments', label: 'Assessments' },
+    { key: 'submissions', label: 'Submissions' },
+    { key: 'grading', label: 'Grading' },
+  ];
+
+  const renderTabContent = () => {
+    if (!overview || !chartData) {
+      return null;
+    }
+
+    switch (activeTab) {
+      case 'overview':
+        return <OverviewTab overview={overview} chartData={chartData} />;
+      case 'users':
+        return <UsersTab overview={overview} chartData={chartData} />;
+      case 'academic':
+        return <AcademicTab overview={overview} chartData={chartData} />;
+      case 'assessments':
+        return <AssessmentsTab overview={overview} chartData={chartData} />;
+      case 'submissions':
+        return <SubmissionsTab overview={overview} chartData={chartData} />;
+      case 'grading':
+        return <GradingTab overview={overview} chartData={chartData} />;
+      default:
+        return <OverviewTab overview={overview} chartData={chartData} />;
+    }
+  };
 
   return (
     <AppSafeView>
-      <ScreenHeader title="Dashboard" />
-      {isLoading ? (
+      <ScreenHeader title="Admin Dashboard" />
+      {isLoading && !overview ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={AppColors.pr500} />
+          <AppText style={styles.loadingText}>Loading dashboard data...</AppText>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.container}>
-          {/* Users */}
-          <View style={styles.card}>
-            <AppText style={styles.cardTitle}>Users</AppText>
-            <View style={styles.usersRow}>
-              <View style={styles.userItem}>
-                <AppText style={[styles.userNumber, { color: AppColors.pr500 }]}>
-                  {totalUsers}
-                </AppText>
-                <AppText style={styles.userLabel}>Users</AppText>
-              </View>
-              <View style={styles.userItem}>
-                <AppText style={[styles.userNumber, { color: AppColors.p500 }]}>
-                  {totalTeachers}
-                </AppText>
-                <AppText style={styles.userLabel}>Teacher</AppText>
-              </View>
-              <View style={styles.userItem}>
-                <AppText style={[styles.userNumber, { color: AppColors.pr500 }]}>
-                  {activeUsers}
-                </AppText>
-                <AppText style={styles.userLabel}>Active</AppText>
-              </View>
-              <View style={styles.userItem}>
-                <AppText style={[styles.userNumber, { color: AppColors.p500 }]}>
-                  {bannedUsers}
-                </AppText>
-                <AppText style={styles.userLabel}>Banded</AppText>
-              </View>
-            </View>
-          </View>
-
-          {/* Assessment */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <AppText style={styles.cardTitle}>Assessment number</AppText>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <BarChart
-                stackData={assessmentData}
-                barWidth={40}
-                spacing={50}
-                roundedTop
-                noOfSections={6}
-                width={assessmentData.length * 120}
-                yAxisTextStyle={{ color: AppColors.n700 }}
-                xAxisLabelTextStyle={{ color: AppColors.n700, fontSize: 12 }}
-              />
+        <>
+          <View style={styles.tabsContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabsScrollContent}
+            >
+              <Tabs activeTab={activeTab} onChange={setActiveTab} tabs={tabs} />
             </ScrollView>
-
-            <View style={styles.legendContainer}>
-              <View style={styles.legendItem}>
-                <View
-                  style={[styles.legendBox, { backgroundColor: AppColors.b500 }]}
-                />
-                <AppText style={styles.legendText}>Asm</AppText>
-              </View>
-              <View style={styles.legendItem}>
-                <View
-                  style={[styles.legendBox, { backgroundColor: AppColors.g500 }]}
-                />
-                <AppText style={styles.legendText}>Lab</AppText>
-              </View>
-              <View style={styles.legendItem}>
-                <View
-                  style={[styles.legendBox, { backgroundColor: AppColors.pur500 }]}
-                />
-                <AppText style={styles.legendText}>PE</AppText>
-              </View>
-            </View>
           </View>
-
-          {/* Courses */}
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <AppText style={styles.cardTitle}>Courses</AppText>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <BarChart
-                stackData={coursesData}
-                barWidth={40}
-                spacing={50}
-                roundedTop
-                noOfSections={6}
-                width={coursesData.length * 120}
-                yAxisTextStyle={{ color: AppColors.n700 }}
-                xAxisLabelTextStyle={{ color: AppColors.n700, fontSize: 12 }}
-              />
-            </ScrollView>
-
-            <View style={styles.legendContainer}>
-              <View style={styles.legendItem}>
-                <View
-                  style={[styles.legendBox, { backgroundColor: AppColors.pur500 }]}
-                />
-                <AppText style={styles.legendText}>Course</AppText>
-              </View>
-              <View style={styles.legendItem}>
-                <View
-                  style={[styles.legendBox, { backgroundColor: AppColors.g500 }]}
-                />
-                <AppText style={styles.legendText}>Lab</AppText>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
+          <ScrollView
+            style={styles.contentContainer}
+            contentContainerStyle={styles.contentScrollContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
+            {renderTabContent()}
+          </ScrollView>
+        </>
       )}
     </AppSafeView>
   );
@@ -174,71 +125,30 @@ const AdminDashboardScreen = () => {
 export default AdminDashboardScreen;
 
 const styles = StyleSheet.create({
-  container: { padding: s(20), paddingBottom: vs(40) },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: AppColors.white,
   },
-  card: {
-    backgroundColor: AppColors.white,
-    borderRadius: s(12),
-    padding: s(15),
-    marginBottom: vs(20),
-    shadowColor: AppColors.black,
-    shadowOpacity: 0.1,
-    shadowRadius: s(6),
-    elevation: 3,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: s(10),
-  },
-  cardTitle: {
-    fontSize: s(16),
-    fontWeight: '600',
-    color: AppColors.n900,
-  },
-  viewAll: {
-    fontSize: s(13),
-    color: AppColors.pr500,
-  },
-  usersRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: s(10),
-  },
-  userItem: {
-    alignItems: 'center',
-  },
-  userNumber: {
-    fontSize: s(20),
-    fontWeight: '700',
-  },
-  userLabel: {
-    fontSize: s(13),
-    color: AppColors.n500,
-  },
-  legendContainer: {
-    flexDirection: 'row',
+  loadingText: {
     marginTop: vs(10),
-    justifyContent: 'center',
+    fontSize: s(14),
+    color: AppColors.n600,
   },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: s(10),
+  tabsContainer: {
+    backgroundColor: AppColors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: AppColors.n200,
+    paddingVertical: vs(10),
   },
-  legendBox: {
-    width: s(14),
-    height: s(14),
-    borderRadius: s(3),
-    marginRight: s(6),
+  tabsScrollContent: {
+    paddingHorizontal: s(20),
   },
-  legendText: {
-    fontSize: s(12),
-    color: AppColors.n700,
+  contentContainer: {
+    flex: 1,
+  },
+  contentScrollContent: {
+    paddingBottom: vs(40),
   },
 });

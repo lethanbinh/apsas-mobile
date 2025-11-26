@@ -6,9 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
 import { pick, types } from '@react-native-documents/picker';
+import * as XLSX from 'xlsx';
+import RNBlobUtil from 'react-native-blob-util';
+import dayjs from 'dayjs';
 import { AssignRequestData } from '../../api/assignRequestService';
 import { assessmentTemplateService, AssessmentTemplate } from '../../api/assessmentTemplateServiceWrapper';
 import { assessmentPaperService, AssessmentPaper } from '../../api/assessmentPaperServiceWrapper';
@@ -16,6 +20,7 @@ import { assessmentQuestionService, AssessmentQuestion } from '../../api/assessm
 import { rubricItemService, RubricItem } from '../../api/rubricItemServiceWrapper';
 import { assessmentFileService, AssessmentFile } from '../../api/assessmentFileServiceWrapper';
 import { uploadAssessmentFile, deleteAssessmentFile } from '../../api/assessmentFileService';
+import { updateAssignRequest } from '../../api/assignRequestService';
 import AppText from '../texts/AppText';
 import AppButton from '../buttons/AppButton';
 import { showErrorToast, showSuccessToast } from '../toasts/AppToast';
@@ -90,6 +95,7 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
   );
   const isEditable = [1, 4].includes(Number(task.status));
   const isCurrentTemplateEditable = template?.assignRequestId === task.id && isEditable;
+  const isRejected = task.status === 3; // Status 3 = Rejected
 
   const fetchAllData = async (templateId: number) => {
     if (!isMounted) return;
@@ -511,6 +517,411 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
     );
   };
 
+  const handleDownloadTemplate = async () => {
+    if (!template) {
+      showErrorToast('Error', 'No template selected');
+      return;
+    }
+
+    try {
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Assessment Template
+      const templateData = [
+        ['ASSESSMENT TEMPLATE'],
+        ['Field', 'Value', 'Description'],
+        ['Name', template.name || '', 'Template name'],
+        ['Description', template.description || '', 'Template description'],
+        [
+          'Template Type',
+          template.templateType === 0 ? 'DSA (0)' : 'WEBAPI (1)',
+          '0: DSA, 1: WEBAPI',
+        ],
+        [],
+        ['INSTRUCTIONS:'],
+        ['1. Fill in the Name, Description, and Template Type fields above'],
+        ['2. Use the Papers sheet to add papers'],
+        ['3. Use the Questions sheet to add questions (reference papers by name)'],
+        ['4. Use the Rubrics sheet to add rubrics (reference questions by question number)'],
+      ];
+      const templateWs = XLSX.utils.aoa_to_sheet(templateData);
+      XLSX.utils.book_append_sheet(wb, templateWs, 'Assessment Template');
+
+      // Sheet 2: Papers
+      const papersData = [
+        ['PAPERS'],
+        ['Name', 'Description', 'Language', 'Instructions'],
+        ['Paper 1', 'Description for Paper 1', 'CSharp', 'Language: CSharp (0), C (1), Java (2)'],
+        ['Paper 2', 'Description for Paper 2', 'C', ''],
+        [],
+        ['INSTRUCTIONS:'],
+        ['- Name: Paper name (required)'],
+        ['- Description: Paper description (optional)'],
+        ['- Language: CSharp (0), C (1), or Java (2)'],
+        ['- Reference papers by name in the Questions sheet'],
+      ];
+      const papersWs = XLSX.utils.aoa_to_sheet(papersData);
+      XLSX.utils.book_append_sheet(wb, papersWs, 'Papers');
+
+      // Sheet 3: Questions
+      const questionsData = [
+        ['QUESTIONS'],
+        ['Paper Name', 'Question Number', 'Question Text', 'Sample Input', 'Sample Output', 'Score', 'Instructions'],
+        ['Paper 1', 1, 'Write a function to calculate factorial', '5', '120', 10, 'Paper Name must match a paper from Papers sheet'],
+        ['Paper 1', 2, 'Write a function to find maximum', '4 9 2', '9', 10, ''],
+        ['Paper 2', 1, 'Write a function to reverse string', 'hello', 'olleh', 10, ''],
+        [],
+        ['INSTRUCTIONS:'],
+        ['- Paper Name: Must match a paper name from the Papers sheet (required)'],
+        ['- Question Number: Sequential number for questions in the same paper (required)'],
+        ['- Question Text: The question description (required)'],
+        ['- Sample Input: Example input for testing (optional)'],
+        ['- Sample Output: Expected output for the sample input (optional)'],
+        ['- Score: Maximum score for this question (required)'],
+        ['- Reference questions by Question Number in the Rubrics sheet'],
+      ];
+      const questionsWs = XLSX.utils.aoa_to_sheet(questionsData);
+      XLSX.utils.book_append_sheet(wb, questionsWs, 'Questions');
+
+      // Sheet 4: Rubrics
+      const rubricsData = [
+        ['RUBRICS'],
+        ['Paper Name', 'Question Number', 'Description', 'Input', 'Output', 'Score', 'Instructions'],
+        ['Paper 1', 1, 'Correct input/output format', '4 9 2', '9', 5, 'Paper Name and Question Number must match from Questions sheet'],
+        ['Paper 1', 1, 'Handles edge cases', '0', '0', 3, ''],
+        ['Paper 1', 1, 'Code efficiency', '', '', 2, ''],
+        ['Paper 1', 2, 'Correct input/output format', '5', '120', 5, ''],
+        ['Paper 1', 2, 'Handles large numbers', '20', '2432902008176640000', 5, ''],
+        [],
+        ['INSTRUCTIONS:'],
+        ['- Paper Name: Must match a paper name from the Papers sheet (required)'],
+        ['- Question Number: Must match a question number from the Questions sheet (required)'],
+        ['- Description: Rubric description (required)'],
+        ['- Input: Test input for this rubric (optional)'],
+        ['- Output: Expected output for this input (optional)'],
+        ['- Score: Points for this rubric (required)'],
+      ];
+      const rubricsWs = XLSX.utils.aoa_to_sheet(rubricsData);
+      XLSX.utils.book_append_sheet(wb, rubricsWs, 'Rubrics');
+
+      // Set column widths
+      const setColumnWidths = (ws: XLSX.WorkSheet, widths: { [key: string]: number }) => {
+        ws['!cols'] = Object.keys(widths).map((col) => ({ wch: widths[col] || 15 }));
+      };
+
+      setColumnWidths(templateWs, { A: 20, B: 30, C: 40 });
+      setColumnWidths(papersWs, { A: 20, B: 30, C: 15, D: 40 });
+      setColumnWidths(questionsWs, { A: 20, B: 15, C: 40, D: 20, E: 20, F: 10, G: 40 });
+      setColumnWidths(rubricsWs, { A: 20, B: 15, C: 30, D: 20, E: 20, F: 10, G: 40 });
+
+      const fileName = `Assessment_Template_Import_${template.name || 'Template'}_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+      const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+
+      const path = `${RNBlobUtil.fs.dirs.DownloadDir}/${fileName}`;
+      await RNBlobUtil.fs.writeFile(path, wbout, 'base64');
+
+      if (Platform.OS === 'android') {
+        await RNBlobUtil.android.addCompleteDownload({
+          title: fileName,
+          description: 'Download complete',
+          mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          path: path,
+          showNotification: true,
+        });
+      }
+
+      showSuccessToast('Success', 'Template downloaded successfully');
+    } catch (error: any) {
+      console.error('Failed to download template:', error);
+      showErrorToast('Error', error.message || 'Failed to download template. Please try again.');
+    }
+  };
+
+  const handleImportTemplate = async () => {
+    if (!isCurrentTemplateEditable && !isRejected) {
+      showErrorToast('Error', 'Template is not editable');
+      return;
+    }
+
+    try {
+      const result = await pick({
+        allowMultiSelection: false,
+        type: [types.xlsx, types.xls],
+      });
+
+      if (!result || result.length === 0) {
+        return;
+      }
+
+      const file = result[0];
+      const base64Data = await RNBlobUtil.fs.readFile(file.uri, 'base64');
+      const workbook = XLSX.read(base64Data, { type: 'base64' });
+
+      // Read Assessment Template sheet
+      const templateSheet = workbook.Sheets['Assessment Template'];
+      if (!templateSheet) {
+        throw new Error('Assessment Template sheet not found');
+      }
+      const templateRows = XLSX.utils.sheet_to_json(templateSheet, { header: 1 }) as any[][];
+
+      // Extract template info (skip header rows)
+      let templateName = '';
+      let templateDesc = '';
+      let templateType = 0;
+
+      for (let i = 2; i < templateRows.length; i++) {
+        const row = templateRows[i];
+        if (row && row[0]) {
+          if (row[0] === 'Name' && row[1]) templateName = String(row[1]).trim();
+          if (row[0] === 'Description' && row[1]) templateDesc = String(row[1]).trim();
+          if (row[0] === 'Template Type' && row[1]) {
+            const typeStr = String(row[1]);
+            if (typeStr.includes('0')) templateType = 0;
+            else if (typeStr.includes('1')) templateType = 1;
+            // Default to 0 if invalid
+            else templateType = 0;
+          }
+        }
+      }
+
+      // Validate template name
+      if (!templateName) {
+        throw new Error('Template name is required in the Assessment Template sheet');
+      }
+
+      // Create or update template
+      let currentTemplate: AssessmentTemplate;
+      if (template) {
+        // Update existing template if changed
+        if (
+          templateName !== template.name ||
+          templateDesc !== template.description ||
+          templateType !== template.templateType
+        ) {
+          currentTemplate = await assessmentTemplateService.updateAssessmentTemplate(template.id, {
+            name: templateName,
+            description: templateDesc,
+            templateType: templateType,
+            assignedToHODId: template.assignedToHODId,
+          });
+        } else {
+          currentTemplate = template;
+        }
+      } else {
+        // Create new template
+        if (templates.length > 0 && !isRejected) {
+          throw new Error('Template already exists. Please delete existing template first or import will update it.');
+        }
+
+        currentTemplate = await assessmentTemplateService.createAssessmentTemplate({
+          name: templateName,
+          description: templateDesc,
+          templateType: templateType,
+          assignRequestId: task.id,
+          createdByLecturerId: lecturerId,
+          assignedToHODId: task.assignedByHODId,
+        });
+
+        // If this was a resubmission after rejection, reset status to Pending
+        if (isRejected) {
+          try {
+            await updateAssignRequest(task.id, {
+              message: task.message || 'Template imported and resubmitted after rejection',
+              courseElementId: task.courseElementId,
+              assignedLecturerId: task.assignedLecturerId,
+              assignedByHODId: task.assignedByHODId,
+              status: 1, // Reset to Pending
+              assignedAt: task.assignedAt,
+            });
+          } catch (err: any) {
+            console.error('Failed to reset status:', err);
+          }
+        }
+      }
+
+      // Read Papers sheet
+      const papersSheet = workbook.Sheets['Papers'];
+      if (!papersSheet) {
+        throw new Error('Papers sheet not found');
+      }
+      const papersRows = XLSX.utils.sheet_to_json(papersSheet, { header: 1 }) as any[][];
+
+      // Skip header rows (first 2 rows)
+      const paperData: Array<{ name: string; description: string; language: number }> = [];
+      for (let i = 2; i < papersRows.length; i++) {
+        const row = papersRows[i];
+        if (row && row[0] && String(row[0]).trim() && !String(row[0]).startsWith('INSTRUCTIONS')) {
+          const name = String(row[0]).trim();
+          const description = row[1] ? String(row[1]).trim() : '';
+          let language = 0; // Default CSharp
+          if (row[2]) {
+            const langStr = String(row[2]).toLowerCase();
+            if (langStr.includes('c') && !langStr.includes('sharp')) language = 1;
+            else if (langStr.includes('java')) language = 2;
+          }
+          paperData.push({ name, description, language });
+        }
+      }
+
+      // Read Questions sheet
+      const questionsSheet = workbook.Sheets['Questions'];
+      if (!questionsSheet) {
+        throw new Error('Questions sheet not found');
+      }
+      const questionsRows = XLSX.utils.sheet_to_json(questionsSheet, { header: 1 }) as any[][];
+
+      // Skip header rows
+      const questionData: Array<{
+        paperName: string;
+        questionNumber: number;
+        questionText: string;
+        sampleInput: string;
+        sampleOutput: string;
+        score: number;
+      }> = [];
+      for (let i = 2; i < questionsRows.length; i++) {
+        const row = questionsRows[i];
+        if (row && row[0] && String(row[0]).trim() && !String(row[0]).startsWith('INSTRUCTIONS')) {
+          const paperName = String(row[0]).trim();
+          const questionNumber = row[1] ? Number(row[1]) : 0;
+          const questionText = row[2] ? String(row[2]).trim() : '';
+          const sampleInput = row[3] ? String(row[3]).trim() : '';
+          const sampleOutput = row[4] ? String(row[4]).trim() : '';
+          const score = row[5] ? Number(row[5]) : 0;
+          if (paperName && questionNumber > 0 && questionText) {
+            questionData.push({ paperName, questionNumber, questionText, sampleInput, sampleOutput, score });
+          }
+        }
+      }
+
+      // Read Rubrics sheet
+      const rubricsSheet = workbook.Sheets['Rubrics'];
+      if (!rubricsSheet) {
+        throw new Error('Rubrics sheet not found');
+      }
+      const rubricsRows = XLSX.utils.sheet_to_json(rubricsSheet, { header: 1 }) as any[][];
+
+      // Skip header rows
+      const rubricData: Array<{
+        paperName: string;
+        questionNumber: number;
+        description: string;
+        input: string;
+        output: string;
+        score: number;
+      }> = [];
+      for (let i = 2; i < rubricsRows.length; i++) {
+        const row = rubricsRows[i];
+        if (row && row[0] && String(row[0]).trim() && !String(row[0]).startsWith('INSTRUCTIONS')) {
+          const paperName = String(row[0]).trim();
+          const questionNumber = row[1] ? Number(row[1]) : 0;
+          const description = row[2] ? String(row[2]).trim() : '';
+          const input = row[3] ? String(row[3]).trim() : '';
+          const output = row[4] ? String(row[4]).trim() : '';
+          const score = row[5] ? Number(row[5]) : 0;
+          if (paperName && questionNumber > 0 && description) {
+            rubricData.push({ paperName, questionNumber, description, input, output, score });
+          }
+        }
+      }
+
+      // Create papers - using the template ID we just created/updated
+      const createdPapers = new Map<string, AssessmentPaper>();
+      for (const paper of paperData) {
+        try {
+          const createdPaper = await assessmentPaperService.createAssessmentPaper({
+            name: paper.name,
+            description: paper.description,
+            assessmentTemplateId: currentTemplate.id,
+            language: paper.language,
+          });
+          createdPapers.set(paper.name, createdPaper);
+        } catch (error: any) {
+          console.error(`Failed to create paper ${paper.name}:`, error);
+          showErrorToast('Warning', `Failed to create paper: ${paper.name}`);
+        }
+      }
+
+      // Create questions - group by paper first
+      const questionsByPaper = new Map<string, typeof questionData>();
+      for (const question of questionData) {
+        if (!questionsByPaper.has(question.paperName)) {
+          questionsByPaper.set(question.paperName, []);
+        }
+        questionsByPaper.get(question.paperName)!.push(question);
+      }
+
+      const createdQuestions = new Map<string, AssessmentQuestion>(); // key: "paperName-questionNumber"
+      for (const [paperName, questions] of questionsByPaper.entries()) {
+        const paper = createdPapers.get(paperName);
+        if (!paper) {
+          showErrorToast('Warning', `Paper not found: ${paperName}. Questions for this paper will be skipped.`);
+          continue;
+        }
+
+        for (const question of questions) {
+          try {
+            const createdQuestion = await assessmentQuestionService.createAssessmentQuestion({
+              questionText: question.questionText,
+              questionSampleInput: question.sampleInput,
+              questionSampleOutput: question.sampleOutput,
+              score: question.score,
+              questionNumber: question.questionNumber,
+              assessmentPaperId: paper.id,
+            });
+            // Use "paperName-questionNumber" as key for easier lookup
+            createdQuestions.set(`${paperName}-${question.questionNumber}`, createdQuestion);
+          } catch (error: any) {
+            console.error(`Failed to create question ${question.questionNumber} for paper ${paperName}:`, error);
+            showErrorToast('Warning', `Failed to create question ${question.questionNumber}`);
+          }
+        }
+      }
+
+      // Create rubrics - match by paperName and questionNumber
+      for (const rubric of rubricData) {
+        // Find question by paperName and questionNumber
+        const questionKey = `${rubric.paperName}-${rubric.questionNumber}`;
+        const foundQuestion = createdQuestions.get(questionKey);
+
+        if (!foundQuestion) {
+          showErrorToast(
+            'Warning',
+            `Question ${rubric.questionNumber} in paper "${rubric.paperName}" not found. Rubric "${rubric.description}" will be skipped.`,
+          );
+          continue;
+        }
+
+        try {
+          await rubricItemService.createRubricItem({
+            description: rubric.description,
+            input: rubric.input,
+            output: rubric.output,
+            score: rubric.score,
+            assessmentQuestionId: foundQuestion.id,
+          });
+        } catch (error: any) {
+          console.error(`Failed to create rubric for question ${rubric.questionNumber}:`, error);
+          showErrorToast('Warning', `Failed to create rubric`);
+        }
+      }
+
+      // Refresh all data
+      await fetchTemplates();
+      if (currentTemplate) {
+        await fetchAllData(currentTemplate.id);
+      }
+
+      showSuccessToast(
+        'Success',
+        `Imported template "${templateName}" with ${paperData.length} papers, ${questionData.length} questions, and ${rubricData.length} rubrics.`,
+      );
+    } catch (error: any) {
+      console.error('Failed to import template:', error);
+      showErrorToast('Error', error.message || 'Failed to import template. Please check the file format.');
+    }
+  };
+
   if (!template) {
     if (isEditable && templates.length === 0) {
       return (
@@ -567,6 +978,24 @@ export const LecturerTaskContent: React.FC<LecturerTaskContentProps> = ({
           <AppText variant="body12pxRegular" style={styles.templateType}>
             Type: {template.templateType === 0 ? 'DSA' : 'WEBAPI'}
           </AppText>
+          {isCurrentTemplateEditable && (
+            <View style={styles.templateActionButtons}>
+              <AppButton
+                title="Download Template"
+                onPress={handleDownloadTemplate}
+                style={[styles.actionButton, { backgroundColor: AppColors.pr500 }]}
+                styleTitle={{ color: AppColors.white }}
+                leftIcon={<Feather name="download" size={s(16)} color={AppColors.white} />}
+              />
+              <AppButton
+                title="Import Template"
+                onPress={handleImportTemplate}
+                style={[styles.actionButton, { backgroundColor: AppColors.g500 }]}
+                styleTitle={{ color: AppColors.white }}
+                leftIcon={<Feather name="upload" size={s(16)} color={AppColors.white} />}
+              />
+            </View>
+          )}
         </View>
 
       <View style={styles.section}>
@@ -845,6 +1274,17 @@ const styles = StyleSheet.create({
   },
   templateType: {
     color: AppColors.n500,
+  },
+  templateActionButtons: {
+    flexDirection: 'row',
+    gap: s(12),
+    marginTop: vs(12),
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: vs(10),
+    paddingHorizontal: s(16),
+    borderRadius: s(8),
   },
   section: {
     marginBottom: vs(16),

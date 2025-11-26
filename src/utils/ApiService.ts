@@ -16,6 +16,7 @@ export interface ApiResponse<T = any> {
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: BACKEND_API_URL,
+  timeout: 30000, // 30 seconds timeout
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -66,12 +67,21 @@ axiosInstance.interceptors.response.use(
         error.response.data,
       );
     } else if (error.request) {
-      console.error(
-        `API No Response Error for ${error.config?.url}:`,
-        error.request,
-      );
-      errorMessage =
-        'No response received from the server. Check network connection.';
+      // Check if it's a timeout error
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = 'Request timeout. Please check your network connection.';
+        console.error(
+          `API Timeout Error for ${error.config?.url}:`,
+          error.message,
+        );
+      } else {
+        console.error(
+          `API No Response Error for ${error.config?.url}:`,
+          error.request,
+        );
+        errorMessage =
+          'No response received from the server. Check network connection.';
+      }
     } else {
       console.error('Axios Setup Error:', error.message);
       errorMessage = error.message;

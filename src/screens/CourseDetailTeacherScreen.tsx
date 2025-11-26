@@ -5,6 +5,7 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View
 } from 'react-native';
 import { s, vs } from 'react-native-size-matters';
@@ -20,19 +21,34 @@ import {
 } from '../assets/icons/courses';
 import CourseCardItem from '../components/courses/CourseCardItem';
 import AppText from '../components/texts/AppText';
-import { showErrorToast } from '../components/toasts/AppToast';
+import { showErrorToast, showSuccessToast } from '../components/toasts/AppToast';
 import AppSafeView from '../components/views/AppSafeView';
 import { AppColors } from '../styles/color';
 import ReadMoreText from '../components/common/ReadMoreText';
+import CustomModal from '../components/modals/CustomModal';
+import AppButton from '../components/buttons/AppButton';
+import { Checkbox } from 'react-native-paper';
+import { useGetCurrentLecturerId } from '../hooks/useGetCurrentLecturerId';
+import { exportLecturerReport, ExportTypes } from '../utils/exportReportHelper';
+import { getGradingGroups } from '../api/gradingGroupService';
 
 const CourseDetailTeacherScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const classId = (route.params as { classId?: string })?.classId;
+  const { lecturerId } = useGetCurrentLecturerId();
 
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(true);
+  const [exportModalVisible, setExportModalVisible] = useState<boolean>(false);
+  const [exportTypes, setExportTypes] = useState<ExportTypes>({
+    assignment: true,
+    lab: true,
+    practicalExam: true,
+  });
+  const [isExporting, setIsExporting] = useState(false);
+  const [gradingGroups, setGradingGroups] = useState<any[]>([]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -67,6 +83,21 @@ const CourseDetailTeacherScreen = () => {
       setIsMounted(false);
     };
   }, [classId]);
+
+  // Fetch grading groups for lecturer
+  useEffect(() => {
+    const fetchGradingGroups = async () => {
+      if (lecturerId) {
+        try {
+          const groups = await getGradingGroups({ lecturerId });
+          setGradingGroups(groups);
+        } catch (err) {
+          console.error('Failed to fetch grading groups:', err);
+        }
+      }
+    };
+    fetchGradingGroups();
+  }, [lecturerId]);
 
   // Define teacherNavigation inside the component to access classData
   const teacherNavigation = [
@@ -105,10 +136,10 @@ const CourseDetailTeacherScreen = () => {
       rightIcon: ExportExcelIcon,
       backGroundColor: AppColors.g100,
       rightIconColor: AppColors.g500,
-      linkTo: 'GradingHistoryScreen',
+      linkTo: undefined,
       params: { classId: classData?.id },
       onDownload: () => {
-        console.log('Download grade report');
+        setExportModalVisible(true);
       },
     },
   ];
@@ -215,6 +246,107 @@ const CourseDetailTeacherScreen = () => {
           </View>
         ))}
       </View>
+
+      {/* Export Report Modal */}
+      <CustomModal
+        visible={exportModalVisible}
+        onClose={() => setExportModalVisible(false)}
+        title="Select Export Types"
+        description="Choose which types of assessments to include in the report"
+        disableScrollView={true}
+      >
+        <View style={styles.checkboxContainer}>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setExportTypes({ ...exportTypes, assignment: !exportTypes.assignment })}
+          >
+            <Checkbox
+              status={exportTypes.assignment ? 'checked' : 'unchecked'}
+              onPress={() => setExportTypes({ ...exportTypes, assignment: !exportTypes.assignment })}
+              color={AppColors.pr500}
+            />
+            <AppText variant="body14pxRegular" style={styles.checkboxLabel}>
+              Assignment
+            </AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setExportTypes({ ...exportTypes, lab: !exportTypes.lab })}
+          >
+            <Checkbox
+              status={exportTypes.lab ? 'checked' : 'unchecked'}
+              onPress={() => setExportTypes({ ...exportTypes, lab: !exportTypes.lab })}
+              color={AppColors.pr500}
+            />
+            <AppText variant="body14pxRegular" style={styles.checkboxLabel}>
+              Lab
+            </AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setExportTypes({ ...exportTypes, practicalExam: !exportTypes.practicalExam })}
+          >
+            <Checkbox
+              status={exportTypes.practicalExam ? 'checked' : 'unchecked'}
+              onPress={() => setExportTypes({ ...exportTypes, practicalExam: !exportTypes.practicalExam })}
+              color={AppColors.pr500}
+            />
+            <AppText variant="body14pxRegular" style={styles.checkboxLabel}>
+              Practical Exam
+            </AppText>
+          </TouchableOpacity>
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: s(10),
+            justifyContent: 'center',
+            marginTop: vs(20),
+          }}
+        >
+          <AppButton
+            size="small"
+            title={isExporting ? 'Exporting...' : 'Export'}
+            onPress={async () => {
+              // Check if at least one type is selected
+              if (!exportTypes.assignment && !exportTypes.lab && !exportTypes.practicalExam) {
+                showErrorToast('Error', 'Please select at least one type to export');
+                return;
+              }
+
+              if (!classId) {
+                showErrorToast('Error', 'Class ID not found');
+                return;
+              }
+
+              setIsExporting(true);
+              setExportModalVisible(false);
+
+              try {
+                await exportLecturerReport(classId, exportTypes, gradingGroups);
+                showSuccessToast('Success', 'Full grade report exported successfully');
+              } catch (error: any) {
+                console.error('Export error:', error);
+                showErrorToast('Error', error.message || 'Export failed. Please try again.');
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+            disabled={isExporting}
+            style={{ minWidth: 'auto', width: s(100) }}
+          />
+          <AppButton
+            size="small"
+            title="Cancel"
+            variant="secondary"
+            onPress={() => setExportModalVisible(false)}
+            style={{
+              minWidth: 'auto',
+              width: s(100),
+            }}
+          />
+        </View>
+      </CustomModal>
     </ScrollView>
   );
 };
@@ -291,5 +423,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: s(10),
+  },
+  checkboxContainer: {
+    marginTop: vs(10),
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: vs(12),
+  },
+  checkboxLabel: {
+    marginLeft: s(8),
   },
 });
